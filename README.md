@@ -6,47 +6,74 @@ Multi-site dropshipping platform built with Turborepo monorepo.
 
 ```
 GPU1 (100.88.191.49)          GPU2 (100.110.74.114)
-├── vLLM Qwen 32B (:8000)    ├── Storefront (:3100)
-├── vLLM Qwen 7B (:8001)     ├── Medusa v2 API (:9000)
-├── ComfyUI (:8188)           ├── Postgres 17 (:5433)
-├── ERPNext                   ├── Redis 7 (:6379)
-└── Hearst Orchestrator       ├── Coolify (:8000)
-                              ├── vLLM GPU2 (:8000)
+├── vLLM Qwen 32B (:8000)    ├── Storefront OnePeace (:3100)
+├── vLLM Qwen 7B (:8001)     ├── Storefront Anime (:3101)
+├── ComfyUI (:8188)           ├── Medusa v2 API (:9000)
+├── ERPNext                   ├── OpenClaw Dropship (:3849)
+└── Hearst Orchestrator       ├── Postgres 17 (:5433)
+    (:3848)                   ├── Redis 7 (:6379)
+                              ├── Coolify (:8000)
 Supabase (managed)            └── vLLM embeddings/coding
-├── products (300+ items)
+├── products (527 items)
 ├── sites
 ├── catalogs
 ├── campaigns
 └── sync_logs
+
+Railway (backup)
+└── dropship-backend-backup (pending deploy)
 ```
 
 ## Monorepo Structure
 
 ```
 apps/
-  admin/        Next.js 14 admin dashboard
-  storefront/   Next.js storefront (deployed GPU2:3100)
-  medusa/       Medusa v2 config (standalone at ~/Desktop/dropship-medusa)
+  admin/              Next.js admin dashboard (:3200)
+  storefront/         Next.js storefront (deployed GPU2)
+  medusa/             Medusa v2 config (standalone Docker GPU2)
+  openclaw-dropship/  Express backend for dropshipping orchestration (:3849)
 
 packages/
-  core/         Shared types & DTOs
-  ui/           Shared React components
-  suppliers/    CJ Dropshipping, Shopify, AliExpress integrations
-  marketing/    Google Ads & Meta Marketing APIs
-  ai/           vLLM + ComfyUI integration
+  core/               Shared types & DTOs
+  ui/                 Shared React components
+  suppliers/          CJ Dropshipping, Shopify, AliExpress integrations
+  marketing/          Google Ads & Meta Marketing APIs
+  ai/                 vLLM + ComfyUI integration
+  design-systems/     10 design systems for storefront theming
 
-trigger/        Trigger.dev background jobs
+prompts/
+  agent-supplier-research.md   Prompt for supplier audit agent
+  agent-shop-creator.md        Prompt for shop creation agent
+
+scripts/
+  deploy-storefront.sh         Deploy storefront on GPU2
+  sync-products-to-medusa.ts   Sync products from Supabase to Medusa
 ```
 
-## Services Running on GPU2
+## Services
 
-| Service | Port | Image | Status |
-|---------|------|-------|--------|
-| Storefront | 3100 | `onepeace-storefront:v3` | `--network host` |
-| Medusa v2 | 9000 | `dropship-medusa:v1` | `--network host` |
-| Postgres 17 | 5433 | `postgres:17-alpine` | `--network host` |
-| Redis 7 | 6379 | `redis:7-alpine` | `--network host` |
-| Coolify | 8000 | `coollabsio/coolify` | bridge network |
+| Service | Host | Port | Status |
+|---------|------|------|--------|
+| Medusa v2 API | GPU2 | 9000 | LIVE |
+| OpenClaw Dropship | GPU2 | 3849 | LIVE |
+| Storefront OnePeace | GPU2 | 3100 | LIVE |
+| Storefront Anime | GPU2 | 3101 | LIVE |
+| Postgres 17 | GPU2 | 5433 | LIVE |
+| Redis 7 | GPU2 | 6379 | LIVE |
+| Coolify | GPU2 | 8000 | LIVE |
+| vLLM 32B | GPU1 | 8000 | LIVE (auth) |
+| vLLM 7B | GPU1 | 8001 | LIVE (auth) |
+| OpenClaw Original | GPU1 | 3848 | LIVE |
+| Admin Dashboard | local | 3200 | DEV |
+| Supabase | managed | — | LIVE |
+
+## Admin Dashboard Features
+
+- **Dashboard**: Stats, sites list, sync logs
+- **Quick Actions**: One-click shop creation, product search, supplier browse
+- **Product Discovery**: Trending products from Google Trends, CJ, AliExpress, TikTok with sources
+- **Shop Wizard**: 5-step pipeline (niche → design → config → resume → deploy)
+- **Discover Page**: Full-page trending product search with bulk import
 
 ## Environment Variables
 
@@ -54,6 +81,8 @@ Copy `.env.local` and set:
 - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`
 - `GPU1_HOST`, `GPU2_HOST`, `GPU_SSH_USER`
 - `CJ_DROPSHIPPING_API_KEY`
+- `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_ADMIN_ACCESS_TOKEN`
+- `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
 - `COOLIFY_URL`, `COOLIFY_TOKEN`
 
 ## Quick Start
@@ -65,17 +94,6 @@ npm run build        # Build all
 npm run type-check   # TypeScript checks
 ```
 
-## Medusa Backend (Standalone)
-
-```bash
-cd ~/Desktop/dropship-medusa
-npm run dev          # Dev mode on :9000
-npm run build        # Production build
-```
-
-Deployed on GPU2 via Docker: `http://100.110.74.114:9000`
-Admin dashboard: `http://100.110.74.114:9000/app`
-
 ## Deploy New Storefront
 
 ```bash
@@ -86,28 +104,43 @@ Admin dashboard: `http://100.110.74.114:9000/app`
 ./scripts/deploy-storefront.sh figurines 3103
 ```
 
-Deploys in ~5 seconds on GPU2 with `--network host`.
+Or use the **Shop Wizard** in the admin dashboard at `/sites/new`.
 
-## Sync Products to Medusa
+## Medusa Backend
 
-```bash
-npx tsx scripts/sync-products-to-medusa.ts
-```
+Deployed on GPU2 via Docker: `http://100.110.74.114:9000`
+- Admin: `http://100.110.74.114:9000/app`
+- Store API: `http://100.110.74.114:9000/store/products`
+- 527 products synced
+- Stripe live configured
 
-Syncs all products from Supabase into Medusa with categories and pricing.
+## OpenClaw Dropship Backend
+
+Express API on GPU2:3849 for dropshipping orchestration.
+- `GET /health` — service health
+- `GET /products/search?q=...` — search supplier products
+- `POST /shop/create` — full shop creation pipeline
+
+Persisted via crontab for auto-restart on reboot.
 
 ## Stripe Payments
 
-Add to Medusa `.env`:
-```
-STRIPE_API_KEY=sk_live_xxx
-STRIPE_WEBHOOK_SECRET=whsec_xxx
-```
-Then restart Medusa container.
+Live Stripe keys are configured in Medusa on GPU2.
+Publishable key available in `.env.local`.
 
-## Health Check
+## Design Systems
 
-`GET /api/health` on admin app returns status of all services.
+10 built-in design systems in `packages/design-systems/`:
+- `ds-01`: Minimal White
+- `ds-02`: Neo Tokyo
+- `ds-03`: Earth Organic
+- `ds-04`: Bold Pop
+- `ds-05`: Classic Commerce
+- `ds-06`: Luxury Gold
+- `ds-07`: Sport Energy
+- `ds-08`: Pastel Bloom
+- `ds-09`: Tech Dark
+- `ds-10`: Streetwear
 
 ## Docker Networking Note
 
