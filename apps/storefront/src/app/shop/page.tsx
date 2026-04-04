@@ -1,16 +1,82 @@
-import { getProducts } from '@/lib/products';
+import { getProducts, getCategories } from '@/lib/products';
 import { ProductGrid } from '@dropship/ui';
 
 export const dynamic = 'force-dynamic';
 
-export default async function ShopPage() {
-  const { products, total } = await getProducts({ limit: 24 });
+interface ShopPageProps {
+  searchParams: Promise<{ category?: string; search?: string; sort?: string; page?: string }>;
+}
+
+export default async function ShopPage({ searchParams }: ShopPageProps) {
+  const params = await searchParams;
+  const page = Number(params.page ?? '1');
+  const limit = 24;
+  const offset = (page - 1) * limit;
+
+  const [{ products, total }, categories] = await Promise.all([
+    getProducts({
+      category: params.category,
+      search: params.search,
+      sort: params.sort,
+      limit,
+      offset,
+    }),
+    getCategories(),
+  ]);
+
+  const totalPages = Math.ceil(total / limit);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
       <h1 className="mb-6 text-3xl font-bold">Boutique</h1>
-      <p className="mb-6 text-sm text-gray-500">{total} produits</p>
+
+      <div className="mb-6 flex flex-wrap items-center gap-3">
+        <form className="flex-1" method="GET">
+          <input
+            type="text"
+            name="search"
+            placeholder="Rechercher un produit..."
+            defaultValue={params.search ?? ''}
+            className="w-full rounded-lg border px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+          />
+        </form>
+
+        <div className="flex gap-2 overflow-x-auto">
+          <a
+            href="/shop"
+            className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition ${!params.category ? 'bg-black text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+          >
+            Tous
+          </a>
+          {categories.map(cat => (
+            <a
+              key={cat}
+              href={`/shop?category=${encodeURIComponent(cat)}`}
+              className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition ${params.category === cat ? 'bg-black text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            >
+              {cat}
+            </a>
+          ))}
+        </div>
+      </div>
+
+      <p className="mb-4 text-sm text-gray-500">{total} produit{total > 1 ? 's' : ''}</p>
+
       <ProductGrid items={products} />
+
+      {totalPages > 1 && (
+        <div className="mt-8 flex justify-center gap-2">
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+            <a
+              key={p}
+              href={`/shop?${new URLSearchParams({ ...(params.category ? { category: params.category } : {}), ...(params.search ? { search: params.search } : {}), page: String(p) }).toString()}`}
+              className={`rounded-lg px-3 py-1.5 text-sm font-medium ${p === page ? 'bg-black text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+            >
+              {p}
+            </a>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
