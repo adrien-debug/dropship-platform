@@ -1,6 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
   transpilePackages: ['@dropship/core', '@dropship/ui'],
   images: {
     remotePatterns: [{ protocol: 'https', hostname: '**' }],
