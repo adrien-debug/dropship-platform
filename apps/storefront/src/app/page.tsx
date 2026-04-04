@@ -1,5 +1,5 @@
-import { getProducts } from '@/lib/products';
-import { ProductGrid } from '@dropship/ui';
+import { getProducts } from '@/lib/medusa';
+import { ShopGrid } from './shop/shop-grid';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +18,7 @@ export default async function HomePage() {
 
       <section>
         <h2 className="mb-6 text-2xl font-bold">Produits populaires</h2>
-        <ProductGrid items={products} />
+        <ShopGrid products={products} />
       </section>
     </div>
   );

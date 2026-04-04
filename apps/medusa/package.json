@@ -1,0 +1,43 @@
+{
+  "name": "@dropship/medusa",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Medusa v2 e-commerce backend for dropship platform",
+  "scripts": {
+    "dev": "medusa develop",
+    "start": "medusa start",
+    "build": "medusa build",
+    "seed": "medusa exec ./src/scripts/seed.ts",
+    "db:migrate": "medusa migrations run",
+    "db:generate": "medusa migrations generate",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@medusajs/admin-sdk": "2.8.2",
+    "@medusajs/cli": "2.8.2",
+    "@medusajs/framework": "2.8.2",
+    "@medusajs/fulfillment-manual": "2.8.2",
+    "@medusajs/medusa": "2.8.2",
+    "@medusajs/payment-stripe": "2.8.2",
+    "@mikro-orm/cli": "^6.4.3",
+    "@mikro-orm/core": "^6.4.3",
+    "@mikro-orm/knex": "^6.4.3",
+    "@mikro-orm/migrations": "^6.4.3",
+    "@mikro-orm/postgresql": "^6.4.3",
+    "@swc/core": "^1.15.24",
+    "awilix": "^13.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.3.2",
+    "@types/react-dom": "^18.2.25",
+    "prop-types": "^15.8.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

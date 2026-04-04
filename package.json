@@ -17,5 +17,13 @@
     "turbo": "^2.5.0",
     "typescript": "^5.7.3"
   },
-  "packageManager": "npm@10.8.0"
+  "packageManager": "npm@10.8.0",
+  "dependencies": {
+    "@mikro-orm/cli": "^6.4.3",
+    "@mikro-orm/core": "^6.4.3",
+    "@mikro-orm/knex": "^6.4.3",
+    "@mikro-orm/migrations": "^6.4.3",
+    "@mikro-orm/postgresql": "^6.4.3",
+    "awilix": "^13.0.3"
+  }
 }

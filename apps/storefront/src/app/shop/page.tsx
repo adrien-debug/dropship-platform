@@ -1,5 +1,5 @@
-import { getProducts, getCategories } from '@/lib/products';
-import { ProductGrid } from '@dropship/ui';
+import { getProducts, getCategories } from '@/lib/medusa';
+import { ShopGrid } from './shop-grid';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,16 +13,22 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
   const limit = 24;
   const offset = (page - 1) * limit;
 
-  const [{ products, total }, categories] = await Promise.all([
-    getProducts({
-      category: params.category,
-      search: params.search,
-      sort: params.sort,
-      limit,
-      offset,
-    }),
+  const [categories, allCats] = await Promise.all([
+    (async () => {
+      const cats = await getCategories();
+      const found = cats.find((c) => c.name === params.category);
+      return found ? [found.id] : undefined;
+    })(),
     getCategories(),
   ]);
+
+  const { products, count: total } = await getProducts({
+    category_id: categories,
+    q: params.search,
+    limit,
+    offset,
+    order: params.sort === 'price-asc' ? 'variants.calculated_price.calculated_amount' : undefined,
+  });
 
   const totalPages = Math.ceil(total / limit);
 
@@ -48,13 +54,13 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
           >
             Tous
           </a>
-          {categories.map(cat => (
+          {allCats.map((cat) => (
             <a
-              key={cat}
-              href={`/shop?category=${encodeURIComponent(cat)}`}
-              className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition ${params.category === cat ? 'bg-black text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              key={cat.id}
+              href={`/shop?category=${encodeURIComponent(cat.name)}`}
+              className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition ${params.category === cat.name ? 'bg-black text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
             >
-              {cat}
+              {cat.name}
             </a>
           ))}
         </div>
@@ -62,14 +68,18 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
 
       <p className="mb-4 text-sm text-gray-500">{total} produit{total > 1 ? 's' : ''}</p>
 
-      <ProductGrid items={products} />
+      <ShopGrid products={products} />
 
       {totalPages > 1 && (
         <div className="mt-8 flex justify-center gap-2">
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+          {Array.from({ length: Math.min(totalPages, 10) }, (_, i) => i + 1).map((p) => (
             <a
               key={p}
-              href={`/shop?${new URLSearchParams({ ...(params.category ? { category: params.category } : {}), ...(params.search ? { search: params.search } : {}), page: String(p) }).toString()}`}
+              href={`/shop?${new URLSearchParams({
+                ...(params.category ? { category: params.category } : {}),
+                ...(params.search ? { search: params.search } : {}),
+                page: String(p),
+              }).toString()}`}
               className={`rounded-lg px-3 py-1.5 text-sm font-medium ${p === page ? 'bg-black text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
             >
               {p}

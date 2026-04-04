@@ -22,6 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 function Sidebar() {
   const links = [
     { href: '/', label: 'Dashboard', icon: '📊' },
+    { href: '/discover', label: 'Decouverte', icon: '🔥' },
     { href: '/sites', label: 'Sites', icon: '🌐' },
     { href: '/catalogs', label: 'Catalogues', icon: '📦' },
     { href: '/products', label: 'Produits', icon: '🛍️' },

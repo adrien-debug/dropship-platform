@@ -12,18 +12,36 @@ function getSupabase(): SupabaseClient {
   return _supabase;
 }
 
+const FALLBACK: Record<string, unknown> = {
+  name: 'One Piece Shop',
+  slug: 'onepiece-shop',
+  theme: {
+    brand: 'One Piece',
+    colors: { primary: '#DC2626', secondary: '#1E3A5F', accent: '#F59E0B' },
+    fonts: { heading: 'Bangers', body: 'Inter' },
+  },
+  config: { locale: 'fr', currency: 'EUR' },
+};
+
 let cachedConfig: Record<string, unknown> | null = null;
 
 export async function getSiteConfig() {
   if (cachedConfig) return cachedConfig;
   const siteId = process.env.SITE_ID;
-  if (!siteId) return { name: 'Store', theme: {}, config: {} };
+  if (!siteId) return FALLBACK;
 
   try {
-    const { data } = await getSupabase().from('sites').select('*').eq('id', siteId).single();
+    const { data, error } = await getSupabase().from('sites').select('*').eq('id', siteId).single();
+    if (error) {
+      console.error('[site-config] Supabase error, using fallback:', error.message);
+      cachedConfig = FALLBACK;
+      return FALLBACK;
+    }
     cachedConfig = data;
-    return data ?? { name: 'Store', theme: {}, config: {} };
-  } catch {
-    return { name: 'Store', theme: {}, config: {} };
+    return data ?? FALLBACK;
+  } catch (err) {
+    console.error('[site-config] Exception, using fallback:', err);
+    cachedConfig = FALLBACK;
+    return FALLBACK;
   }
 }

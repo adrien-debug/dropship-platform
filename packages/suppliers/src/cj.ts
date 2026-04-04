@@ -5,8 +5,9 @@ interface CJConfig {
 }
 
 export class CJDropshippingClient implements SupplierClient {
-  private baseUrl = 'https://developers.cjdropshipping.com/api/v2';
+  private baseUrl = 'https://developers.cjdropshipping.com/api2.0/v1';
   private accessToken: string | null = null;
+  private refreshToken: string | null = null;
   private tokenExpiry = 0;
   private apiKey: string;
 
@@ -24,12 +25,19 @@ export class CJDropshippingClient implements SupplierClient {
       body: JSON.stringify({ apiKey: this.apiKey }),
     });
     if (!res.ok) throw new Error(`CJ Auth error: ${res.status}`);
-    const json = (await res.json()) as { result?: boolean; code?: number; message?: string; data?: { accessToken: string } };
+    const json = (await res.json()) as {
+      result?: boolean;
+      code?: number;
+      message?: string;
+      data?: { accessToken: string; refreshToken?: string; accessTokenExpiryDate?: string };
+    };
     if (!json.result || json.code !== 200) {
       throw new Error(`CJ Auth failed: ${json.message ?? JSON.stringify(json)}`);
     }
     this.accessToken = json.data!.accessToken;
-    this.tokenExpiry = Date.now() + 3600_000;
+    this.refreshToken = json.data!.refreshToken ?? null;
+    const expiry = json.data!.accessTokenExpiryDate;
+    this.tokenExpiry = expiry ? new Date(expiry).getTime() - 60_000 : Date.now() + 14 * 86400_000;
     return this.accessToken!;
   }
 

@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { getSiteConfig } from '@/lib/site-config';
+import { CartProvider } from '@/lib/cart-context';
+import { CartBadge } from './cart-badge';
 import './globals.css';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -17,19 +19,24 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="fr">
       <body className="min-h-screen bg-white text-gray-900 antialiased">
-        <header className="border-b">
-          <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
-            <a href="/" className="text-xl font-bold">{siteName}</a>
-            <nav className="flex items-center gap-6 text-sm">
-              <a href="/shop" className="hover:text-gray-600">Boutique</a>
-              <a href="/cart" className="hover:text-gray-600">Panier</a>
-            </nav>
-          </div>
-        </header>
-        <main>{children}</main>
-        <footer className="border-t py-8 text-center text-sm text-gray-500">
-          {siteName} — Tous droits reserves
-        </footer>
+        <CartProvider>
+          <header className="border-b">
+            <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
+              <a href="/" className="text-xl font-bold">{siteName}</a>
+              <nav className="flex items-center gap-6 text-sm">
+                <a href="/shop" className="hover:text-gray-600">Boutique</a>
+                <a href="/cart" className="relative hover:text-gray-600">
+                  Panier
+                  <CartBadge />
+                </a>
+              </nav>
+            </div>
+          </header>
+          <main>{children}</main>
+          <footer className="border-t py-8 text-center text-sm text-gray-500">
+            {siteName} — Tous droits reserves
+          </footer>
+        </CartProvider>
       </body>
     </html>
   );

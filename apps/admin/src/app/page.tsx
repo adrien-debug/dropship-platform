@@ -1,10 +1,12 @@
 import { createClient } from '@/lib/supabase-server';
+import { QuickActions } from './quick-actions';
+import { ProductSearch } from './product-search';
 
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
   const supabase = createClient();
-  
+
   const [sitesRes, catalogsRes, campaignsRes] = await Promise.all([
     supabase.from('sites').select('*', { count: 'exact' }),
     supabase.from('catalogs').select('*', { count: 'exact' }),
@@ -21,6 +23,8 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-8">
       <h2 className="text-2xl font-bold">Dashboard</h2>
+
+      {/* Stats */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {stats.map(stat => (
           <div key={stat.label} className="rounded-xl border bg-white p-6 shadow-sm">
@@ -31,10 +35,19 @@ export default async function DashboardPage() {
         ))}
       </div>
 
+      {/* Quick Actions */}
+      <QuickActions />
+
+      {/* Product Discovery */}
+      <ProductSearch />
+
+      {/* Sites + Syncs */}
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-xl border bg-white p-6 shadow-sm">
           <h3 className="mb-4 font-semibold">Sites recents</h3>
-          {(sitesRes.data ?? []).slice(0, 5).map(site => (
+          {(sitesRes.data ?? []).length === 0 ? (
+            <p className="text-sm text-gray-500">Aucun site</p>
+          ) : (sitesRes.data ?? []).slice(0, 5).map(site => (
             <div key={site.id} className="flex items-center justify-between border-b py-3 last:border-0">
               <div>
                 <p className="font-medium">{site.name}</p>

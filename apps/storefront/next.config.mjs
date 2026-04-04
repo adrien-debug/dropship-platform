@@ -4,9 +4,8 @@ const nextConfig = {
   images: {
     remotePatterns: [{ protocol: 'https', hostname: '**' }],
   },
-  env: {
-    SITE_ID: process.env.SITE_ID,
-    SITE_SLUG: process.env.SITE_SLUG,
+  experimental: {
+    serverComponentsExternalPackages: ['@supabase/supabase-js'],
   },
 };
 
