@@ -120,4 +120,80 @@ export async function removeLineItem(cartId: string, lineItemId: string): Promis
   return (data.cart || {}) as Json;
 }
 
+/* ── Checkout helpers ── */
+
+export interface ShippingOption {
+  id: string;
+  name: string;
+  amount: number;
+  currency_code: string;
+}
+
+export async function updateCartEmail(cartId: string, email: string): Promise<Json> {
+  const data = await medusaFetch(`/store/carts/${cartId}`, {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+  return (data.cart || {}) as Json;
+}
+
+export async function addShippingAddress(
+  cartId: string,
+  address: {
+    first_name: string;
+    last_name: string;
+    address_1: string;
+    city: string;
+    country_code: string;
+    postal_code: string;
+    phone?: string;
+  },
+): Promise<Json> {
+  const data = await medusaFetch(`/store/carts/${cartId}`, {
+    method: 'POST',
+    body: JSON.stringify({ shipping_address: address, billing_address: address }),
+  });
+  return (data.cart || {}) as Json;
+}
+
+export async function getShippingOptions(cartId: string): Promise<ShippingOption[]> {
+  const data = await medusaFetch(`/store/shipping-options?cart_id=${cartId}`);
+  return (data.shipping_options || []) as ShippingOption[];
+}
+
+export async function addShippingMethod(cartId: string, optionId: string): Promise<Json> {
+  const data = await medusaFetch(`/store/carts/${cartId}/shipping-methods`, {
+    method: 'POST',
+    body: JSON.stringify({ option_id: optionId }),
+  });
+  return (data.cart || {}) as Json;
+}
+
+export async function createPaymentCollection(cartId: string): Promise<string> {
+  const data = await medusaFetch('/store/payment-collections', {
+    method: 'POST',
+    body: JSON.stringify({ cart_id: cartId }),
+  });
+  const pc = (data.payment_collection || {}) as { id: string };
+  return pc.id;
+}
+
+export async function initPaymentSession(paymentCollectionId: string, providerId = 'pp_stripe_stripe'): Promise<Json> {
+  const data = await medusaFetch(`/store/payment-collections/${paymentCollectionId}/payment-sessions`, {
+    method: 'POST',
+    body: JSON.stringify({ provider_id: providerId }),
+  });
+  return (data.payment_collection || {}) as Json;
+}
+
+export async function completeCart(cartId: string): Promise<{ type: string; data: Json }> {
+  const data = await medusaFetch(`/store/carts/${cartId}/complete`, {
+    method: 'POST',
+  });
+  return {
+    type: (data.type as string) || 'cart',
+    data: (data.order || data.cart || data.data || {}) as Json,
+  };
+}
+
 export { MEDUSA_URL, PUB_KEY, REGION_ID };

@@ -33,24 +33,27 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
   const totalPages = Math.ceil(total / limit);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
-      <h1 className="mb-6 text-3xl font-bold">Boutique</h1>
+    <div className="mx-auto max-w-7xl px-4 py-ds-xl">
+      <h1 className="mb-ds-lg" style={{ fontSize: 'var(--ds-size-h1)', fontWeight: 'var(--ds-weight-black, 900)', letterSpacing: '-2px' }}>
+        Boutique
+      </h1>
 
-      <div className="mb-6 flex flex-wrap items-center gap-3">
+      <div className="mb-ds-lg flex flex-wrap items-center gap-3">
         <form className="flex-1" method="GET">
           <input
             type="text"
             name="search"
             placeholder="Rechercher un produit..."
             defaultValue={params.search ?? ''}
-            className="w-full rounded-lg border px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+            className="w-full border border-[var(--ds-border)] bg-[var(--ds-bg)] px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ds-accent)]"
+            style={{ borderRadius: 'var(--ds-radius)', fontFamily: 'var(--ds-font-primary)' }}
           />
         </form>
 
         <div className="flex gap-2 overflow-x-auto">
           <a
             href="/shop"
-            className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition ${!params.category ? 'bg-black text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            className={`ds-btn whitespace-nowrap text-sm ${!params.category ? 'ds-btn-primary' : ''}`}
           >
             Tous
           </a>
@@ -58,7 +61,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
             <a
               key={cat.id}
               href={`/shop?category=${encodeURIComponent(cat.name)}`}
-              className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition ${params.category === cat.name ? 'bg-black text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              className={`ds-btn whitespace-nowrap text-sm ${params.category === cat.name ? 'ds-btn-primary' : ''}`}
             >
               {cat.name}
             </a>
@@ -66,12 +69,14 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
         </div>
       </div>
 
-      <p className="mb-4 text-sm text-gray-500">{total} produit{total > 1 ? 's' : ''}</p>
+      <p className="mb-4 text-sm text-[var(--ds-text-muted)]">
+        {total} produit{total > 1 ? 's' : ''}
+      </p>
 
       <ShopGrid products={products} />
 
       {totalPages > 1 && (
-        <div className="mt-8 flex justify-center gap-2">
+        <div className="mt-ds-xl flex justify-center gap-2">
           {Array.from({ length: Math.min(totalPages, 10) }, (_, i) => i + 1).map((p) => (
             <a
               key={p}
@@ -80,7 +85,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
                 ...(params.search ? { search: params.search } : {}),
                 page: String(p),
               }).toString()}`}
-              className={`rounded-lg px-3 py-1.5 text-sm font-medium ${p === page ? 'bg-black text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+              className={`ds-btn text-sm ${p === page ? 'ds-btn-primary' : ''}`}
             >
               {p}
             </a>

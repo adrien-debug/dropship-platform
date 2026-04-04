@@ -8,15 +8,16 @@ interface ServiceCheck {
   details?: string;
 }
 
-async function checkService(name: string, url: string, timeout = 5000): Promise<ServiceCheck> {
+async function checkService(name: string, url: string, timeout = 5000, headers?: Record<string, string>): Promise<ServiceCheck> {
   const start = Date.now();
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(timeout) });
+    const res = await fetch(url, { signal: AbortSignal.timeout(timeout), headers });
     const latencyMs = Date.now() - start;
+    const isAuthProtected = res.status === 401 || res.status === 403;
     return {
       name,
       url,
-      status: res.ok ? 'up' : 'degraded',
+      status: res.ok || isAuthProtected ? 'up' : 'degraded',
       latencyMs,
       details: `HTTP ${res.status}`,
     };
@@ -41,7 +42,12 @@ export async function GET() {
     checkService('vLLM GPU1 (7B)', 'http://100.88.191.49:8001/v1/models'),
     checkService('vLLM GPU2', 'http://100.110.74.114:8000/v1/models'),
     checkService('ComfyUI', 'http://100.88.191.49:8188'),
-    checkService('Supabase', `${process.env.SUPABASE_URL || 'https://tbachsziohjydqisbfio.supabase.co'}/rest/v1/`, 3000),
+    checkService(
+      'Supabase',
+      `${process.env.SUPABASE_URL || 'https://tbachsziohjydqisbfio.supabase.co'}/rest/v1/`,
+      3000,
+      { apikey: process.env.SUPABASE_ANON_KEY || '' },
+    ),
   ]);
 
   const allUp = checks.every((c) => c.status === 'up');

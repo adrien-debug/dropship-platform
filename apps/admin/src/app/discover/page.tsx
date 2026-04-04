@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { Suspense, useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 interface TrendingProduct {
@@ -32,6 +32,14 @@ const CATEGORIES = [
 ];
 
 export default function DiscoverPage() {
+  return (
+    <Suspense fallback={<div className="flex h-64 items-center justify-center text-gray-400">Chargement...</div>}>
+      <DiscoverContent />
+    </Suspense>
+  );
+}
+
+function DiscoverContent() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
 

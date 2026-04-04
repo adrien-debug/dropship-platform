@@ -5,18 +5,29 @@ import { ProductSearch } from './product-search';
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
-  const supabase = createClient();
+  interface SiteRow { id: string; name: string; domain?: string; slug?: string; status?: string; [key: string]: unknown; }
+  let sitesRes: { data: SiteRow[] | null; count: number | null } = { data: [], count: 0 };
+  let catalogsCount = 0;
+  let campaignsCount = 0;
 
-  const [sitesRes, catalogsRes, campaignsRes] = await Promise.all([
-    supabase.from('sites').select('*', { count: 'exact' }),
-    supabase.from('catalogs').select('*', { count: 'exact' }),
-    supabase.from('campaigns').select('*', { count: 'exact' }),
-  ]);
+  try {
+    const supabase = createClient();
+    const [s, c, camp] = await Promise.all([
+      supabase.from('sites').select('*', { count: 'exact' }),
+      supabase.from('catalogs').select('*', { count: 'exact', head: true }),
+      supabase.from('campaigns').select('*', { count: 'exact', head: true }),
+    ]);
+    sitesRes = { data: s.data, count: s.count };
+    catalogsCount = c.count ?? 0;
+    campaignsCount = camp.count ?? 0;
+  } catch (err) {
+    console.error('[dashboard] Supabase error:', err instanceof Error ? err.message : err);
+  }
 
   const stats = [
     { label: 'Sites', value: sitesRes.count ?? 0, color: 'bg-blue-500' },
-    { label: 'Catalogues', value: catalogsRes.count ?? 0, color: 'bg-green-500' },
-    { label: 'Campagnes', value: campaignsRes.count ?? 0, color: 'bg-purple-500' },
+    { label: 'Catalogues', value: catalogsCount, color: 'bg-green-500' },
+    { label: 'Campagnes', value: campaignsCount, color: 'bg-purple-500' },
     { label: 'Sites live', value: (sitesRes.data ?? []).filter(s => s.status === 'live').length, color: 'bg-emerald-500' },
   ];
 
@@ -58,7 +69,7 @@ export default async function DashboardPage() {
                 site.status === 'deploying' ? 'bg-yellow-100 text-yellow-700' :
                 'bg-gray-100 text-gray-700'
               }`}>
-                {site.status}
+                {String(site.status ?? 'draft')}
               </span>
             </div>
           ))}

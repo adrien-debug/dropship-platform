@@ -18,6 +18,7 @@ const MEDUSA_REGION_ID =
 const GPU2_HOST = process.env['GPU2_HOST'] ?? '100.110.74.114';
 const SSH_USER = process.env['GPU_SSH_USER'] ?? 'comput3';
 const STOREFRONT_IMAGE = 'onepeace-storefront:v4';
+const STRIPE_PK = process.env['NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY'] ?? '';
 
 interface ProductInput {
   title: string;
@@ -123,6 +124,7 @@ async function deployStorefront(
   slug: string,
   port: number,
   salesChannelId: string,
+  designSystemId: string = 'swiss',
 ): Promise<string> {
   const containerName = `storefront-${slug}`;
 
@@ -138,7 +140,9 @@ async function deployStorefront(
     `-e NEXT_PUBLIC_MEDUSA_URL=${MEDUSA_URL}`,
     `-e NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=${MEDUSA_PUBLISHABLE_KEY}`,
     `-e NEXT_PUBLIC_MEDUSA_REGION_ID=${MEDUSA_REGION_ID}`,
+    `-e DESIGN_SYSTEM=${designSystemId}`,
     `-e NODE_ENV=production`,
+    ...(STRIPE_PK ? [`-e NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${STRIPE_PK}`] : []),
     STOREFRONT_IMAGE,
     `npx next start -p ${port}`,
   ].join(' ');
@@ -222,7 +226,7 @@ export async function POST(req: NextRequest) {
     // Step 4: Deploy via Docker SSH
     currentStep = 'deploy';
     console.log('[shops/create] Step 4: Deploying on GPU2...');
-    const containerId = await deployStorefront(slug, port, salesChannelId);
+    const containerId = await deployStorefront(slug, port, salesChannelId, designSystem ?? 'swiss');
     console.log(`[shops/create] Container: ${containerId.slice(0, 12)}`);
 
     // Step 5: Health check

@@ -9,7 +9,11 @@ export default function SitesPage() {
   const [showCreate, setShowCreate] = useState(false);
 
   useEffect(() => {
-    fetch('/api/sites').then(r => r.json()).then(d => { setSites(d.sites ?? []); setLoading(false); });
+    fetch('/api/sites')
+      .then(r => r.json())
+      .then(d => setSites(d.sites ?? []))
+      .catch(() => setSites([]))
+      .finally(() => setLoading(false));
   }, []);
 
   return (

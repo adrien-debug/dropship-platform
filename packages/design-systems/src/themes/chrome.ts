@@ -1,0 +1,42 @@
+import type { DesignSystem } from '../types';
+
+export const chrome: DesignSystem = {
+  id: 'chrome',
+  num: '05',
+  name: 'Chrome Velvet',
+  category: 'editorial',
+  description: 'Minimalisme luxe, transparences, lignes ultra-fines.',
+  audience: ['luxury', 'jewelry', 'watches', 'premium', 'minimalist'],
+  darkMode: true,
+  colors: {
+    accent: '#888888',
+    bg: '#0a0a0a',
+    bgAlt: '#111111',
+    text: '#eeeeee',
+    textSecondary: '#aaaaaa',
+    textMuted: '#555555',
+    border: 'rgba(255,255,255,0.05)',
+    borderHover: 'rgba(255,255,255,0.1)',
+    glassBg: 'rgba(255,255,255,0.02)',
+    glassBorder: 'rgba(255,255,255,0.2)',
+  },
+  typography: {
+    fontPrimary: "'Inter', sans-serif",
+    sizeH1: '5rem',
+    sizeH2: '2.5rem',
+    sizeBody: '1rem',
+    weightBlack: '300',
+    weightRegular: '200',
+    letterSpacingWide: '8px',
+  },
+  spacing: { sm: '15px', md: '30px', lg: '60px', xl: '80px' },
+  components: {
+    borderWidth: '1px',
+    radius: '5px',
+    radiusGlass: '20px',
+    shadow: 'none',
+    transition: '0.8s ease',
+    btnPadding: '18px 50px',
+    backdropBlur: 'blur(20px)',
+  },
+};

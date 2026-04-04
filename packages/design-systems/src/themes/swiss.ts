@@ -1,0 +1,41 @@
+import type { DesignSystem } from '../types';
+
+export const swiss: DesignSystem = {
+  id: 'swiss',
+  num: '01',
+  name: 'Swiss Tech Master',
+  category: 'tech',
+  description: 'Grille, precision, contraste binaire. Design systeme industriel.',
+  audience: ['tech', 'saas', 'agency', 'corporate', 'minimalist'],
+  darkMode: false,
+  colors: {
+    accent: '#FF3D00',
+    bg: '#ffffff',
+    bgAlt: '#f0f0f0',
+    text: '#000000',
+    textSecondary: '#333333',
+    textMuted: '#666666',
+    border: '#000000',
+    borderLight: '#dddddd',
+  },
+  typography: {
+    fontPrimary: "'Inter', sans-serif",
+    sizeH1: '6rem',
+    sizeH2: '2.5rem',
+    sizeH3: '1.2rem',
+    sizeBody: '1.1rem',
+    weightBlack: '900',
+    weightBold: '700',
+    weightRegular: '400',
+    letterSpacingTight: '-4px',
+    letterSpacingWide: '6px',
+  },
+  spacing: { sm: '15px', md: '20px', lg: '40px', xl: '80px' },
+  components: {
+    borderWidth: '1px',
+    radius: '0px',
+    shadow: '15px 15px 0 #FF3D00',
+    transition: '0.2s ease',
+    btnPadding: '20px 40px',
+  },
+};

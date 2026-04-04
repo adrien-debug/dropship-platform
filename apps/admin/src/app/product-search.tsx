@@ -97,7 +97,7 @@ export function ProductSearch() {
             onClick={() => {
               const newCat = category === cat ? null : cat;
               setCategory(newCat);
-              search(query || cat, newCat);
+              search(query || cat, newCat ?? undefined);
             }}
             className={`rounded-full px-3 py-1 text-sm transition ${
               category === cat

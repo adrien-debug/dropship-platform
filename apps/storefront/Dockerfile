@@ -5,10 +5,12 @@ FROM base AS builder
 WORKDIR /app
 COPY package.json turbo.json tsconfig.base.json ./
 COPY packages/core/package.json ./packages/core/
+COPY packages/design-systems/package.json ./packages/design-systems/
 COPY packages/ui/package.json ./packages/ui/
 COPY apps/storefront/package.json ./apps/storefront/
 RUN npm install --workspaces --include-workspace-root --legacy-peer-deps
 COPY packages/core/ ./packages/core/
+COPY packages/design-systems/ ./packages/design-systems/
 COPY packages/ui/ ./packages/ui/
 COPY apps/storefront/ ./apps/storefront/
 ENV NEXT_TELEMETRY_DISABLED=1

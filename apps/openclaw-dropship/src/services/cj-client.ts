@@ -1,4 +1,4 @@
-const CJ_BASE_URL = 'https://developers.cjdropshipping.com/api/2.0';
+const CJ_BASE_URL = 'https://developers.cjdropshipping.com/api2.0/v1';
 const CJ_API_KEY = process.env['CJ_API_KEY'] ?? '';
 
 interface CJProduct {
@@ -37,7 +37,7 @@ export class CJClient {
     const res = await fetch(`${CJ_BASE_URL}/authentication/getAccessToken`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: '', password: '', refreshToken: this.apiKey }),
+      body: JSON.stringify({ apiKey: this.apiKey }),
       signal: AbortSignal.timeout(10_000),
     });
 
@@ -45,9 +45,11 @@ export class CJClient {
       throw new Error(`CJ auth failed: ${res.status}`);
     }
 
-    const data = (await res.json()) as CJAccessTokenResponse;
-    if (data.code !== 200 || !data.data?.accessToken) {
-      throw new Error(`CJ auth error: code=${data.code}`);
+    const raw = await res.json();
+    const data = raw as CJAccessTokenResponse;
+    if (!data.data?.accessToken) {
+      console.error('[cj-client] Auth response:', JSON.stringify(raw).slice(0, 500));
+      throw new Error(`CJ auth error: code=${data.code}, result=${JSON.stringify(raw).slice(0, 200)}`);
     }
 
     this.accessToken = data.data.accessToken;
@@ -78,10 +80,12 @@ export class CJClient {
   }
 
   async searchProducts(query: string, page = 1, limit = 20): Promise<CJProduct[]> {
-    const data = await this.request<CJProductListResponse>('/product/list', {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
+    const params = new URLSearchParams({
+      productNameEn: query,
+      pageNum: String(page),
+      pageSize: String(limit),
     });
+    const data = await this.request<CJProductListResponse>(`/product/list?${params.toString()}`);
 
     if (data.code !== 200) {
       throw new Error(`CJ product search error: ${data.message ?? `code=${data.code}`}`);

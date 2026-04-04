@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import { healthRouter } from './routes/health.js';
 import { productSearchRouter } from './routes/product-search.js';
 import { shopCreatorRouter } from './routes/shop-creator.js';
+import { shopExecutorRouter } from './routes/shop-executor.js';
 
 const app = express();
 const PORT = parseInt(process.env['PORT'] ?? '3849', 10);
@@ -16,6 +17,7 @@ app.use(express.json({ limit: '1mb' }));
 app.use('/health', healthRouter);
 app.use('/products', productSearchRouter);
 app.use('/shop', shopCreatorRouter);
+app.use('/shop', shopExecutorRouter);
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Not found' });

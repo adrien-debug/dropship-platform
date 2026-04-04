@@ -22,30 +22,44 @@ productSearchRouter.get('/search', async (req: Request, res: Response) => {
   const { q, supplier, page, limit } = parsed.data;
   const results: { source: string; products: unknown[] }[] = [];
 
-  try {
-    if (supplier === 'cj' || supplier === 'all') {
+  const errors: { source: string; error: string }[] = [];
+
+  if (supplier === 'cj' || supplier === 'all') {
+    try {
       const cj = new CJClient();
       const cjProducts = await cj.searchProducts(q, page, limit);
       results.push({ source: 'cj', products: cjProducts });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[product-search] CJ failed: ${msg}`);
+      errors.push({ source: 'cj', error: msg });
     }
+  }
 
-    if (supplier === 'medusa' || supplier === 'all') {
+  if (supplier === 'medusa' || supplier === 'all') {
+    try {
       const medusa = new MedusaClient();
       const medusaProducts = await medusa.searchProducts(q, page, limit);
       results.push({ source: 'medusa', products: medusaProducts });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[product-search] Medusa failed: ${msg}`);
+      errors.push({ source: 'medusa', error: msg });
     }
-
-    res.json({
-      query: q,
-      supplier,
-      page,
-      limit,
-      results,
-      total: results.reduce((sum, r) => sum + r.products.length, 0),
-    });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    console.error(`[product-search] Search failed for q="${q}": ${message}`);
-    res.status(502).json({ error: 'Supplier search failed', message });
   }
+
+  if (results.length === 0 && errors.length > 0) {
+    res.status(502).json({ error: 'All suppliers failed', errors });
+    return;
+  }
+
+  res.json({
+    query: q,
+    supplier,
+    page,
+    limit,
+    results,
+    errors: errors.length > 0 ? errors : undefined,
+    total: results.reduce((sum, r) => sum + r.products.length, 0),
+  });
 });

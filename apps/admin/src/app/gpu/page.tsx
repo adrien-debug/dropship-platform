@@ -2,29 +2,22 @@
 
 import { useEffect, useState } from 'react';
 
-interface GpuInfo {
-  index: number;
-  name: string;
-  temperature: number;
-  fanSpeed: number;
-  utilization: number;
-  memoryUsed: number;
-  memoryTotal: number;
-  powerDraw: number;
+interface ModelInfo {
+  id: string;
+  port: number;
+  status: 'up' | 'down';
 }
 
-interface NodeStatus {
-  id: string;
+interface NodeInfo {
   name: string;
-  online: boolean;
-  gpus: GpuInfo[];
-  cpuLoad: number[];
-  ramUsedGb: number;
-  ramTotalGb: number;
+  host: string;
+  status: string;
+  models?: ModelInfo[];
+  services?: string[];
 }
 
 export default function GpuPage() {
-  const [nodes, setNodes] = useState<NodeStatus[]>([]);
+  const [nodes, setNodes] = useState<NodeInfo[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,7 +30,7 @@ export default function GpuPage() {
       setLoading(false);
     };
     fetchStatus();
-    const interval = setInterval(fetchStatus, 5000);
+    const interval = setInterval(fetchStatus, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -51,36 +44,49 @@ export default function GpuPage() {
           Impossible de se connecter aux serveurs GPU. Verifiez la connexion Tailscale.
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="grid gap-6 lg:grid-cols-2">
           {nodes.map(node => (
-            <div key={node.id} className="rounded-xl border bg-white p-6 shadow-sm">
+            <div key={node.name} className="rounded-xl border bg-white p-6 shadow-sm">
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-lg font-semibold">{node.name} ({node.id})</h3>
-                <span className={`h-3 w-3 rounded-full ${node.online ? 'bg-green-500' : 'bg-red-500'}`} />
+                <div>
+                  <h3 className="text-lg font-semibold">{node.name}</h3>
+                  <p className="text-xs text-gray-500 font-mono">{node.host}</p>
+                </div>
+                <span className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+                  node.status === 'up' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                }`}>
+                  <span className={`h-2 w-2 rounded-full ${node.status === 'up' ? 'bg-green-500' : 'bg-red-500'}`} />
+                  {node.status === 'up' ? 'Online' : 'Offline'}
+                </span>
               </div>
-              <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-                {node.gpus.map(gpu => (
-                  <div key={gpu.index} className="rounded-lg border p-4">
-                    <p className="text-xs text-gray-500">GPU {gpu.index}</p>
-                    <p className="font-medium">{gpu.name}</p>
-                    <div className="mt-2 space-y-1 text-sm">
-                      <div className="flex justify-between">
-                        <span>VRAM</span>
-                        <span>{(gpu.memoryUsed/1024).toFixed(1)}/{(gpu.memoryTotal/1024).toFixed(1)} GB</span>
+
+              {node.models && node.models.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-gray-700">Modeles vLLM</h4>
+                  {node.models.map(model => (
+                    <div key={model.port} className="flex items-center justify-between rounded-lg border p-3">
+                      <div>
+                        <p className="text-sm font-medium">{model.id}</p>
+                        <p className="text-xs text-gray-500">Port {model.port}</p>
                       </div>
-                      <div className="h-2 overflow-hidden rounded-full bg-gray-100">
-                        <div className="h-full rounded-full bg-blue-500" style={{ width: `${(gpu.memoryUsed/gpu.memoryTotal)*100}%` }} />
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Temp</span>
-                        <span className={gpu.temperature > 80 ? 'text-red-600 font-bold' : ''}>{gpu.temperature}C</span>
-                      </div>
-                      <div className="flex justify-between"><span>Power</span><span>{gpu.powerDraw}W</span></div>
-                      <div className="flex justify-between"><span>Util</span><span>{gpu.utilization}%</span></div>
+                      <span className={`h-2.5 w-2.5 rounded-full ${model.status === 'up' ? 'bg-green-500' : 'bg-red-500'}`} />
                     </div>
+                  ))}
+                </div>
+              )}
+
+              {node.services && node.services.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-gray-700">Services</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {node.services.map(svc => (
+                      <span key={svc} className="rounded-lg border bg-gray-50 px-3 py-1.5 text-xs font-medium">
+                        {svc}
+                      </span>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
             </div>
           ))}
         </div>

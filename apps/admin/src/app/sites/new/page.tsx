@@ -1,108 +1,23 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-
-// ---------------------------------------------------------------------------
-// Design Systems (hardcoded)
-// ---------------------------------------------------------------------------
-
-const DESIGN_SYSTEMS = [
-  {
-    id: 'ds-minimal',
-    name: 'Minimal White',
-    description: 'Epure, typographie forte, fond blanc. Ideal pour le luxe accessible.',
-    colors: ['#ffffff', '#1a1a1a', '#f5f5f5', '#e0e0e0', '#c0a060'],
-    audience: ['Luxe', 'Mode', 'Beaute'],
-    niches: ['cosmetique', 'mode', 'bijoux', 'beaute', 'luxe'],
-  },
-  {
-    id: 'ds-dark-edge',
-    name: 'Dark Edge',
-    description: 'Sombre et audacieux avec accents neon. Parfait pour le gaming et la tech.',
-    colors: ['#0d0d0d', '#1a1a2e', '#e94560', '#00f5d4', '#f8f8f8'],
-    audience: ['Gaming', 'Tech', 'Geek'],
-    niches: ['figurines', 'gaming', 'tech', 'anime', 'manga', 'geek'],
-  },
-  {
-    id: 'ds-nature',
-    name: 'Nature Zen',
-    description: 'Tons naturels et apaisants. Pour le bio, bien-etre et eco-responsable.',
-    colors: ['#f4f1ea', '#2d5a27', '#8fbc8f', '#deb887', '#5a3e2b'],
-    audience: ['Bio', 'Bien-etre', 'Eco'],
-    niches: ['bio', 'naturel', 'bien-etre', 'ecologique', 'plante', 'herbe'],
-  },
-  {
-    id: 'ds-pop-color',
-    name: 'Pop Color',
-    description: 'Couleurs vives et energiques. Ideal pour les produits fun et jeunes.',
-    colors: ['#fef3c7', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'],
-    audience: ['Jeune', 'Fun', 'Tendance'],
-    niches: ['jouet', 'gadget', 'accessoire', 'fun', 'cadeau'],
-  },
-  {
-    id: 'ds-ocean',
-    name: 'Ocean Breeze',
-    description: 'Bleus profonds et blancs frais. Pour la nautique et les sports outdoor.',
-    colors: ['#f0f9ff', '#0369a1', '#0ea5e9', '#e0f2fe', '#1e3a5f'],
-    audience: ['Sport', 'Outdoor', 'Nautique'],
-    niches: ['sport', 'outdoor', 'nautique', 'plage', 'surf'],
-  },
-  {
-    id: 'ds-retro',
-    name: 'Retro Vibes',
-    description: 'Palette vintage, typo retro. Pour les produits nostalgiques et collectors.',
-    colors: ['#fdf6e3', '#cb4b16', '#268bd2', '#d33682', '#2aa198'],
-    audience: ['Vintage', 'Collector', 'Retro'],
-    niches: ['vintage', 'retro', 'collector', 'vinyle', 'ancien'],
-  },
-  {
-    id: 'ds-pastel',
-    name: 'Pastel Dream',
-    description: 'Pastels doux et arrondis. Parfait pour bebe, enfant et lifestyle.',
-    colors: ['#fff5f5', '#fbb6ce', '#b794f4', '#90cdf4', '#9ae6b4'],
-    audience: ['Bebe', 'Enfant', 'Lifestyle'],
-    niches: ['bebe', 'enfant', 'maternite', 'lifestyle', 'deco'],
-  },
-  {
-    id: 'ds-industrial',
-    name: 'Industrial Raw',
-    description: 'Brut et masculin. Beton, metal, typo sans-serif epaisse.',
-    colors: ['#1f1f1f', '#4a4a4a', '#8b8b8b', '#d4d4d4', '#ff6b35'],
-    audience: ['Homme', 'Bricolage', 'Auto'],
-    niches: ['outil', 'bricolage', 'auto', 'moto', 'homme'],
-  },
-  {
-    id: 'ds-sakura',
-    name: 'Sakura',
-    description: 'Inspire du Japon. Rose cerisier, noir encre, touches dorees.',
-    colors: ['#fff5f7', '#1a1a2e', '#f687b3', '#fbd38d', '#e53e3e'],
-    audience: ['Anime', 'Japon', 'Culture'],
-    niches: ['anime', 'manga', 'japon', 'figurines', 'cosplay'],
-  },
-  {
-    id: 'ds-premium',
-    name: 'Premium Gold',
-    description: 'Noir et or. Elegance absolue pour le haut de gamme.',
-    colors: ['#0a0a0a', '#1a1a1a', '#d4af37', '#f5e6c8', '#ffffff'],
-    audience: ['Premium', 'Luxe', 'VIP'],
-    niches: ['premium', 'luxe', 'montre', 'bijoux', 'accessoire'],
-  },
-];
-
-const MARKETS = ['France', 'Europe', 'US', 'Monde'] as const;
-const POSITIONINGS = ['Budget', 'Milieu de gamme', 'Premium'] as const;
-
-const DEPLOY_STEPS = [
-  'Creation du Sales Channel Medusa...',
-  'Import des produits...',
-  'Configuration Supabase...',
-  'Build du storefront...',
-  'Deploiement GPU2...',
-];
+import { useState, useCallback, useEffect } from 'react';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
+
+interface DSEntry {
+  id: string;
+  num: string;
+  name: string;
+  category: string;
+  description: string;
+  audience: string[];
+  darkMode: boolean;
+  accentColor: string;
+  bgColor: string;
+  textColor: string;
+}
 
 interface TrendingProduct {
   id: string;
@@ -123,6 +38,17 @@ interface WizardData {
   port: number;
   darkMode: boolean;
 }
+
+const MARKETS = ['France', 'Europe', 'US', 'Monde'] as const;
+const POSITIONINGS = ['Budget', 'Milieu de gamme', 'Premium'] as const;
+
+const DEPLOY_STEPS = [
+  'Creation du Sales Channel Medusa...',
+  'Import des produits...',
+  'Configuration design system...',
+  'Build du storefront...',
+  'Deploiement GPU2...',
+];
 
 // ---------------------------------------------------------------------------
 // Wizard Page
@@ -182,7 +108,12 @@ export default function NewSiteWizard() {
           niche: data.niche,
           market: data.market,
           positioning: data.positioning,
-          products: data.selectedProducts.map(p => p.id),
+          products: data.selectedProducts.map(p => ({
+            title: p.title,
+            price: p.price,
+            image: p.image,
+            supplier: p.source,
+          })),
           designSystem: data.designSystemId,
           name: data.shopName,
           slug: data.slug,
@@ -191,7 +122,7 @@ export default function NewSiteWizard() {
         }),
       });
       const json = await res.json();
-      setDeployedUrl(json.url ?? `http://100.110.74.114:${data.port}`);
+      setDeployedUrl(json.shop?.url ?? `http://100.110.74.114:${data.port}`);
     } catch {
       setDeployedUrl(`http://100.110.74.114:${data.port}`);
     }
@@ -216,7 +147,6 @@ export default function NewSiteWizard() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      {/* Header */}
       <div className="flex items-center gap-3">
         <a href="/sites" className="text-gray-400 transition hover:text-gray-700">
           ← Sites
@@ -224,10 +154,8 @@ export default function NewSiteWizard() {
         <h2 className="text-2xl font-bold">Nouvelle boutique</h2>
       </div>
 
-      {/* Progress */}
       <ProgressBar step={step} />
 
-      {/* Steps */}
       <div className="rounded-xl border bg-white p-6 shadow-sm">
         {step === 0 && <StepNiche data={data} setData={setData} />}
         {step === 1 && <StepDesign data={data} setData={setData} />}
@@ -238,7 +166,6 @@ export default function NewSiteWizard() {
         )}
       </div>
 
-      {/* Navigation */}
       {step < 4 && (
         <div className="flex justify-between">
           <button
@@ -286,9 +213,7 @@ function ProgressBar({ step }: { step: number }) {
               i <= step ? 'bg-brand' : 'bg-gray-200'
             }`}
           />
-          <span
-            className={`text-xs ${i <= step ? 'font-medium text-brand' : 'text-gray-400'}`}
-          >
+          <span className={`text-xs ${i <= step ? 'font-medium text-brand' : 'text-gray-400'}`}>
             {label}
           </span>
         </div>
@@ -342,7 +267,6 @@ function StepNiche({
     <div className="space-y-6">
       <h3 className="text-lg font-semibold">Niche & Produits</h3>
 
-      {/* Niche input */}
       <div>
         <label className="block text-sm font-medium text-gray-700">
           Quel type de produits ?
@@ -366,7 +290,6 @@ function StepNiche({
         </div>
       </div>
 
-      {/* Market */}
       <div>
         <label className="block text-sm font-medium text-gray-700">Marche cible</label>
         <div className="mt-2 flex flex-wrap gap-2">
@@ -386,7 +309,6 @@ function StepNiche({
         </div>
       </div>
 
-      {/* Positioning */}
       <div>
         <label className="block text-sm font-medium text-gray-700">Positionnement</label>
         <div className="mt-2 flex flex-wrap gap-2">
@@ -406,7 +328,6 @@ function StepNiche({
         </div>
       </div>
 
-      {/* Results */}
       {searchResults.length > 0 && (
         <div>
           <div className="mb-2 flex items-center justify-between">
@@ -463,7 +384,7 @@ function StepNiche({
 }
 
 // ---------------------------------------------------------------------------
-// Step 2 — Design System
+// Step 2 — Design System (dynamique via API)
 // ---------------------------------------------------------------------------
 
 function StepDesign({
@@ -473,26 +394,50 @@ function StepDesign({
   data: WizardData;
   setData: React.Dispatch<React.SetStateAction<WizardData>>;
 }) {
-  const nicheLC = data.niche.toLowerCase();
-  const recommended = DESIGN_SYSTEMS.find(ds =>
-    ds.niches.some(n => nicheLC.includes(n)),
-  );
+  const [dsList, setDsList] = useState<DSEntry[]>([]);
+  const [suggested, setSuggested] = useState<string[]>([]);
+  const [loadingDS, setLoadingDS] = useState(true);
+
+  useEffect(() => {
+    const url = data.niche
+      ? `/api/design-systems?audience=${encodeURIComponent(data.niche)}`
+      : '/api/design-systems';
+
+    fetch(url)
+      .then(r => r.json())
+      .then(json => {
+        setDsList(json.designSystems ?? []);
+        setSuggested(json.suggested ?? []);
+      })
+      .catch(() => setDsList([]))
+      .finally(() => setLoadingDS(false));
+  }, [data.niche]);
+
+  if (loadingDS) {
+    return (
+      <div className="flex items-center gap-2 py-12 text-gray-500">
+        <Spinner /> Chargement des design systems...
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <h3 className="text-lg font-semibold">Design System</h3>
       <p className="text-sm text-gray-500">
-        Choisissez le theme visuel de votre boutique.
+        Choisissez le theme visuel de votre boutique. {dsList.length} disponible{dsList.length > 1 ? 's' : ''}.
       </p>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        {DESIGN_SYSTEMS.map(ds => {
-          const isRec = recommended?.id === ds.id;
+        {dsList.map(ds => {
+          const isRec = suggested.includes(ds.id);
           const isSelected = data.designSystemId === ds.id;
           return (
             <button
               key={ds.id}
-              onClick={() => setData(prev => ({ ...prev, designSystemId: ds.id }))}
+              onClick={() =>
+                setData(prev => ({ ...prev, designSystemId: ds.id, darkMode: ds.darkMode }))
+              }
               className={`relative rounded-xl border p-4 text-left transition ${
                 isSelected
                   ? 'border-brand ring-2 ring-brand'
@@ -505,23 +450,25 @@ function StepDesign({
                 </span>
               )}
 
-              {/* Color preview */}
-              <div className="mb-3 flex gap-1.5">
-                {ds.colors.map((c, i) => (
-                  <div
-                    key={i}
-                    className="h-6 w-6 rounded-full border border-gray-200"
-                    style={{ backgroundColor: c }}
-                  />
-                ))}
+              <div className="mb-3 flex items-center gap-2">
+                <div
+                  className="h-10 w-10 rounded-lg border"
+                  style={{ backgroundColor: ds.bgColor, borderColor: ds.accentColor }}
+                />
+                <div
+                  className="h-10 w-10 rounded-lg"
+                  style={{ backgroundColor: ds.accentColor }}
+                />
+                <span className="ml-1 text-xs font-mono text-gray-400">{ds.num}</span>
               </div>
 
               <p className="font-semibold">{ds.name}</p>
               <p className="mt-1 text-xs text-gray-500">{ds.description}</p>
-
-              {/* Audience tags */}
               <div className="mt-2 flex flex-wrap gap-1">
-                {ds.audience.map(tag => (
+                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600">
+                  {ds.category}
+                </span>
+                {ds.audience.slice(0, 3).map(tag => (
                   <span
                     key={tag}
                     className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600"
@@ -529,6 +476,11 @@ function StepDesign({
                     {tag}
                   </span>
                 ))}
+                {ds.darkMode && (
+                  <span className="rounded-full bg-gray-800 px-2 py-0.5 text-[10px] font-medium text-white">
+                    dark
+                  </span>
+                )}
               </div>
             </button>
           );
@@ -618,7 +570,6 @@ function StepConfig({
         </div>
       </div>
 
-      {/* Domain preview */}
       <div className="rounded-lg bg-gray-50 p-4">
         <p className="text-xs font-medium text-gray-500">Apercu du domaine</p>
         <p className="mt-1 font-mono text-sm text-brand">
@@ -634,8 +585,6 @@ function StepConfig({
 // ---------------------------------------------------------------------------
 
 function StepSummary({ data }: { data: WizardData }) {
-  const ds = DESIGN_SYSTEMS.find(d => d.id === data.designSystemId);
-
   return (
     <div className="space-y-6">
       <h3 className="text-lg font-semibold">Resume</h3>
@@ -644,7 +593,6 @@ function StepSummary({ data }: { data: WizardData }) {
       </p>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        {/* Niche */}
         <SummaryCard label="Niche" value={data.niche} />
         <SummaryCard label="Marche cible" value={data.market} />
         <SummaryCard label="Positionnement" value={data.positioning} />
@@ -652,35 +600,13 @@ function StepSummary({ data }: { data: WizardData }) {
           label="Produits selectionnes"
           value={`${data.selectedProducts.length} produit${data.selectedProducts.length > 1 ? 's' : ''}`}
         />
-
-        {/* Design system */}
-        <div className="rounded-lg border p-4 sm:col-span-2">
-          <p className="text-xs font-medium text-gray-500">Design System</p>
-          <div className="mt-1 flex items-center gap-3">
-            {ds && (
-              <>
-                <div className="flex gap-1">
-                  {ds.colors.map((c, i) => (
-                    <div
-                      key={i}
-                      className="h-5 w-5 rounded-full border border-gray-200"
-                      style={{ backgroundColor: c }}
-                    />
-                  ))}
-                </div>
-                <span className="font-medium">{ds.name}</span>
-              </>
-            )}
-          </div>
-        </div>
-
+        <SummaryCard label="Design System" value={data.designSystemId} />
         <SummaryCard label="Nom" value={data.shopName} />
         <SummaryCard label="Slug" value={data.slug} />
         <SummaryCard label="Port" value={String(data.port)} />
         <SummaryCard label="Dark mode" value={data.darkMode ? 'Oui' : 'Non'} />
       </div>
 
-      {/* Deployment estimate */}
       <div className="flex items-center gap-2 rounded-lg bg-blue-50 p-4 text-sm text-blue-700">
         <span>⏱</span>
         Temps de deploiement estime : ~30 secondes
@@ -746,7 +672,6 @@ function StepDeploy({
         ))}
       </div>
 
-      {/* Deployed */}
       {allDone && deployedUrl && (
         <div className="space-y-4 rounded-xl border-2 border-green-200 bg-green-50 p-6 text-center">
           <p className="text-lg font-semibold text-green-700">Boutique deployee !</p>

@@ -17,7 +17,11 @@ export default function MarketingPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/campaigns').then(r => r.json()).then(d => { setCampaigns(d.campaigns ?? []); setLoading(false); });
+    fetch('/api/campaigns')
+      .then(r => r.json())
+      .then(d => setCampaigns(d.campaigns ?? []))
+      .catch(() => setCampaigns([]))
+      .finally(() => setLoading(false));
   }, []);
 
   return (

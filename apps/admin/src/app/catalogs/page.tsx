@@ -19,7 +19,11 @@ export default function CatalogsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/catalogs').then(r => r.json()).then(d => { setCatalogs(d.catalogs ?? []); setLoading(false); });
+    fetch('/api/catalogs')
+      .then(r => r.json())
+      .then(d => setCatalogs(d.catalogs ?? []))
+      .catch(() => setCatalogs([]))
+      .finally(() => setLoading(false));
   }, []);
 
   const triggerSync = async (catalogId: string) => {

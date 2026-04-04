@@ -13,6 +13,7 @@
     "@dropship/ai": "*",
     "@dropship/core": "*",
     "@dropship/deploy": "*",
+    "@dropship/design-systems": "*",
     "@dropship/marketing": "*",
     "@dropship/suppliers": "*",
     "@dropship/ui": "*",

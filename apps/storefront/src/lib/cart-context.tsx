@@ -12,6 +12,8 @@ interface CartContextValue {
   addItem: (variantId: string, quantity?: number) => Promise<void>;
   updateItem: (lineItemId: string, quantity: number) => Promise<void>;
   removeItem: (lineItemId: string) => Promise<void>;
+  refreshCart: () => Promise<void>;
+  clearCart: () => void;
 }
 
 const CartContext = createContext<CartContextValue>({
@@ -21,6 +23,8 @@ const CartContext = createContext<CartContextValue>({
   addItem: async () => {},
   updateItem: async () => {},
   removeItem: async () => {},
+  refreshCart: async () => {},
+  clearCart: () => {},
 });
 
 export function useCart() {
@@ -129,8 +133,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const refreshCart = useCallback(async () => {
+    const id = getCartId();
+    if (id) await fetchCart(id);
+  }, [fetchCart]);
+
+  const clearCart = useCallback(() => {
+    localStorage.removeItem('medusa_cart_id');
+    setCart(null);
+  }, []);
+
   return (
-    <CartContext.Provider value={{ cart, itemCount: getItemCount(cart), loading, addItem, updateItem, removeItem }}>
+    <CartContext.Provider value={{ cart, itemCount: getItemCount(cart), loading, addItem, updateItem, removeItem, refreshCart, clearCart }}>
       {children}
     </CartContext.Provider>
   );

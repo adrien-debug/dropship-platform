@@ -1,0 +1,40 @@
+import type { DesignSystem } from '../types';
+
+export const avant: DesignSystem = {
+  id: 'avant',
+  num: '03',
+  name: 'Avant-Garde Soft',
+  category: 'editorial',
+  description: 'Editorial fluide, courbes organiques, typographie expressive.',
+  audience: ['fashion', 'beauty', 'cosmetique', 'editorial', 'art', 'luxury'],
+  darkMode: false,
+  colors: {
+    accent: '#E85D75',
+    bg: '#FDFCF8',
+    bgAlt: '#ffffff',
+    text: '#1A1A1A',
+    textSecondary: '#555555',
+    textMuted: '#888888',
+    border: '#dddddd',
+  },
+  typography: {
+    fontPrimary: "'Syne', sans-serif",
+    fontDisplay: "'Fraunces', serif",
+    fontBody: "'Inter', sans-serif",
+    sizeH1: '4.5rem',
+    sizeH2: '2.5rem',
+    sizeBody: '1rem',
+    weightBlack: '900',
+    weightBold: '700',
+  },
+  spacing: { sm: '15px', md: '25px', lg: '40px', xl: '60px' },
+  components: {
+    borderWidth: '1px',
+    radius: '10px',
+    radiusLg: '80px',
+    radiusPill: '100px',
+    shadow: '0 20px 40px rgba(0,0,0,0.1)',
+    transition: '0.4s cubic-bezier(0.23,1,0.32,1)',
+    btnPadding: '22px 60px',
+  },
+};

@@ -1,5 +1,8 @@
 const MEDUSA_URL = process.env['MEDUSA_URL'] ?? 'http://100.110.74.114:9000';
 const MEDUSA_API_KEY = process.env['MEDUSA_API_KEY'] ?? '';
+const MEDUSA_PUBLISHABLE_KEY = process.env['MEDUSA_PUBLISHABLE_KEY'] ?? 'REDACTED_MEDUSA_PK';
+const MEDUSA_ADMIN_EMAIL = process.env['MEDUSA_ADMIN_EMAIL'] ?? 'adrien@hearstcorporation.io';
+const MEDUSA_ADMIN_PASSWORD = process.env['MEDUSA_ADMIN_PASSWORD'] ?? 'Hearst0334';
 
 interface MedusaProduct {
   id: string;
@@ -11,29 +14,13 @@ interface MedusaProduct {
 
 export class MedusaClient {
   private baseUrl: string;
-  private apiKey: string;
+  private publishableKey: string;
+  private adminToken: string | null = null;
+  private adminTokenExpiry = 0;
 
-  constructor(baseUrl?: string, apiKey?: string) {
+  constructor(baseUrl?: string) {
     this.baseUrl = baseUrl ?? MEDUSA_URL;
-    this.apiKey = apiKey ?? MEDUSA_API_KEY;
-  }
-
-  private async request<T>(path: string, options?: RequestInit): Promise<T> {
-    const url = `${this.baseUrl}${path}`;
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      ...(this.apiKey ? { 'x-medusa-access-token': this.apiKey } : {}),
-      ...(options?.headers as Record<string, string> | undefined),
-    };
-
-    const res = await fetch(url, { ...options, headers, signal: AbortSignal.timeout(10_000) });
-
-    if (!res.ok) {
-      const body = await res.text().catch(() => '');
-      throw new Error(`Medusa ${res.status}: ${body.slice(0, 300)}`);
-    }
-
-    return res.json() as Promise<T>;
+    this.publishableKey = MEDUSA_PUBLISHABLE_KEY;
   }
 
   async healthCheck(): Promise<boolean> {
@@ -43,27 +30,87 @@ export class MedusaClient {
 
   async searchProducts(query: string, page = 1, limit = 20): Promise<MedusaProduct[]> {
     const offset = (page - 1) * limit;
-    const data = await this.request<{ products: MedusaProduct[] }>(
-      `/admin/products?q=${encodeURIComponent(query)}&limit=${limit}&offset=${offset}`
-    );
+    const url = `${this.baseUrl}/store/products?q=${encodeURIComponent(query)}&limit=${limit}&offset=${offset}`;
+    const res = await fetch(url, {
+      headers: {
+        'x-publishable-api-key': this.publishableKey,
+      },
+      signal: AbortSignal.timeout(10_000),
+    });
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`Medusa store search ${res.status}: ${body.slice(0, 200)}`);
+    }
+
+    const data = (await res.json()) as { products: MedusaProduct[] };
     return data.products ?? [];
   }
 
-  async getProduct(id: string): Promise<MedusaProduct> {
-    const data = await this.request<{ product: MedusaProduct }>(`/admin/products/${id}`);
-    return data.product;
+  private async getAdminToken(): Promise<string> {
+    if (this.adminToken && Date.now() < this.adminTokenExpiry) {
+      return this.adminToken;
+    }
+
+    const res = await fetch(`${this.baseUrl}/auth/user/emailpass`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: MEDUSA_ADMIN_EMAIL, password: MEDUSA_ADMIN_PASSWORD }),
+      signal: AbortSignal.timeout(10_000),
+    });
+
+    if (!res.ok) throw new Error(`Medusa admin auth failed: ${res.status}`);
+    const body = (await res.json()) as { token: string };
+    this.adminToken = body.token;
+    const token = body.token;
+    this.adminTokenExpiry = Date.now() + 3_600_000;
+    return token;
+  }
+
+  private async adminRequest<T>(path: string, options?: RequestInit): Promise<T> {
+    const token = await this.getAdminToken();
+    const res = await fetch(`${this.baseUrl}${path}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        ...(options?.headers as Record<string, string> | undefined),
+      },
+      signal: AbortSignal.timeout(10_000),
+    });
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`Medusa admin ${res.status}: ${body.slice(0, 300)}`);
+    }
+
+    return res.json() as Promise<T>;
+  }
+
+  async createSalesChannel(name: string): Promise<string> {
+    const data = await this.adminRequest<{ sales_channel: { id: string } }>('/admin/sales-channels', {
+      method: 'POST',
+      body: JSON.stringify({ name, description: `Auto-created: ${name}` }),
+    });
+    return data.sales_channel.id;
   }
 
   async createProduct(payload: {
     title: string;
     handle: string;
-    description?: string;
-    variants: { title: string; prices: { amount: number; currency_code: string }[] }[];
+    status?: string;
+    sales_channels?: { id: string }[];
+    images?: { url: string }[];
   }): Promise<MedusaProduct> {
-    const data = await this.request<{ product: MedusaProduct }>('/admin/products', {
+    const data = await this.adminRequest<{ product: MedusaProduct }>('/admin/products', {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ ...payload, status: payload.status ?? 'published' }),
     });
+    return data.product;
+  }
+
+  async getProduct(id: string): Promise<MedusaProduct> {
+    const data = await this.adminRequest<{ product: MedusaProduct }>(`/admin/products/${id}`);
     return data.product;
   }
 }

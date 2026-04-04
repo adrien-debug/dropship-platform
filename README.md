@@ -1,54 +1,70 @@
 # Dropship Platform
 
-Multi-site dropshipping platform built with Turborepo monorepo.
+Multi-site dropshipping platform — Turborepo monorepo.
 
 ## Architecture
 
 ```
-GPU1 (100.88.191.49)          GPU2 (100.110.74.114)
-├── vLLM Qwen 32B (:8000)    ├── Storefront OnePeace (:3100)
-├── vLLM Qwen 7B (:8001)     ├── Storefront Anime (:3101)
-├── ComfyUI (:8188)           ├── Medusa v2 API (:9000)
-├── ERPNext                   ├── OpenClaw Dropship (:3849)
-└── Hearst Orchestrator       ├── Postgres 17 (:5433)
-    (:3848)                   ├── Redis 7 (:6379)
-                              ├── Coolify (:8000)
-Supabase (managed)            └── vLLM embeddings/coding
-├── products (527 items)
-├── sites
-├── catalogs
-├── campaigns
-└── sync_logs
+GPU2 (100.110.74.114 / public: 86.97.162.62)
+├── Storefronts (Next.js Docker)
+│   ├── onepeace-storefront     :3100
+│   ├── anime-figures           :3101
+│   └── anime-figurines-fr      :3103
+├── Medusa v2 API               :9000
+├── OpenClaw Dropship (Express) :3849
+├── Postgres 17                 :5433
+├── Redis 7
+├── Coolify (Traefik)           :8000
+└── vLLM (fast / coding / embeddings)
 
-Railway (backup)
-└── dropship-backend-backup (pending deploy)
+GPU1 (100.88.191.49)
+├── vLLM Qwen2.5-Coder-32B    :8000
+├── vLLM Qwen2.5-Coder-7B     :8001
+├── vLLM nomic-embed-text      :8002
+├── vLLM DeepSeek-R1-70B       :8003
+└── ComfyUI                    :8188
+
+Supabase (managed)
+└── products, sites, catalogs, campaigns, sync_logs
 ```
 
-## Monorepo Structure
+## Monorepo
 
 ```
 apps/
-  admin/              Next.js admin dashboard (:3200)
-  storefront/         Next.js storefront (deployed GPU2)
-  medusa/             Medusa v2 config (standalone Docker GPU2)
-  openclaw-dropship/  Express backend for dropshipping orchestration (:3849)
+  admin/              Next.js admin dashboard (:3200 local)
+  storefront/         Next.js storefront template (deployed via Docker on GPU2)
+  medusa/             Medusa v2 config
+  openclaw-dropship/  Express API — dropshipping orchestration
 
 packages/
   core/               Shared types & DTOs
   ui/                 Shared React components
-  suppliers/          CJ Dropshipping, Shopify, AliExpress integrations
-  marketing/          Google Ads & Meta Marketing APIs
-  ai/                 vLLM + ComfyUI integration
-  design-systems/     10 design systems for storefront theming
+  suppliers/          CJ Dropshipping, Shopify, AliExpress
+  ai/                 vLLM + ComfyUI
+  design-systems/     10 design systems
+  marketing/          Google Ads & Meta
+  deploy/             Deploy utilities
 
 prompts/
-  agent-supplier-research.md   Prompt for supplier audit agent
-  agent-shop-creator.md        Prompt for shop creation agent
+  agent-shop-creator.md         Shop creation agent (9-step pipeline)
+  agent-supplier-research.md    Supplier audit agent (20 suppliers scoring)
 
 scripts/
-  deploy-storefront.sh         Deploy storefront on GPU2
-  sync-products-to-medusa.ts   Sync products from Supabase to Medusa
+  deploy-storefront.sh          Deploy storefront on GPU2
+  sync-products-to-medusa.ts    Sync Supabase → Medusa
 ```
+
+## Public URLs (Cloudflare Tunnel)
+
+| Service | URL publique |
+|---------|-------------|
+| Admin Dashboard | https://logic-recognised-vcr-jill.trycloudflare.com |
+| Storefront | https://piece-occupational-mother-highlight.trycloudflare.com |
+| Medusa API | https://wheels-limits-industries-screen.trycloudflare.com |
+| OpenClaw Dropship | https://territories-treasure-emphasis-merchants.trycloudflare.com |
+
+> Quick tunnels — URLs temporaires, changent au redémarrage. Migrer vers un named tunnel + domaine custom pour la prod.
 
 ## Services
 
@@ -58,30 +74,52 @@ scripts/
 | OpenClaw Dropship | GPU2 | 3849 | LIVE |
 | Storefront OnePeace | GPU2 | 3100 | LIVE |
 | Storefront Anime | GPU2 | 3101 | LIVE |
+| Storefront Figurines FR | GPU2 | 3103 | LIVE |
 | Postgres 17 | GPU2 | 5433 | LIVE |
-| Redis 7 | GPU2 | 6379 | LIVE |
+| Redis 7 | GPU2 | — | LIVE |
 | Coolify | GPU2 | 8000 | LIVE |
-| vLLM 32B | GPU1 | 8000 | LIVE (auth) |
-| vLLM 7B | GPU1 | 8001 | LIVE (auth) |
-| OpenClaw Original | GPU1 | 3848 | LIVE |
-| Admin Dashboard | local | 3200 | DEV |
+| Admin Dashboard | GPU2 | 3200 | LIVE |
 | Supabase | managed | — | LIVE |
 
-## Admin Dashboard Features
+## OpenClaw Dropship API
 
-- **Dashboard**: Stats, sites list, sync logs
-- **Quick Actions**: One-click shop creation, product search, supplier browse
-- **Product Discovery**: Trending products from Google Trends, CJ, AliExpress, TikTok with sources
-- **Shop Wizard**: 5-step pipeline (niche → design → config → resume → deploy)
-- **Discover Page**: Full-page trending product search with bulk import
+Express backend sur GPU2:3849.
 
-## Environment Variables
+| Endpoint | Description |
+|----------|-------------|
+| `GET /health` | Health check (medusa, cj, supabase) |
+| `GET /products/search?q=...&supplier=cj\|medusa\|all` | Recherche produits fournisseurs |
+| `POST /shop/create` | Pipeline création boutique |
+| `POST /shop/execute` | Exécuter pipeline complet (sales channel + produits + deploy) |
 
-Copy `.env.local` and set:
-- `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`
-- `GPU1_HOST`, `GPU2_HOST`, `GPU_SSH_USER`
+## Agents
+
+| Agent | Fichier / Endpoint | Rôle |
+|-------|---------|------|
+| Agent IA (chat) | `/agents` page + `/api/agents/chat` | Chat LLM (Qwen 7B/32B) pour piloter la plateforme |
+| Shop Creator | `prompts/agent-shop-creator.md` | Création de boutique end-to-end (niche → produits → design → deploy → Stripe) |
+| Supplier Research | `prompts/agent-supplier-research.md` | Audit et scoring de 20 fournisseurs dropshipping |
+
+### vLLM Models (GPU1)
+
+| Port | Model | Usage |
+|------|-------|-------|
+| 8000 | Qwen2.5-Coder-32B-AWQ | Main (puissant) |
+| 8001 | Qwen2.5-Coder-7B-AWQ | Fast (rapide) |
+| 8002 | nomic-embed-text-v1.5 | Embeddings |
+| 8003 | DeepSeek-R1-70B-AWQ | Reasoning |
+
+## Deploy Storefront
+
+```bash
+./scripts/deploy-storefront.sh <slug> <port> [sales-channel-id]
+```
+
+## Environment
+
+Copier `.env.example` → `.env.local` et renseigner :
+- `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
 - `CJ_DROPSHIPPING_API_KEY`
-- `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_ADMIN_ACCESS_TOKEN`
 - `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
 - `COOLIFY_URL`, `COOLIFY_TOKEN`
 
@@ -89,60 +127,29 @@ Copy `.env.local` and set:
 
 ```bash
 npm install
-npm run dev          # All apps in dev mode
-npm run build        # Build all
-npm run type-check   # TypeScript checks
+npm run dev          # Admin (:3200) + Storefront (:3001)
+npm run build
+npm run type-check
 ```
-
-## Deploy New Storefront
-
-```bash
-./scripts/deploy-storefront.sh <slug> <port> [sales-channel-id]
-
-# Examples:
-./scripts/deploy-storefront.sh anime-shop 3102
-./scripts/deploy-storefront.sh figurines 3103
-```
-
-Or use the **Shop Wizard** in the admin dashboard at `/sites/new`.
-
-## Medusa Backend
-
-Deployed on GPU2 via Docker: `http://100.110.74.114:9000`
-- Admin: `http://100.110.74.114:9000/app`
-- Store API: `http://100.110.74.114:9000/store/products`
-- 527 products synced
-- Stripe live configured
-
-## OpenClaw Dropship Backend
-
-Express API on GPU2:3849 for dropshipping orchestration.
-- `GET /health` — service health
-- `GET /products/search?q=...` — search supplier products
-- `POST /shop/create` — full shop creation pipeline
-
-Persisted via crontab for auto-restart on reboot.
-
-## Stripe Payments
-
-Live Stripe keys are configured in Medusa on GPU2.
-Publishable key available in `.env.local`.
 
 ## Design Systems
 
-10 built-in design systems in `packages/design-systems/`:
-- `ds-01`: Minimal White
-- `ds-02`: Neo Tokyo
-- `ds-03`: Earth Organic
-- `ds-04`: Bold Pop
-- `ds-05`: Classic Commerce
-- `ds-06`: Luxury Gold
-- `ds-07`: Sport Energy
-- `ds-08`: Pastel Bloom
-- `ds-09`: Tech Dark
-- `ds-10`: Streetwear
+10 thèmes dans `packages/design-systems/` :
 
-## Docker Networking Note
+| ID | Nom |
+|----|-----|
+| ds-01 | Minimal White |
+| ds-02 | Neo Tokyo |
+| ds-03 | Earth Organic |
+| ds-04 | Bold Pop |
+| ds-05 | Classic Commerce |
+| ds-06 | Luxury Gold |
+| ds-07 | Sport Energy |
+| ds-08 | Pastel Bloom |
+| ds-09 | Tech Dark |
+| ds-10 | Streetwear |
 
-GPU2 has a kernel bug with Docker bridge veth pairs for new containers.
-All services use `--network host` as workaround.
+## Notes
+
+- GPU2 : tous les containers Docker en `--network host` (workaround kernel bug bridge veth).
+- Accès public via Cloudflare Quick Tunnels (cloudflared). Voir section "Public URLs".
