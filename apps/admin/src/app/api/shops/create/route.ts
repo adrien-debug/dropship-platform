@@ -1,18 +1,23 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { createClient } from '@/lib/supabase-server';
 
 const execAsync = promisify(exec);
 
-const MEDUSA_URL = 'http://100.110.74.114:9000';
-const MEDUSA_ADMIN_EMAIL = 'adrien@hearstcorporation.io';
-const MEDUSA_ADMIN_PASSWORD = 'Hearst0334';
+const MEDUSA_URL = process.env['MEDUSA_URL'] ?? 'http://100.110.74.114:9000';
+const MEDUSA_ADMIN_EMAIL =
+  process.env['MEDUSA_ADMIN_EMAIL'] ?? 'adrien@hearstcorporation.io';
+const MEDUSA_ADMIN_PASSWORD =
+  process.env['MEDUSA_ADMIN_PASSWORD'] ?? 'Hearst0334';
 const MEDUSA_PUBLISHABLE_KEY =
+  process.env['MEDUSA_PUBLISHABLE_KEY'] ??
   'REDACTED_MEDUSA_PK';
-const MEDUSA_REGION_ID = 'reg_01KNCT3QEHAN10H1R98PM3XT2B';
-const GPU2_HOST = '100.110.74.114';
-const SSH_USER = 'comput3';
+const MEDUSA_REGION_ID =
+  process.env['MEDUSA_REGION_ID'] ?? 'reg_01KNCT3QEHAN10H1R98PM3XT2B';
+
+const GPU2_HOST = process.env['GPU2_HOST'] ?? '100.110.74.114';
+const SSH_USER = process.env['GPU_SSH_USER'] ?? 'comput3';
+const STOREFRONT_IMAGE = 'onepeace-storefront:v4';
 
 interface ProductInput {
   title: string;
@@ -42,6 +47,10 @@ function slugify(str: string): string {
     .replace(/(^-|-$)/g, '');
 }
 
+// ---------------------------------------------------------------------------
+// Medusa helpers
+// ---------------------------------------------------------------------------
+
 async function getMedusaAdminToken(): Promise<string> {
   const res = await fetch(`${MEDUSA_URL}/auth/user/emailpass`, {
     method: 'POST',
@@ -51,14 +60,10 @@ async function getMedusaAdminToken(): Promise<string> {
       password: MEDUSA_ADMIN_PASSWORD,
     }),
   });
-
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Medusa auth failed (${res.status}): ${text}`);
+    throw new Error(`Medusa auth failed (${res.status}): ${await res.text()}`);
   }
-
-  const data = await res.json();
-  return data.token;
+  return (await res.json()).token;
 }
 
 async function createSalesChannel(
@@ -71,19 +76,14 @@ async function createSalesChannel(
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({
-      name,
-      description: `Auto-created shop: ${name}`,
-    }),
+    body: JSON.stringify({ name, description: `Auto-created: ${name}` }),
   });
-
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Create sales channel failed (${res.status}): ${text}`);
+    throw new Error(
+      `Sales channel failed (${res.status}): ${await res.text()}`,
+    );
   }
-
-  const data = await res.json();
-  return data.sales_channel.id;
+  return (await res.json()).sales_channel.id;
 }
 
 async function createProduct(
@@ -91,18 +91,13 @@ async function createProduct(
   product: ProductInput,
   salesChannelId: string,
 ): Promise<string> {
-  const handle = slugify(product.title);
-
   const body: Record<string, unknown> = {
     title: product.title,
-    handle,
+    handle: slugify(product.title),
     status: 'published',
     sales_channels: [{ id: salesChannelId }],
   };
-
-  if (product.image) {
-    body.images = [{ url: product.image }];
-  }
+  if (product.image) body.images = [{ url: product.image }];
 
   const res = await fetch(`${MEDUSA_URL}/admin/products`, {
     method: 'POST',
@@ -112,77 +107,55 @@ async function createProduct(
     },
     body: JSON.stringify(body),
   });
-
   if (!res.ok) {
-    const text = await res.text();
     throw new Error(
-      `Create product "${product.title}" failed (${res.status}): ${text}`,
+      `Product "${product.title}" failed (${res.status}): ${await res.text()}`,
     );
   }
-
-  const data = await res.json();
-  return data.product.id;
+  return (await res.json()).product.id;
 }
 
-async function insertSiteInSupabase(
-  name: string,
+// ---------------------------------------------------------------------------
+// Docker deployment via SSH
+// ---------------------------------------------------------------------------
+
+async function deployStorefront(
   slug: string,
   port: number,
-  designSystem: string | undefined,
   salesChannelId: string,
-) {
-  const supabase = createClient();
-
-  const { error } = await supabase.from('sites').insert({
-    name,
-    slug,
-    domain: `http://${GPU2_HOST}:${port}`,
-    status: 'deploying',
-    config: { design_system: designSystem ?? 'ds-minimal', port },
-    sales_channel_id: salesChannelId,
-  });
-
-  if (error) {
-    throw new Error(`Supabase insert failed: ${error.message}`);
-  }
-}
-
-async function deployStorefront(slug: string, port: number) {
+): Promise<string> {
   const containerName = `storefront-${slug}`;
-  const envVars = [
-    `-e PORT=${port}`,
-    `-e SITE_SLUG=${slug}`,
-    `-e NEXT_PUBLIC_MEDUSA_URL=${MEDUSA_URL}`,
-    `-e NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=${MEDUSA_PUBLISHABLE_KEY}`,
-    `-e NEXT_PUBLIC_MEDUSA_REGION_ID=${MEDUSA_REGION_ID}`,
-    `-e NODE_ENV=production`,
-  ].join(' ');
 
-  const dockerCmd = [
+  const removeCmd = `docker rm -f ${containerName} 2>/dev/null; `;
+  const runCmd = [
     'docker run -d',
     `--name ${containerName}`,
     '--network host',
     '--restart unless-stopped',
-    envVars,
-    'onepeace-storefront:v4',
+    `-e PORT=${port}`,
+    `-e SITE_SLUG=${slug}`,
+    `-e SALES_CHANNEL_ID=${salesChannelId}`,
+    `-e NEXT_PUBLIC_MEDUSA_URL=${MEDUSA_URL}`,
+    `-e NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=${MEDUSA_PUBLISHABLE_KEY}`,
+    `-e NEXT_PUBLIC_MEDUSA_REGION_ID=${MEDUSA_REGION_ID}`,
+    `-e NODE_ENV=production`,
+    STOREFRONT_IMAGE,
     `npx next start -p ${port}`,
   ].join(' ');
 
-  const sshCmd = `ssh ${SSH_USER}@${GPU2_HOST} "${dockerCmd}"`;
+  const sshCmd = `ssh -o StrictHostKeyChecking=no ${SSH_USER}@${GPU2_HOST} "${removeCmd}${runCmd}"`;
+  console.log(`[shops/create] Deploy: ${containerName} on :${port}`);
 
-  console.log(`[shops/create] Deploying: ${sshCmd}`);
   const { stdout, stderr } = await execAsync(sshCmd, { timeout: 60_000 });
-
-  if (stderr && !stderr.includes('Warning:')) {
+  if (stderr && !stderr.includes('Warning:') && !stderr.includes('Error: No such container')) {
     console.warn(`[shops/create] SSH stderr: ${stderr}`);
   }
-
   return stdout.trim();
 }
 
 async function waitForHealthy(
   port: number,
-  maxRetries = 10,
+  maxRetries = 20,
   intervalMs = 3000,
 ): Promise<boolean> {
   for (let i = 0; i < maxRetries; i++) {
@@ -194,22 +167,9 @@ async function waitForHealthy(
     } catch {
       // not ready yet
     }
-    await new Promise(r => setTimeout(r, intervalMs));
+    await new Promise((r) => setTimeout(r, intervalMs));
   }
   return false;
-}
-
-async function updateSiteStatus(slug: string, status: string) {
-  const supabase = createClient();
-
-  const { error } = await supabase
-    .from('sites')
-    .update({ status })
-    .eq('slug', slug);
-
-  if (error) {
-    throw new Error(`Supabase update failed: ${error.message}`);
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -230,66 +190,47 @@ export async function POST(req: NextRequest) {
   let currentStep = '';
 
   try {
-    // --- Step 1: Medusa auth ---
+    // Step 1: Medusa auth
     currentStep = 'medusa_auth';
-    console.log('[shops/create] Step 1: Authenticating with Medusa...');
+    console.log('[shops/create] Step 1: Medusa auth...');
     const token = await getMedusaAdminToken();
-    console.log('[shops/create] Medusa auth OK');
 
-    // --- Step 2: Create sales channel ---
+    // Step 2: Sales channel
     currentStep = 'sales_channel';
     console.log('[shops/create] Step 2: Creating sales channel...');
     const salesChannelId = await createSalesChannel(token, name);
-    console.log(`[shops/create] Sales channel created: ${salesChannelId}`);
+    console.log(`[shops/create] Sales channel: ${salesChannelId}`);
 
-    // --- Step 3: Create products ---
+    // Step 3: Products
     currentStep = 'products';
-    console.log(
-      `[shops/create] Step 3: Creating ${products?.length ?? 0} products...`,
-    );
     let productsCreated = 0;
-
     if (products && products.length > 0) {
+      console.log(`[shops/create] Step 3: Creating ${products.length} products...`);
       for (const product of products) {
         try {
           await createProduct(token, product, salesChannelId);
           productsCreated++;
         } catch (err) {
           console.error(
-            `[shops/create] Failed to create product "${product.title}":`,
+            `[shops/create] Product failed:`,
             err instanceof Error ? err.message : err,
           );
         }
       }
     }
-    console.log(`[shops/create] Products created: ${productsCreated}`);
 
-    // --- Step 4: Insert site in Supabase ---
-    currentStep = 'supabase_insert';
-    console.log('[shops/create] Step 4: Inserting site in Supabase...');
-    await insertSiteInSupabase(name, slug, port, designSystem, salesChannelId);
-    console.log('[shops/create] Supabase insert OK');
-
-    // --- Step 5: Deploy storefront ---
+    // Step 4: Deploy via Docker SSH
     currentStep = 'deploy';
-    console.log('[shops/create] Step 5: Deploying storefront on GPU2...');
-    const containerId = await deployStorefront(slug, port);
-    console.log(`[shops/create] Container started: ${containerId}`);
+    console.log('[shops/create] Step 4: Deploying on GPU2...');
+    const containerId = await deployStorefront(slug, port, salesChannelId);
+    console.log(`[shops/create] Container: ${containerId.slice(0, 12)}`);
 
-    // --- Step 6: Health check & update status ---
+    // Step 5: Health check
     currentStep = 'health_check';
-    console.log('[shops/create] Step 6: Waiting for storefront to be healthy...');
+    console.log('[shops/create] Step 5: Health check...');
     const healthy = await waitForHealthy(port);
-
-    if (healthy) {
-      await updateSiteStatus(slug, 'live');
-      console.log('[shops/create] Storefront is live!');
-    } else {
-      await updateSiteStatus(slug, 'unhealthy');
-      console.warn('[shops/create] Storefront did not become healthy in time');
-    }
-
-    const url = `http://${GPU2_HOST}:${port}`;
+    const status = healthy ? 'live' : 'starting';
+    console.log(`[shops/create] Status: ${status}`);
 
     return NextResponse.json(
       {
@@ -297,33 +238,23 @@ export async function POST(req: NextRequest) {
         shop: {
           name,
           slug,
-          url,
+          url: `http://${GPU2_HOST}:${port}`,
           sales_channel_id: salesChannelId,
           products_created: productsCreated,
           design_system: designSystem ?? 'ds-minimal',
           dark_mode: darkMode ?? false,
-          status: healthy ? 'live' : 'unhealthy',
+          container_id: containerId.slice(0, 12),
+          status,
         },
       },
       { status: 201 },
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error(`[shops/create] Error at step "${currentStep}":`, message);
-
-    if (currentStep === 'deploy' || currentStep === 'health_check') {
-      try {
-        await updateSiteStatus(slug, 'failed');
-      } catch {
-        // best-effort status update
-      }
-    }
+    console.error(`[shops/create] Error at "${currentStep}":`, message);
 
     return NextResponse.json(
-      {
-        error: message,
-        step: currentStep,
-      },
+      { error: message, step: currentStep },
       { status: 500 },
     );
   }

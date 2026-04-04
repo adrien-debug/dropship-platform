@@ -10,15 +10,16 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@dropship/core": "*",
-    "@dropship/suppliers": "*",
     "@dropship/ai": "*",
+    "@dropship/core": "*",
     "@dropship/deploy": "*",
     "@dropship/marketing": "*",
+    "@dropship/suppliers": "*",
     "@dropship/ui": "*",
     "@supabase/supabase-js": "^2.101.1",
     "clsx": "^2.1.1",
     "next": "^14.2.0",
+    "postgres": "^3.4.8",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "recharts": "^2.15.0",
