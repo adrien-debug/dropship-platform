@@ -1,0 +1,21 @@
+{
+  "name": "dropship-platform",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "trigger"
+  ],
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "lint": "turbo lint",
+    "type-check": "turbo type-check",
+    "clean": "turbo clean"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0",
+    "typescript": "^5.7.3"
+  },
+  "packageManager": "npm@10.8.0"
+}

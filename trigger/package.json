@@ -1,0 +1,22 @@
+{
+  "name": "@dropship/trigger",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "trigger dev",
+    "deploy": "trigger deploy",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@dropship/core": "*",
+    "@dropship/suppliers": "*",
+    "@dropship/ai": "*",
+    "@dropship/deploy": "*",
+    "@dropship/marketing": "*",
+    "@trigger.dev/sdk": "^3.0.0",
+    "@supabase/supabase-js": "^2.101.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}
