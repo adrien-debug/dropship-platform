@@ -1,4 +1,4 @@
-export { llmComplete } from './llm.js';
+export { llmComplete } from './llm';
 export {
   generateEcommerceContext,
   generateEcommerceCopy,
@@ -7,4 +7,4 @@ export {
   getDefaultEcommercePages,
   type EcommercePageConfig,
   type EcommerceSiteConfig,
-} from './ecommerce-codegen.js';
+} from './ecommerce-codegen';

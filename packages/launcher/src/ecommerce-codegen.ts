@@ -1,4 +1,4 @@
-import { llmComplete } from './llm.js';
+import { llmComplete } from './llm';
 
 export interface EcommercePageConfig {
   pageName: string;

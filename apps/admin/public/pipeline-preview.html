@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pipeline Boutique - Vue Etapes</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121933;
+      --panel-2: #0f1530;
+      --text: #f4f7fb;
+      --muted: #9aa7c2;
+      --border: #253055;
+      --accent: #5b8cff;
+      --good: #1fb980;
+      --warn: #ffb020;
+      --bad: #ff5d73;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      background: linear-gradient(180deg, #0a0f1d 0%, #0b1020 100%);
+      color: var(--text);
+      padding: 32px;
+    }
+
+    .wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 36px;
+      line-height: 1.1;
+    }
+
+    p.lead {
+      margin: 0 0 28px;
+      color: var(--muted);
+      font-size: 16px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 24px;
+    }
+
+    .card {
+      background: rgba(18, 25, 51, 0.9);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+    }
+
+    .card h2 {
+      margin: 0 0 16px;
+      font-size: 18px;
+    }
+
+    .field {
+      margin-bottom: 14px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .input, .select {
+      width: 100%;
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text);
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-size: 14px;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip {
+      padding: 9px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .chip.active {
+      background: rgba(91, 140, 255, 0.15);
+      color: #dfe8ff;
+      border-color: rgba(91, 140, 255, 0.5);
+    }
+
+    .cta {
+      display: inline-block;
+      width: 100%;
+      margin-top: 10px;
+      border: none;
+      background: var(--accent);
+      color: white;
+      font-weight: 700;
+      padding: 14px 16px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 15px;
+    }
+
+    .steps {
+      display: grid;
+      gap: 14px;
+    }
+
+    .step {
+      border: 1px solid var(--border);
+      background: rgba(15, 21, 48, 0.9);
+      border-radius: 16px;
+      padding: 16px;
+    }
+
+    .step-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 10px;
+    }
+
+    .step-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    .num {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #1a2346;
+      color: #dbe5ff;
+      font-size: 13px;
+      border: 1px solid var(--border);
+    }
+
+    .badge {
+      font-size: 12px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .pending { background: rgba(154,167,194,.14); color: #c4cee0; }
+    .running { background: rgba(91,140,255,.18); color: #cfe0ff; }
+    .done { background: rgba(31,185,128,.18); color: #baf1da; }
+    .error { background: rgba(255,93,115,.18); color: #ffd0d6; }
+
+    .step p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .sublist {
+      margin-top: 10px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .sub {
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 10px;
+      font-size: 13px;
+      color: #d7def0;
+    }
+
+    .good { color: var(--good); }
+    .bad { color: var(--bad); }
+
+    .footer-note {
+      margin-top: 24px;
+      padding: 16px 18px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: rgba(91,140,255,0.08);
+      color: #dce7ff;
+      font-size: 14px;
+    }
+
+    @media (max-width: 900px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Pipeline Boutique Attendue</h1>
+    <p class="lead">
+      Vue cible : l’utilisateur renseigne la niche, puis tout le reste est automatisé par la pipeline.
+    </p>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Entrées Utilisateur</h2>
+
+        <div class="field">
+          <label>Niche / type de produits</label>
+          <input class="input" value="One Piece anime figurines merchandise" />
+        </div>
+
+        <div class="field">
+          <label>Marché</label>
+          <div class="chips">
+            <div class="chip">France</div>
+            <div class="chip">Europe</div>
+            <div class="chip">US</div>
+            <div class="chip active">Monde</div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Positionnement</label>
+          <div class="chips">
+            <div class="chip">Budget</div>
+            <div class="chip active">Milieu de gamme</div>
+            <div class="chip">Premium</div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Design system</label>
+          <select class="select">
+            <option>Auto-suggestion par audience</option>
+            <option>ds-02 Neo Tokyo</option>
+            <option>ds-10 Streetwear</option>
+            <option>radical</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Nom de boutique</label>
+          <input class="input" value="Three Pieces" />
+        </div>
+
+        <button class="cta">Lancer la pipeline</button>
+      </section>
+
+      <section class="steps">
+        <article class="step">
+          <div class="step-top">
+            <div class="step-title">
+              <span class="num">1</span>
+              <span>Sourcing produits</span>
+            </div>
+            <span class="badge running">AUTO</span>
+          </div>
+          <p>Recherche CJ Dropshipping avec les bons mots-clés, filtrage de pertinence, déduplication, sélection des meilleurs produits pour la niche.</p>
+          <div class="sublist">
+            <div class="sub">Input : <strong>"One Piece anime figurines merchandise"</strong></div>
+            <div class="sub">Sortie attendue : <span class="good">figurines, mugs, t-shirts, accessoires anime cohérents</span></div>
+            <div class="sub">Pas acceptable : <span class="bad">bijoux random hors niche</span></div>
+          </div>
+        </article>
+
+        <article class="step">
+          <div class="step-top">
+            <div class="step-title">
+              <span class="num">2</span>
+              <span>Import Medusa</span>
+            </div>
+            <span class="badge pending">AUTO</span>
+          </div>
+          <p>Création du sales channel, de la clé publishable, puis import des produits sourcés dans Medusa pour que la boutique affiche les bons produits.</p>
+        </article>
+
+        <article class="step">
+          <div class="step-top">
+            <div class="step-title">
+              <span class="num">3</span>
+              <span>Branding & design system</span>
+            </div>
+            <span class="badge pending">AUTO / CHOIX</span>
+          </div>
+          <p>Suggestion ou application du design system selon l’audience, avec vraies couleurs, typo, variables CSS, layout et composants cohérents.</p>
+        </article>
+
+        <article class="step">
+          <div class="step-top">
+            <div class="step-title">
+              <span class="num">4</span>
+              <span>Génération contenu & assets</span>
+            </div>
+            <span class="badge pending">AUTO</span>
+          </div>
+          <p>Génération du brand brief, copywriting, hero, catégories, storytelling, logo et hero image alignés avec la niche.</p>
+        </article>
+
+        <article class="step">
+          <div class="step-top">
+            <div class="step-title">
+              <span class="num">5</span>
+              <span>Codegen pages storefront</span>
+            </div>
+            <span class="badge pending">AUTO</span>
+          </div>
+          <p>Génération de vraies pages `Accueil`, `Shop`, `About`, `Contact`, branchées sur Medusa et sur le design system choisi.</p>
+        </article>
+
+        <article class="step">
+          <div class="step-top">
+            <div class="step-title">
+              <span class="num">6</span>
+              <span>Install, build, debug-fix</span>
+            </div>
+            <span class="badge pending">AUTO</span>
+          </div>
+          <p>Installation des dépendances, build Next.js, correction automatique si le codegen casse le typage ou les imports.</p>
+        </article>
+
+        <article class="step">
+          <div class="step-top">
+            <div class="step-title">
+              <span class="num">7</span>
+              <span>Déploiement GPU2</span>
+            </div>
+            <span class="badge pending">AUTO</span>
+          </div>
+          <p>Build Docker, transfert sur GPU2, démarrage du storefront, healthcheck, puis mise à jour du statut en base.</p>
+        </article>
+
+        <article class="step">
+          <div class="step-top">
+            <div class="step-title">
+              <span class="num">8</span>
+              <span>Résultat final</span>
+            </div>
+            <span class="badge pending">ATTENDU</span>
+          </div>
+          <p>Une boutique live qui affiche les bons produits One Piece, avec de belles pages et une identité visuelle cohérente.</p>
+        </article>
+      </section>
+    </div>
+
+    <div class="footer-note">
+      <strong>En clair :</strong> le seul input manuel doit être la niche + le marché + le positionnement + éventuellement le design system. La sélection des produits, la génération des pages et le déploiement doivent être faits par la pipeline.
+    </div>
+  </div>
+</body>
+</html>

@@ -28,6 +28,17 @@ interface WizardData {
   slug: string;
   port: number;
   darkMode: boolean;
+  // Advanced options
+  brandColors?: {
+    accent?: string;
+    bg?: string;
+    text?: string;
+  };
+  referenceUrls?: string[];
+  tagline?: string;
+  tone?: 'friendly' | 'professional' | 'sophisticated' | 'playful' | 'bold';
+  pages?: string[]; // Liste des pages à générer
+  productCount?: number; // Nombre de produits à sourcer
 }
 
 const MARKETS = ['France', 'Europe', 'US', 'Monde'] as const;
@@ -50,6 +61,7 @@ const DEPLOY_STEPS = [
 
 export default function NewSiteWizard() {
   const [step, setStep] = useState(0);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [data, setData] = useState<WizardData>({
     niche: '',
     market: 'France',
@@ -59,6 +71,12 @@ export default function NewSiteWizard() {
     slug: '',
     port: 3102,
     darkMode: false,
+    brandColors: {},
+    referenceUrls: [],
+    tagline: '',
+    tone: 'professional',
+    pages: ['home', 'shop', 'about', 'contact'],
+    productCount: 12,
   });
 
   const [deployStatus, setDeployStatus] = useState<Record<string, 'pending' | 'running' | 'done' | 'error'>>(
@@ -77,7 +95,9 @@ export default function NewSiteWizard() {
       case 2:
         return data.shopName.trim().length > 0 && data.slug.trim().length > 0;
       case 3:
-        return true;
+        return true; // Advanced step is optional
+      case 4:
+        return true; // Summary
       default:
         return false;
     }
@@ -110,6 +130,7 @@ export default function NewSiteWizard() {
           market: data.market,
           positioning: data.positioning,
           designSystem: data.designSystemId,
+          productCount: data.productCount || 12,
         }),
       });
       const medusaJson = await medusaRes.json();
@@ -117,6 +138,7 @@ export default function NewSiteWizard() {
       updateStep('medusa', 'done');
       addLog(`Sales Channel: ${medusaJson.salesChannelId}`);
       addLog(`Site ID: ${medusaJson.siteId}`);
+      addLog(`Imported products: ${medusaJson.importedProducts?.length ?? 0}`);
 
       // Step 2+: Launcher SSE pipeline
       const launcherRes = await fetch('/api/launcher/stream', {
@@ -129,6 +151,19 @@ export default function NewSiteWizard() {
             outputDir: `~/sites/${data.slug}`,
             designSystem: data.designSystemId,
             port: data.port,
+            market: data.market,
+            positioning: data.positioning,
+            siteId: medusaJson.siteId,
+            salesChannelId: medusaJson.salesChannelId,
+            publishableKey: medusaJson.publishableKey,
+            regionId: medusaJson.regionId,
+            importedProducts: medusaJson.importedProducts ?? [],
+            // Advanced options
+            tagline: data.tagline,
+            tone: data.tone || 'professional',
+            brandColors: data.brandColors,
+            referenceUrls: data.referenceUrls || [],
+            pages: data.pages || ['home', 'shop', 'about', 'contact'],
           },
         }),
       });
@@ -144,11 +179,8 @@ export default function NewSiteWizard() {
         integrations: 'integrations',
         assets: 'assets',
         install: 'install',
-        'build-check': 'build',
-        'debug-fix': 'build',
-        launch: 'deploy',
         deploy: 'deploy',
-        done: 'deploy',
+        pipeline: 'deploy',
       };
 
       while (true) {
@@ -177,19 +209,15 @@ export default function NewSiteWizard() {
             }
             addLog(`[${evt.step}] ${evt.detail}`);
 
-            if (evt.step === 'done' && evt.status === 'done') {
+            if (evt.step === 'pipeline' && evt.status === 'done') {
               DEPLOY_STEPS.forEach(s => updateStep(s.id, 'done'));
               setDeployedUrl(`http://100.110.74.114:${data.port}`);
             }
+            if (evt.step === 'pipeline' && evt.status === 'error') {
+              setDeployError(String(evt.detail || 'Pipeline failed'));
+            }
           } catch { /* skip malformed SSE */ }
         }
-      }
-
-      if (!Object.values(statuses).every(s => s === 'done')) {
-        DEPLOY_STEPS.forEach(s => {
-          if (statuses[s.id] === 'running') updateStep(s.id, 'done');
-        });
-        if (!deployedUrl) setDeployedUrl(`http://100.110.74.114:${data.port}`);
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -231,8 +259,9 @@ export default function NewSiteWizard() {
         {step === 0 && <StepNiche data={data} setData={setData} />}
         {step === 1 && <StepDesign data={data} setData={setData} />}
         {step === 2 && <StepConfig data={data} setData={setData} />}
-        {step === 3 && <StepSummary data={data} />}
-        {step === 4 && (
+        {step === 3 && <StepAdvanced data={data} setData={setData} />}
+        {step === 4 && <StepSummary data={data} />}
+        {step === 5 && (
           <StepDeploy
             statuses={deployStatus}
             deployedUrl={deployedUrl}
@@ -243,7 +272,7 @@ export default function NewSiteWizard() {
         )}
       </div>
 
-      {step < 4 && (
+      {step < 5 && (
         <div className="flex justify-between">
           <button
             onClick={() => setStep(s => s - 1)}
@@ -252,7 +281,7 @@ export default function NewSiteWizard() {
           >
             Precedent
           </button>
-          {step < 3 ? (
+          {step < 4 ? (
             <button
               onClick={() => setStep(s => s + 1)}
               disabled={!canNext()}
@@ -278,7 +307,26 @@ export default function NewSiteWizard() {
 // Progress Bar
 // ---------------------------------------------------------------------------
 
-const STEP_LABELS = ['Niche & Marche', 'Design', 'Configuration', 'Resume', 'Deploiement'];
+const STEP_LABELS = ['Niche & Marche', 'Design', 'Configuration', 'Avance', 'Resume', 'Deploiement'];
+
+const AVAILABLE_PAGES = [
+  { id: 'home', label: 'Accueil', required: true },
+  { id: 'shop', label: 'Boutique', required: true },
+  { id: 'about', label: 'A propos', required: false },
+  { id: 'contact', label: 'Contact', required: false },
+  { id: 'blog', label: 'Blog', required: false },
+  { id: 'faq', label: 'FAQ', required: false },
+  { id: 'shipping', label: 'Livraison', required: false },
+  { id: 'returns', label: 'Retours', required: false },
+];
+
+const TONE_OPTIONS = [
+  { id: 'friendly', label: 'Amical', desc: 'Chaleureux et accessible' },
+  { id: 'professional', label: 'Professionnel', desc: 'Serieux et credible' },
+  { id: 'sophisticated', label: 'Sophistique', desc: 'Elegant et premium' },
+  { id: 'playful', label: 'Ludique', desc: 'Fun et energique' },
+  { id: 'bold', label: 'Audacieux', desc: 'Impactant et direct' },
+] as const;
 
 function ProgressBar({ step }: { step: number }) {
   return (
@@ -600,7 +648,225 @@ function StepConfig({
 }
 
 // ---------------------------------------------------------------------------
-// Step 4 — Summary
+// Step 4 — Advanced Options
+// ---------------------------------------------------------------------------
+
+function StepAdvanced({
+  data,
+  setData,
+}: {
+  data: WizardData;
+  setData: React.Dispatch<React.SetStateAction<WizardData>>;
+}) {
+  const addReferenceUrl = () => {
+    const url = prompt('URL du site de reference:');
+    if (url) {
+      setData(prev => ({ ...prev, referenceUrls: [...(prev.referenceUrls || []), url] }));
+    }
+  };
+
+  const removeReferenceUrl = (idx: number) => {
+    setData(prev => ({
+      ...prev,
+      referenceUrls: (prev.referenceUrls || []).filter((_, i) => i !== idx),
+    }));
+  };
+
+  const togglePage = (pageId: string) => {
+    const pages = data.pages || [];
+    if (pages.includes(pageId)) {
+      setData(prev => ({ ...prev, pages: pages.filter(p => p !== pageId) }));
+    } else {
+      setData(prev => ({ ...prev, pages: [...pages, pageId] }));
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold">Options avancees</h3>
+        <span className="text-xs text-gray-400">Optionnel</span>
+      </div>
+
+      {/* Tagline */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700">
+          Tagline / Slogan
+        </label>
+        <input
+          type="text"
+          value={data.tagline || ''}
+          onChange={e => setData(prev => ({ ...prev, tagline: e.target.value }))}
+          placeholder="ex: La reference des figurines anime en France"
+          className="mt-1 w-full rounded-lg border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+        />
+        <p className="mt-1 text-xs text-gray-400">
+          Si vide, sera genere automatiquement par l'IA
+        </p>
+      </div>
+
+      {/* Tone */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700">Ton editorial</label>
+        <div className="mt-2 grid gap-2 sm:grid-cols-3">
+          {TONE_OPTIONS.map(t => (
+            <button
+              key={t.id}
+              onClick={() => setData(prev => ({ ...prev, tone: t.id }))}
+              className={`rounded-lg border p-3 text-left text-sm transition ${
+                data.tone === t.id
+                  ? 'border-brand bg-brand/10 text-brand'
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <div className="font-medium">{t.label}</div>
+              <div className="mt-1 text-xs text-gray-500">{t.desc}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Brand Colors */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700">
+          Couleurs personnalisees
+        </label>
+        <p className="mt-1 text-xs text-gray-400">
+          Laissez vide pour utiliser les couleurs du design system choisi
+        </p>
+        <div className="mt-2 grid gap-3 sm:grid-cols-3">
+          <div>
+            <label className="block text-xs text-gray-500">Accent</label>
+            <input
+              type="color"
+              value={data.brandColors?.accent || '#5b8cff'}
+              onChange={e =>
+                setData(prev => ({
+                  ...prev,
+                  brandColors: { ...prev.brandColors, accent: e.target.value },
+                }))
+              }
+              className="mt-1 h-10 w-full rounded-lg border"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500">Background</label>
+            <input
+              type="color"
+              value={data.brandColors?.bg || '#0a0a0f'}
+              onChange={e =>
+                setData(prev => ({
+                  ...prev,
+                  brandColors: { ...prev.brandColors, bg: e.target.value },
+                }))
+              }
+              className="mt-1 h-10 w-full rounded-lg border"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500">Texte</label>
+            <input
+              type="color"
+              value={data.brandColors?.text || '#f0f0f5'}
+              onChange={e =>
+                setData(prev => ({
+                  ...prev,
+                  brandColors: { ...prev.brandColors, text: e.target.value },
+                }))
+              }
+              className="mt-1 h-10 w-full rounded-lg border"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Reference URLs */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700">
+          Sites de reference
+        </label>
+        <p className="mt-1 text-xs text-gray-400">
+          L'IA s'inspirera du style de ces sites pour generer le contenu
+        </p>
+        <div className="mt-2 space-y-2">
+          {(data.referenceUrls || []).map((url, idx) => (
+            <div key={idx} className="flex items-center gap-2">
+              <input
+                type="text"
+                value={url}
+                readOnly
+                className="flex-1 rounded-lg border bg-gray-50 px-3 py-2 text-sm"
+              />
+              <button
+                onClick={() => removeReferenceUrl(idx)}
+                className="rounded-lg border px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+              >
+                Supprimer
+              </button>
+            </div>
+          ))}
+          <button
+            onClick={addReferenceUrl}
+            className="w-full rounded-lg border border-dashed border-gray-300 px-3 py-2 text-sm text-gray-600 hover:border-brand hover:text-brand"
+          >
+            + Ajouter un site de reference
+          </button>
+        </div>
+      </div>
+
+      {/* Pages Selection */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700">
+          Pages a generer
+        </label>
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          {AVAILABLE_PAGES.map(page => (
+            <button
+              key={page.id}
+              onClick={() => !page.required && togglePage(page.id)}
+              disabled={page.required}
+              className={`rounded-lg border p-3 text-left text-sm transition ${
+                (data.pages || []).includes(page.id)
+                  ? 'border-brand bg-brand/10 text-brand'
+                  : 'border-gray-200 hover:border-gray-300'
+              } ${page.required ? 'opacity-60' : ''}`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-medium">{page.label}</span>
+                {page.required && <span className="text-xs text-gray-400">Requis</span>}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Product Count */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700">
+          Nombre de produits a sourcer
+        </label>
+        <input
+          type="number"
+          value={data.productCount || 12}
+          onChange={e => setData(prev => ({ ...prev, productCount: Number(e.target.value) }))}
+          min="4"
+          max="50"
+          className="mt-1 w-full rounded-lg border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+        />
+        <p className="mt-1 text-xs text-gray-400">
+          Entre 4 et 50 produits. Plus = plus long a generer.
+        </p>
+      </div>
+
+      <div className="rounded-lg bg-blue-50 p-4 text-sm text-blue-700">
+        💡 Ces options permettent un controle total sur le style et le contenu genere par l'IA.
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Step 5 — Summary
 // ---------------------------------------------------------------------------
 
 function StepSummary({ data }: { data: WizardData }) {
@@ -620,6 +886,13 @@ function StepSummary({ data }: { data: WizardData }) {
         <SummaryCard label="Slug" value={data.slug} />
         <SummaryCard label="Port" value={String(data.port)} />
         <SummaryCard label="Dark mode" value={data.darkMode ? 'Oui' : 'Non'} />
+        {data.tagline && <SummaryCard label="Tagline" value={data.tagline} />}
+        {data.tone && <SummaryCard label="Ton" value={data.tone} />}
+        <SummaryCard label="Pages" value={`${(data.pages || []).length} pages`} />
+        <SummaryCard label="Produits" value={`${data.productCount || 12} produits`} />
+        {(data.referenceUrls || []).length > 0 && (
+          <SummaryCard label="References" value={`${data.referenceUrls!.length} site(s)`} />
+        )}
       </div>
 
       <div className="flex items-center gap-2 rounded-lg bg-blue-50 p-4 text-sm text-blue-700">

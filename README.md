@@ -156,15 +156,16 @@ npm run type-check
 
 ## Latest Changes (2026-04-05)
 
-**4 tâches critiques complétées :**
+**Pipeline `/sites/new` avec génération AI complète :**
 
-1. **fast-pipeline.ts → launcher codegen** : Le pipeline A-Z utilise maintenant le générateur de sites via `/api/launcher/stream` au lieu du vieux template Docker
-2. **Deploy step** : Build Docker image + push GPU2 implémenté dans `testDeploy()` (test-step/route.ts)
-3. **Integrations step** : Création automatique de `medusa.ts`, `.env.local`, et ajout des deps Stripe + Supabase
-4. **Assets step** : Détection ComfyUI/Nano Banana + génération de placeholders SVG (logo + hero)
-
-**Bonus :**
-- 10 design systems (ds-01 à ds-10) enregistrés dans `registry.ts` avec structure complète (colors, typography, spacing, components)
+1. **`/api/shops/setup`** : crée sales channel + publishable key Medusa, source automatiquement CJ avec filtrage intelligent, importe les produits en Medusa, puis crée `sites` + `catalogs` en base.
+2. **`/api/launcher/stream`** : **NOUVEAU** utilise maintenant le vrai codegen AI via `@dropship/launcher`:
+   - **GPU1 Qwen2.5-Coder-32B** génère le brand brief, copywriting et code JSX/TSX des pages
+   - **ComfyUI** (si disponible) pour logo + hero images, sinon fallback SVG
+   - Génération de 4 pages complètes (Home, Shop, About, Contact) avec contenu unique par niche
+   - Build le projet et le déploie sur GPU2
+3. **Wizard `/sites/new`** : passe `siteId`, `publishableKey`, `regionId`, `salesChannelId` et `importedProducts` au stream, et considère `pipeline:done` comme succès réel.
+4. **Design systems** : auto-suggestion basée sur l'audience (ex: "anime figurines" → ds-02 Neo Tokyo), avec 15 thèmes disponibles.
 
 ## Design Systems
 
@@ -188,36 +189,45 @@ npm run type-check
 | ds-09 | Tech Dark | tech | electronics, gadgets |
 | ds-10 | Streetwear | fashion | streetwear, sneakers, urban |
 
+### Auto-suggestion & Options Avancées
+
+**Auto-suggestion par audience**: Le système suggère automatiquement les design systems selon la niche (ex: "anime figurines" → ds-02 Neo Tokyo).
+
+**Options avancées du wizard** (étape 4):
+- **Tagline personnalisé** → sinon généré par l'IA
+- **Ton éditorial** → friendly, professional, sophisticated, playful, bold
+- **Couleurs custom** → override accent/bg/text du design system
+- **Sites de référence** → URLs pour inspirer style et contenu
+- **Pages à générer** → home, shop, about, contact, blog, faq, shipping, returns
+- **Nombre de produits** → 4 à 50 produits CJ
+
 ## Launcher (Project Generator)
 
-AI-powered Next.js site generator with live logs.
+Next.js site generator with live logs and GPU2 deploy.
 
 | Step | What it does | Status |
 |------|-------------|--------|
-| 1. Scaffold | Creates project dir, package.json, tsconfig, tailwind, layout, `medusa.ts` | PASS |
-| 2. Codegen | Generates pages via Qwen2.5-Coder-32B (GPU1) or fallback templates | PASS |
-| 3. Integrations | Medusa + Stripe + Supabase client libs | PLACEHOLDER |
-| 4. Assets | Logo + hero image generation (Nano Banana / ComfyUI) | PLACEHOLDER |
-| 5. Install | `npm install` in generated project | PASS |
-| 6. Build | `npx next build` | PASS |
-| 7. Debug & Fix | AI error analysis + auto-fix (5 retries + fallback) | PASS |
-| 8. Launch | Start local dev server on random port | PASS |
-| 9. Deploy | Docker on GPU2 / Vercel | PLACEHOLDER |
+| 1. Setup | Sales channel + publishable key + CJ sourcing + Medusa import + Supabase site/catalog | ✅ PASS |
+| 2. Scaffold | Creates project dir, package.json, tsconfig, theme, layout, `medusa.ts` | ✅ PASS |
+| 3. Assets | ComfyUI logo generation (fallback SVG) + hero image from products | ✅ PASS |
+| 4. Integrations | Medusa + Stripe envs + site config wiring | ✅ PASS |
+| 5. Codegen | **AI-powered**: GPU1 Qwen2.5-Coder-32B generates brand brief, copy, and 4 pages | ✅ PASS |
+| 6. Install | `npm install` in generated project | ✅ PASS |
+| 7. Build | `npx next build` | ✅ PASS |
+| 8. Deploy | Sync on GPU2 + `next start` + healthcheck | ✅ PASS |
 
 ### Pending Work (handoff)
 
-**CRITICAL — Wire end-to-end:**
-- [x] `fast-pipeline.ts` switched to launcher codegen (calls `/api/launcher/stream`)
-- [x] Deploy step: Docker build + push to GPU2 implemented in `test-step/route.ts`
-- [x] Integrations step: `medusa.ts`, Stripe, Supabase deps added to generated projects
-- [x] Assets step: ComfyUI/Nano Banana detection + placeholder SVG generation
+**Done:**
+- [x] `/sites/new` → `/api/shops/setup` → `/api/launcher/stream` → GPU2 live storefront
+- [x] CJ sourcing + Medusa import automated before storefront build
+- [x] Generated pages typed correctly and linked to live Medusa products
+- [x] Theme selection applied in generated storefront CSS/layout
 
-**IMPORTANT — Test & lock:**
-- [ ] AI codegen quality: Qwen generates JSX with `product.variants` (doesn't exist in type) — needs better prompt or type injection
-- [ ] SSE stream route (`/api/launcher/stream`) duplicates logic from `test-step` — should share code
-- [ ] `packages/launcher/` exists but admin routes duplicate its logic locally — consolidate
-- [x] 10 design system themes (ds-01 to ds-10) registered in `registry.ts`
-- [ ] Storefront template (apps/storefront) still uses old Dockerized approach — needs alignment with launcher
+**Still to improve:**
+- [ ] Product relevance for trademark-heavy niches is heuristic and still needs a smarter supplier-ranking layer
+- [ ] `/api/launcher/stream` and `test-step` should share more code
+- [ ] `apps/storefront` old template path still diverges from launcher-generated storefronts
 - [ ] Stripe checkout flow in storefront — partially wired, needs end-to-end test
 - [ ] Marketing package (`packages/marketing/`) has Google Ads + Meta Ads clients — need API keys + real test
 
