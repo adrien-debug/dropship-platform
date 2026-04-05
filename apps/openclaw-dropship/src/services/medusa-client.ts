@@ -98,13 +98,31 @@ export class MedusaClient {
   async createProduct(payload: {
     title: string;
     handle: string;
+    description?: string;
     status?: string;
     sales_channels?: { id: string }[];
     images?: { url: string }[];
+    metadata?: Record<string, unknown>;
+    options?: { title: string; values: string[] }[];
+    variants?: { title: string; options: Record<string, string>; prices: { amount: number; currency_code: string }[] }[];
   }): Promise<MedusaProduct> {
+    const priceAmount = payload.metadata?.cost_cents
+      ? Math.round(Number(payload.metadata.cost_cents) * 2.5)
+      : 1999;
+
+    const body = {
+      ...payload,
+      status: payload.status ?? 'published',
+      options: payload.options ?? [{ title: 'Default', values: ['Standard'] }],
+      variants: payload.variants ?? [{
+        title: 'Default',
+        options: { Default: 'Standard' },
+        prices: [{ amount: priceAmount, currency_code: 'eur' }],
+      }],
+    };
     const data = await this.adminRequest<{ product: MedusaProduct }>('/admin/products', {
       method: 'POST',
-      body: JSON.stringify({ ...payload, status: payload.status ?? 'published' }),
+      body: JSON.stringify(body),
     });
     return data.product;
   }
@@ -112,5 +130,23 @@ export class MedusaClient {
   async getProduct(id: string): Promise<MedusaProduct> {
     const data = await this.adminRequest<{ product: MedusaProduct }>(`/admin/products/${id}`);
     return data.product;
+  }
+
+  async createPublishableKey(title: string, salesChannelId: string): Promise<{ id: string; token: string }> {
+    const data = await this.adminRequest<{ api_key: { id: string; token: string } }>('/admin/api-keys', {
+      method: 'POST',
+      body: JSON.stringify({ title, type: 'publishable' }),
+    });
+
+    const keyId = data.api_key.id;
+    const token = data.api_key.token;
+
+    await this.adminRequest(`/admin/api-keys/${keyId}/sales-channels`, {
+      method: 'POST',
+      body: JSON.stringify({ add: [salesChannelId] }),
+    });
+
+    console.log(`[medusa] Publishable key created: ${keyId} linked to ${salesChannelId}`);
+    return { id: keyId, token };
   }
 }

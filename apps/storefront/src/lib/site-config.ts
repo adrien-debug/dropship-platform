@@ -25,13 +25,38 @@ const FALLBACK: Record<string, unknown> = {
 
 let cachedConfig: Record<string, unknown> | null = null;
 
+export interface SiteContent {
+  brand?: { name: string; tagline: string; tone_of_voice?: string; color_mood?: string };
+  hero_title?: string;
+  hero_subtitle?: string;
+  hero_cta?: string;
+  about_html?: string;
+  shipping_policy?: string;
+  return_policy?: string;
+  seo_title?: string;
+  seo_description?: string;
+  seo_keywords?: string[];
+}
+
+export function getSiteContent(config: Record<string, unknown>): SiteContent {
+  const cfg = (config?.config ?? {}) as Record<string, unknown>;
+  return (cfg?.site_content ?? {}) as SiteContent;
+}
+
 export async function getSiteConfig() {
   if (cachedConfig) return cachedConfig;
+
   const siteId = process.env.SITE_ID;
-  if (!siteId) return FALLBACK;
+  const siteSlug = process.env.SITE_SLUG;
+  if (!siteId && !siteSlug) return FALLBACK;
 
   try {
-    const { data, error } = await getSupabase().from('sites').select('*').eq('id', siteId).single();
+    const supabase = getSupabase();
+    const query = siteId
+      ? supabase.from('sites').select('*').eq('id', siteId).single()
+      : supabase.from('sites').select('*').eq('slug', siteSlug!).single();
+
+    const { data, error } = await query;
     if (error) {
       console.error('[site-config] Supabase error, using fallback:', error.message);
       cachedConfig = FALLBACK;

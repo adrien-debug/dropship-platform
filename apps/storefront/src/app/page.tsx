@@ -1,25 +1,34 @@
 import { getProducts } from '@/lib/medusa';
 import { ShopGrid } from './shop/shop-grid';
+import { getSiteConfig, getSiteContent } from '@/lib/site-config';
 
 export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
-  const { products } = await getProducts({ limit: 12 });
+  const [{ products }, siteConfig] = await Promise.all([
+    getProducts({ limit: 12 }),
+    getSiteConfig().catch(() => null),
+  ]);
+
+  const content = siteConfig ? getSiteContent(siteConfig as Record<string, unknown>) : null;
+  const heroTitle = content?.hero_title || 'Bienvenue';
+  const heroSubtitle = content?.hero_subtitle || 'Decouvrez nos produits';
+  const heroCta = content?.hero_cta || 'Voir la boutique';
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-ds-xl">
       <section className="mb-ds-xl text-center">
         <h1 className="font-ds-display" style={{ fontWeight: 'var(--ds-weight-black, 900)', letterSpacing: '-2px' }}>
-          Bienvenue
+          {heroTitle}
         </h1>
         <p className="mt-4 text-lg text-[var(--ds-text-muted)]">
-          Decouvrez nos produits
+          {heroSubtitle}
         </p>
         <a
           href="/shop"
           className="ds-btn ds-btn-primary mt-6 inline-block"
         >
-          Voir la boutique
+          {heroCta}
         </a>
       </section>
 

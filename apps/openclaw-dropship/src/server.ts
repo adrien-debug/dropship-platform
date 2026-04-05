@@ -6,6 +6,7 @@ import { healthRouter } from './routes/health.js';
 import { productSearchRouter } from './routes/product-search.js';
 import { shopCreatorRouter } from './routes/shop-creator.js';
 import { shopExecutorRouter } from './routes/shop-executor.js';
+import { agentPipelineRouter } from './routes/agent-pipeline.js';
 
 const app = express();
 const PORT = parseInt(process.env['PORT'] ?? '3849', 10);
@@ -18,6 +19,7 @@ app.use('/health', healthRouter);
 app.use('/products', productSearchRouter);
 app.use('/shop', shopCreatorRouter);
 app.use('/shop', shopExecutorRouter);
+app.use('/agent', agentPipelineRouter);
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Not found' });
