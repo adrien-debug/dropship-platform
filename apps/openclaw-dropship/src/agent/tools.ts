@@ -17,7 +17,7 @@ function toolSpec(name: string, description: string, parameters: Record<string, 
 // ---------- Tool: search_products ----------
 const searchProductsHandler = async (args: Record<string, unknown>) => {
   const keywords = args['keywords'] as string[];
-  const limit = (args['limit'] as number) ?? 30;
+  const limit = Math.min((args['limit'] as number) ?? 20, 20);
   const results: { source: string; products: unknown[] }[] = [];
 
   try {

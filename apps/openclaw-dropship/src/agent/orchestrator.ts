@@ -251,10 +251,12 @@ export class AgentOrchestrator {
               result = { error: `Unknown tool: ${toolName}` };
             }
 
+            const resultStr = typeof result === 'string' ? result : JSON.stringify(result);
+            const truncated = resultStr.length > 3000 ? resultStr.slice(0, 3000) + '...(truncated)' : resultStr;
             messages.push({
               role: 'tool',
               tool_call_id: toolCall.id,
-              content: typeof result === 'string' ? result : JSON.stringify(result),
+              content: truncated,
             } as ChatCompletionMessageParam);
           }
         } else {
