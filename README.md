@@ -154,24 +154,95 @@ npm run build
 npm run type-check
 ```
 
+## Latest Changes (2026-04-05)
+
+**4 tâches critiques complétées :**
+
+1. **fast-pipeline.ts → launcher codegen** : Le pipeline A-Z utilise maintenant le générateur de sites via `/api/launcher/stream` au lieu du vieux template Docker
+2. **Deploy step** : Build Docker image + push GPU2 implémenté dans `testDeploy()` (test-step/route.ts)
+3. **Integrations step** : Création automatique de `medusa.ts`, `.env.local`, et ajout des deps Stripe + Supabase
+4. **Assets step** : Détection ComfyUI/Nano Banana + génération de placeholders SVG (logo + hero)
+
+**Bonus :**
+- 10 design systems (ds-01 à ds-10) enregistrés dans `registry.ts` avec structure complète (colors, typography, spacing, components)
+
 ## Design Systems
 
-10 thèmes dans `packages/design-systems/` :
+15 thèmes dans `packages/design-systems/` :
 
-| ID | Nom |
-|----|-----|
-| ds-01 | Minimal White |
-| ds-02 | Neo Tokyo |
-| ds-03 | Earth Organic |
-| ds-04 | Bold Pop |
-| ds-05 | Classic Commerce |
-| ds-06 | Luxury Gold |
-| ds-07 | Sport Energy |
-| ds-08 | Pastel Bloom |
-| ds-09 | Tech Dark |
-| ds-10 | Streetwear |
+| ID | Nom | Catégorie | Audience |
+|----|-----|-----------|----------|
+| swiss | Swiss Tech Master | tech | tech, saas, agency |
+| cyber | Cyber | tech | gaming, crypto |
+| avant | Avant | art | art, fashion |
+| radical | Radical | fashion | streetwear, bold |
+| chrome | Chrome | luxury | premium, luxury |
+| ds-01 | Minimal White | lifestyle | mode, beauté, premium |
+| ds-02 | Neo Tokyo | gaming | anime, gaming, manga |
+| ds-03 | Earth Organic | wellness | bio, santé, naturel |
+| ds-04 | Bold Pop | fun | enfants, jouets, gadgets |
+| ds-05 | Classic Commerce | ecommerce | général, marketplace |
+| ds-06 | Luxury Gold | luxury | bijoux, montres, luxe |
+| ds-07 | Sport Energy | sport | fitness, outdoor, sport |
+| ds-08 | Pastel Bloom | beauty | beauté, skincare, mode |
+| ds-09 | Tech Dark | tech | electronics, gadgets |
+| ds-10 | Streetwear | fashion | streetwear, sneakers, urban |
+
+## Launcher (Project Generator)
+
+AI-powered Next.js site generator with live logs.
+
+| Step | What it does | Status |
+|------|-------------|--------|
+| 1. Scaffold | Creates project dir, package.json, tsconfig, tailwind, layout, `medusa.ts` | PASS |
+| 2. Codegen | Generates pages via Qwen2.5-Coder-32B (GPU1) or fallback templates | PASS |
+| 3. Integrations | Medusa + Stripe + Supabase client libs | PLACEHOLDER |
+| 4. Assets | Logo + hero image generation (Nano Banana / ComfyUI) | PLACEHOLDER |
+| 5. Install | `npm install` in generated project | PASS |
+| 6. Build | `npx next build` | PASS |
+| 7. Debug & Fix | AI error analysis + auto-fix (5 retries + fallback) | PASS |
+| 8. Launch | Start local dev server on random port | PASS |
+| 9. Deploy | Docker on GPU2 / Vercel | PLACEHOLDER |
+
+### Pending Work (handoff)
+
+**CRITICAL — Wire end-to-end:**
+- [x] `fast-pipeline.ts` switched to launcher codegen (calls `/api/launcher/stream`)
+- [x] Deploy step: Docker build + push to GPU2 implemented in `test-step/route.ts`
+- [x] Integrations step: `medusa.ts`, Stripe, Supabase deps added to generated projects
+- [x] Assets step: ComfyUI/Nano Banana detection + placeholder SVG generation
+
+**IMPORTANT — Test & lock:**
+- [ ] AI codegen quality: Qwen generates JSX with `product.variants` (doesn't exist in type) — needs better prompt or type injection
+- [ ] SSE stream route (`/api/launcher/stream`) duplicates logic from `test-step` — should share code
+- [ ] `packages/launcher/` exists but admin routes duplicate its logic locally — consolidate
+- [x] 10 design system themes (ds-01 to ds-10) registered in `registry.ts`
+- [ ] Storefront template (apps/storefront) still uses old Dockerized approach — needs alignment with launcher
+- [ ] Stripe checkout flow in storefront — partially wired, needs end-to-end test
+- [ ] Marketing package (`packages/marketing/`) has Google Ads + Meta Ads clients — need API keys + real test
+
+**NICE TO HAVE:**
+- [ ] Named Cloudflare Tunnel (current quick tunnels change on restart)
+- [ ] Supabase RLS policies on `sites`, `catalogs`, `campaigns` tables
+- [ ] CI/CD pipeline (GitHub Actions for build + type-check)
+- [ ] Product page (`/product/[handle]`) in generated sites
+- [ ] Cart + checkout flow in generated sites
+- [ ] SEO audit agent integration with launcher
+- [ ] Marketing agent auto-creates campaigns after deploy
+
+## Env Vars
+
+Required in `.env` / `.env.local`:
+- `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+- `CJ_DROPSHIPPING_API_KEY`
+- `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+- `VLLM_GPU1_URL` (default: `http://100.88.191.49:8000/v1`)
+- `VLLM_API_KEY` (default: `vllm-local-key`)
+- `COOLIFY_URL`, `COOLIFY_TOKEN`
+- `GOOGLE_ADS_*`, `META_ACCESS_TOKEN` (for marketing)
 
 ## Notes
 
 - GPU2 : tous les containers Docker en `--network host` (workaround kernel bug bridge veth).
 - Accès public via Cloudflare Quick Tunnels (cloudflared). Voir section "Public URLs".
+- Launcher page: `http://localhost:3200/launcher` — test each step or run full pipeline with live SSE logs.

@@ -17,10 +17,13 @@ const EXEC_OPTS: ExecSyncOptionsWithBufferEncoding = {
 
 function execCmd(cmd: string, cwd: string, extraEnv?: Record<string, string>): { ok: boolean; stdout: string; stderr: string } {
   try {
+    const cleanEnv = extraEnv ? Object.fromEntries(
+      Object.entries(extraEnv).filter(([_, v]) => v !== undefined)
+    ) : {};
     const buf = execSync(cmd, {
       ...EXEC_OPTS,
       cwd,
-      env: { ...EXEC_OPTS.env, ...extraEnv },
+      env: { ...EXEC_OPTS.env, ...cleanEnv } as NodeJS.ProcessEnv,
     });
     return { ok: true, stdout: buf.toString(), stderr: '' };
   } catch (err: unknown) {
@@ -349,6 +352,170 @@ export default function ContactPage() {
 }`;
 }
 
+async function testAssets(config: TestConfig): Promise<StepResult> {
+  const dir = resolveDir(config.outputDir);
+  if (!existsSync(join(dir, 'package.json'))) {
+    return { success: false, error: 'No package.json found. Run scaffold first.' };
+  }
+
+  const assetsDir = join(dir, 'public', 'assets');
+  mkdirSync(assetsDir, { recursive: true });
+
+  const logs: string[] = [];
+  const COMFYUI_URL = process.env['COMFYUI_URL'] || 'http://100.88.191.49:8188';
+  const NANO_BANANA_KEY = process.env['NANO_BANANA_API_KEY'] || '';
+
+  // Check if ComfyUI is available
+  let useComfyUI = false;
+  try {
+    const res = await fetch(`${COMFYUI_URL}/system_stats`, { signal: AbortSignal.timeout(3000) });
+    useComfyUI = res.ok;
+  } catch { /* ComfyUI offline */ }
+
+  if (useComfyUI) {
+    logs.push(`✓ ComfyUI detected at ${COMFYUI_URL}`);
+    logs.push('⚠ ComfyUI workflow integration pending — using placeholders for now');
+  } else if (NANO_BANANA_KEY) {
+    logs.push('✓ Nano Banana API key found');
+    logs.push('⚠ Nano Banana integration pending — using placeholders for now');
+  } else {
+    logs.push('⚠ No image generation service available (ComfyUI offline, no Nano Banana key)');
+  }
+
+  // Create placeholder assets
+  const logoSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="60" viewBox="0 0 200 60">
+  <rect width="200" height="60" fill="#000"/>
+  <text x="100" y="35" font-family="Arial" font-size="24" fill="#fff" text-anchor="middle">${config.projectName}</text>
+</svg>`;
+  
+  const heroSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600">
+  <rect width="1200" height="600" fill="#111"/>
+  <text x="600" y="280" font-family="Arial" font-size="48" fill="#fff" text-anchor="middle">${config.projectName}</text>
+  <text x="600" y="340" font-family="Arial" font-size="24" fill="#888" text-anchor="middle">${config.niche}</text>
+</svg>`;
+
+  writeFileSync(join(assetsDir, 'logo.svg'), logoSvg);
+  writeFileSync(join(assetsDir, 'hero.svg'), heroSvg);
+  logs.push('✓ Created placeholder logo.svg');
+  logs.push('✓ Created placeholder hero.svg');
+
+  return {
+    success: true,
+    output: `Assets step completed:\n\n${logs.join('\n')}\n\nNext steps:\n- Wire ComfyUI workflow for real logo/hero generation\n- Or integrate Nano Banana API\n- Assets saved to public/assets/`,
+  };
+}
+
+async function testIntegrations(config: TestConfig): Promise<StepResult> {
+  const dir = resolveDir(config.outputDir);
+  if (!existsSync(join(dir, 'package.json'))) {
+    return { success: false, error: 'No package.json found. Run scaffold first.' };
+  }
+
+  const logs: string[] = [];
+
+  // 1. Create Medusa client if not exists
+  const medusaPath = join(dir, 'src', 'lib', 'medusa.ts');
+  if (!existsSync(medusaPath)) {
+    mkdirSync(join(dir, 'src', 'lib'), { recursive: true });
+    writeFileSync(medusaPath, `const MEDUSA_URL = process.env.NEXT_PUBLIC_MEDUSA_URL || 'http://100.110.74.114:9000';
+const PUB_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || 'REDACTED_MEDUSA_PK';
+const REGION_ID = process.env.NEXT_PUBLIC_MEDUSA_REGION_ID || 'reg_01KNCT3QEHAN10H1R98PM3XT2B';
+
+type Json = Record<string, unknown>;
+
+async function medusaFetch(path: string, opts?: RequestInit): Promise<Json> {
+  const res = await fetch(\`\${MEDUSA_URL}\${path}\`, {
+    ...opts,
+    headers: { 'Content-Type': 'application/json', 'x-publishable-api-key': PUB_KEY, ...(opts?.headers || {}) },
+    next: { revalidate: 0 },
+  });
+  if (!res.ok) throw new Error(\`Medusa \${res.status}\`);
+  return res.json() as Promise<Json>;
+}
+
+export interface MedusaProduct {
+  id: string;
+  title: string;
+  handle: string;
+  description: string;
+  thumbnail: string | null;
+  images: { id: string; url: string }[];
+  variants: { id: string; title: string; calculated_price?: { calculated_amount: number; currency_code: string } }[];
+}
+
+export async function getProducts(opts?: { limit?: number; offset?: number; q?: string }): Promise<{ products: MedusaProduct[]; count: number }> {
+  const params = new URLSearchParams();
+  params.set('region_id', REGION_ID);
+  if (opts?.limit) params.set('limit', String(opts.limit));
+  if (opts?.offset) params.set('offset', String(opts.offset));
+  if (opts?.q) params.set('q', opts.q);
+  const data = await medusaFetch(\`/store/products?\${params.toString()}\`);
+  return { products: (data.products || []) as MedusaProduct[], count: (data.count || 0) as number };
+}
+
+export async function getProductByHandle(handle: string): Promise<MedusaProduct | null> {
+  try {
+    const data = await medusaFetch(\`/store/products?handle=\${handle}&region_id=\${REGION_ID}\`);
+    const products = (data.products || []) as MedusaProduct[];
+    return products[0] || null;
+  } catch { return null; }
+}
+`);
+    logs.push('✓ Created src/lib/medusa.ts');
+  } else {
+    logs.push('✓ src/lib/medusa.ts already exists');
+  }
+
+  // 2. Create .env.local template
+  const envPath = join(dir, '.env.local');
+  if (!existsSync(envPath)) {
+    writeFileSync(envPath, `# Medusa
+NEXT_PUBLIC_MEDUSA_URL=http://100.110.74.114:9000
+NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=REDACTED_MEDUSA_PK
+NEXT_PUBLIC_MEDUSA_REGION_ID=reg_01KNCT3QEHAN10H1R98PM3XT2B
+
+# Stripe (optional)
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
+STRIPE_SECRET_KEY=
+
+# Supabase (optional)
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+`);
+    logs.push('✓ Created .env.local template');
+  } else {
+    logs.push('✓ .env.local already exists');
+  }
+
+  // 3. Update package.json to include Stripe + Supabase deps (optional)
+  const pkgPath = join(dir, 'package.json');
+  const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8')) as Record<string, unknown>;
+  const deps = (pkg.dependencies || {}) as Record<string, string>;
+  
+  let updated = false;
+  if (!deps['@stripe/stripe-js']) {
+    deps['@stripe/stripe-js'] = '^4.0.0';
+    updated = true;
+  }
+  if (!deps['@supabase/supabase-js']) {
+    deps['@supabase/supabase-js'] = '^2.45.0';
+    updated = true;
+  }
+
+  if (updated) {
+    pkg.dependencies = deps;
+    writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
+    logs.push('✓ Added Stripe + Supabase to package.json');
+  } else {
+    logs.push('✓ Stripe + Supabase already in package.json');
+  }
+
+  return {
+    success: true,
+    output: `Integrations configured:\n\n${logs.join('\n')}\n\nReady for:\n- Medusa product fetching\n- Stripe checkout (keys required)\n- Supabase auth (keys required)`,
+  };
+}
+
 async function testInstall(config: TestConfig): Promise<StepResult> {
   const dir = resolveDir(config.outputDir);
   if (!existsSync(join(dir, 'package.json'))) {
@@ -370,7 +537,7 @@ async function testBuild(config: TestConfig): Promise<StepResult> {
     return { success: false, error: 'node_modules not found. Run install first.' };
   }
 
-  const { ok, stdout, stderr } = execCmd('npx next build 2>&1', dir, { NODE_ENV: 'production' });
+  const { ok, stdout, stderr } = execCmd('npx next build 2>&1', dir, { NODE_ENV: 'production' as const });
 
   if (ok) {
     return { success: true, output: `Build succeeded\n\n${stdout.split('\n').slice(-15).join('\n')}` };
@@ -390,7 +557,7 @@ async function testDebugFix(config: TestConfig): Promise<StepResult> {
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     logs.push(`[attempt ${attempt}/${MAX_RETRIES}] Running build...`);
-    const { ok, stdout, stderr } = execCmd('npx next build 2>&1', dir, { NODE_ENV: 'production' });
+    const { ok, stdout, stderr } = execCmd('npx next build 2>&1', dir, { NODE_ENV: 'production' as const });
 
     if (ok) {
       logs.push('Build passed!');
@@ -517,7 +684,7 @@ Requirements:
 
   }
 
-  const finalBuild = execCmd('npx next build 2>&1', dir, { NODE_ENV: 'production' });
+  const finalBuild = execCmd('npx next build 2>&1', dir, { NODE_ENV: 'production' as const });
   if (finalBuild.ok) {
     logs.push('Final build passed after fixes!');
     return { success: true, output: logs.join('\n') };
@@ -535,7 +702,7 @@ Requirements:
     }
   }
 
-  const retryBuild = execCmd('npx next build 2>&1', dir, { NODE_ENV: 'production' });
+  const retryBuild = execCmd('npx next build 2>&1', dir, { NODE_ENV: 'production' as const });
   if (retryBuild.ok) {
     logs.push('Build passed after fallback replacement!');
     return { success: true, output: logs.join('\n') };
@@ -573,10 +740,100 @@ async function testLaunch(config: TestConfig): Promise<StepResult> {
 }
 
 async function testDeploy(config: TestConfig): Promise<StepResult> {
-  return {
-    success: true,
-    output: 'Deploy step ready.\nTargets available:\n- Docker container on GPU2 (100.110.74.114)\n- Vercel (requires vercel CLI)\n- GitHub Pages\n\nWill be integrated with the dropship pipeline.',
-  };
+  const dir = resolveDir(config.outputDir);
+  if (!existsSync(join(dir, '.next'))) {
+    return { success: false, error: 'No .next build folder. Run build first.' };
+  }
+
+  const GPU2_HOST = process.env['GPU2_HOST'] || '100.110.74.114';
+  const GPU2_USER = process.env['GPU2_USER'] || 'root';
+  const slug = config.projectName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  const port = 3101 + Math.floor(Math.random() * 90);
+  const logs: string[] = [];
+
+  try {
+    // 1. Create Dockerfile
+    const dockerfile = `FROM node:22-alpine AS base
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+
+FROM node:22-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=base /app/node_modules ./node_modules
+COPY . .
+EXPOSE ${port}
+CMD ["npm", "start"]
+`;
+    writeFileSync(join(dir, 'Dockerfile'), dockerfile);
+    logs.push('✓ Created Dockerfile');
+
+    // 2. Create .dockerignore
+    writeFileSync(join(dir, '.dockerignore'), `node_modules
+.next
+.git
+*.log
+.env.local
+`);
+    logs.push('✓ Created .dockerignore');
+
+    // 3. Build Docker image locally
+    logs.push(`Building Docker image: ${slug}:latest...`);
+    const buildCmd = `docker build -t ${slug}:latest .`;
+    const { ok: buildOk, stdout: buildOut, stderr: buildErr } = execCmd(buildCmd, dir);
+    
+    if (!buildOk) {
+      logs.push(`✗ Docker build failed:\n${buildErr.slice(-500)}`);
+      return { success: false, error: logs.join('\n') };
+    }
+    logs.push('✓ Docker image built');
+
+    // 4. Save image to tar
+    const tarPath = join(dir, `${slug}.tar`);
+    logs.push('Saving image to tar...');
+    const saveCmd = `docker save ${slug}:latest -o ${slug}.tar`;
+    const { ok: saveOk } = execCmd(saveCmd, dir);
+    
+    if (!saveOk) {
+      logs.push('✗ Failed to save Docker image');
+      return { success: false, error: logs.join('\n') };
+    }
+    logs.push(`✓ Image saved to ${slug}.tar`);
+
+    // 5. Transfer to GPU2
+    logs.push(`Transferring to ${GPU2_HOST}...`);
+    const scpCmd = `scp ${slug}.tar ${GPU2_USER}@${GPU2_HOST}:/tmp/`;
+    const { ok: scpOk } = execCmd(scpCmd, dir);
+    
+    if (!scpOk) {
+      logs.push('✗ SCP transfer failed (check SSH keys)');
+      return { success: false, error: logs.join('\n') };
+    }
+    logs.push('✓ Transferred to GPU2');
+
+    // 6. Load image on GPU2 and run container
+    logs.push('Loading image on GPU2 and starting container...');
+    const remoteCmd = `ssh ${GPU2_USER}@${GPU2_HOST} "docker load -i /tmp/${slug}.tar && docker stop ${slug} 2>/dev/null || true && docker rm ${slug} 2>/dev/null || true && docker run -d --name ${slug} --network host -e PORT=${port} ${slug}:latest && rm /tmp/${slug}.tar"`;
+    const { ok: remoteOk, stderr: remoteErr } = execCmd(remoteCmd, dir);
+    
+    if (!remoteOk) {
+      logs.push(`✗ Remote deploy failed:\n${remoteErr.slice(-500)}`);
+      return { success: false, error: logs.join('\n') };
+    }
+    logs.push(`✓ Container started on GPU2:${port}`);
+
+    // Clean up local tar
+    execCmd(`rm ${slug}.tar`, dir);
+
+    return {
+      success: true,
+      output: `${logs.join('\n')}\n\n✓ Site deployed!\nURL: http://${GPU2_HOST}:${port}\n\nContainer name: ${slug}\nPort: ${port}`,
+    };
+  } catch (err) {
+    logs.push(`✗ Deploy error: ${(err as Error).message}`);
+    return { success: false, error: logs.join('\n') };
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -594,8 +851,8 @@ export async function POST(req: NextRequest) {
     switch (stepId) {
       case 'scaffold':     result = await testScaffold(config); break;
       case 'codegen':      result = await testCodegen(config); break;
-      case 'integrations': result = { success: true, output: 'Integrations step: Medusa client + Stripe + Supabase.\nAlready implemented in dropship-platform storefront.\nWill be copied during scaffold.' }; break;
-      case 'assets':       result = { success: true, output: 'Assets step: Logo + hero image generation.\nRequires image gen API (Nano Banana / Hypereal).\nPlaceholder assets already created during scaffold.' }; break;
+      case 'integrations': result = await testIntegrations(config); break;
+      case 'assets':       result = await testAssets(config); break;
       case 'install':      result = await testInstall(config); break;
       case 'build-check':  result = await testBuild(config); break;
       case 'debug-fix':    result = await testDebugFix(config); break;

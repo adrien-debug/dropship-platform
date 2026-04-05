@@ -122,7 +122,7 @@ function PipelinePanel() {
     }
   }, [keywords, market, positioning, running]);
 
-  const latestProgress = events.findLast(e => e.progress != null)?.progress ?? 0;
+  const latestProgress = [...events].reverse().find((e: PipelineEvent) => e.progress != null)?.progress ?? 0;
   const shopResult = (result as Record<string, unknown>)?.shop as Record<string, unknown> | undefined;
 
   return (
@@ -204,8 +204,8 @@ function PipelinePanel() {
                 }`} />
                 <div className="flex-1">
                   <span className="font-medium">{getStepLabel(e.step)}</span>
-                  {e.detail && typeof e.detail === 'string' && (
-                    <p className="mt-0.5 text-xs text-gray-500">{String(e.detail).slice(0, 200)}</p>
+                  {typeof e.detail === 'string' && e.detail && (
+                    <p className="mt-0.5 text-xs text-gray-500">{(e.detail as string).slice(0, 200)}</p>
                   )}
                 </div>
                 <span className="text-xs text-gray-400">

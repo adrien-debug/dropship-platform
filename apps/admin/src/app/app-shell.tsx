@@ -4,12 +4,11 @@ import { usePathname, useRouter } from 'next/navigation';
 
 const NAV_LINKS = [
   { href: '/', label: 'Dashboard', icon: '📊' },
-  { href: '/discover', label: 'Discover', icon: '🔥' },
   { href: '/sites', label: 'Shops', icon: '🌐' },
   { href: '/catalogs', label: 'Catalogs', icon: '📦' },
   { href: '/marketing', label: 'Marketing', icon: '📣' },
+  { href: '/discover', label: 'Discover', icon: '🔥' },
   { href: '/agents', label: 'AI Agent', icon: '🤖' },
-  { href: '/launcher', label: 'Launcher', icon: '🚀' },
   { href: '/gpu', label: 'GPU Status', icon: '🖥️' },
   { href: '/settings', label: 'Settings', icon: '⚙️' },
 ];
@@ -44,20 +43,25 @@ function Sidebar({ pathname }: { pathname: string }) {
         <h1 className="text-lg font-bold text-brand">Dropship Platform</h1>
       </div>
       <nav className="flex-1 space-y-1 p-4">
-        {NAV_LINKS.map(link => (
-          <a
-            key={link.href}
-            href={link.href}
-            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
-              pathname === link.href
-                ? 'bg-gray-100 font-medium text-gray-900'
-                : 'text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            <span>{link.icon}</span>
-            <span>{link.label}</span>
-          </a>
-        ))}
+        {NAV_LINKS.map(link => {
+          const isActive = link.href === '/'
+            ? pathname === '/'
+            : pathname.startsWith(link.href);
+          return (
+            <a
+              key={link.href}
+              href={link.href}
+              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
+                isActive
+                  ? 'bg-gray-100 font-medium text-gray-900'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <span>{link.icon}</span>
+              <span>{link.label}</span>
+            </a>
+          );
+        })}
       </nav>
       <div className="border-t p-4">
         <button

@@ -187,47 +187,73 @@ export async function runFastPipeline(
   track('generate_content', siteContent ? 'done' : 'error',
     siteContent ? { brand: siteContent.brand?.name } : 'Content generation failed', 65);
 
-  // Step 3: Create shop
+  // Step 3: Create shop via launcher codegen
   track('create_shop', 'running', undefined, 70);
   const shopName = siteContent?.brand?.name ?? `Shop ${input.keywords[0]}`;
   const shopSlug = slugify(shopName);
   const port = 3101 + Math.floor(Math.random() * 90);
 
   try {
-    const body = {
-      name: shopName,
-      slug: shopSlug,
-      port,
-      design_system: designSystem,
-      products: enrichedProducts.map(p => ({
-        title: p.title,
-        description: p.description,
-        price: p.price,
-        image: p.images?.[0],
-        images: p.images,
-        seo_title: p.seo_title,
-        seo_description: p.seo_description,
-        cost_cents: p.cost_cents,
-        supplier: p.supplier,
-        external_id: p.external_id,
-      })),
-      site_content: siteContent,
+    // Call launcher API to generate site
+    const launcherBody = {
+      projectName: shopName,
+      niche,
+      outputDir: `~/sites/${shopSlug}`,
+      designSystem,
+      siteContent,
+      products: enrichedProducts,
     };
 
-    const res = await fetch(`http://localhost:${OPENCLAW_PORT}/shop/execute`, {
+    const res = await fetch(`http://localhost:3200/api/launcher/stream`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(120_000),
+      body: JSON.stringify(launcherBody),
+      signal: AbortSignal.timeout(300_000),
     });
 
     if (!res.ok) {
       const errBody = await res.text().catch(() => '');
-      track('create_shop', 'error', `HTTP ${res.status}: ${errBody.slice(0, 200)}`, 85);
+      track('create_shop', 'error', `Launcher failed: HTTP ${res.status}: ${errBody.slice(0, 200)}`, 85);
       return { success: false, events, duration_ms: Date.now() - startTime };
     }
 
-    const shopResult = await res.json() as Record<string, unknown>;
+    // Parse SSE stream
+    const reader = res.body?.getReader();
+    const decoder = new TextDecoder();
+    let siteUrl = '';
+    let siteId = '';
+    
+    if (reader) {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.step === 'launch' && data.status === 'done') {
+                siteUrl = data.detail?.url || `http://${GPU2_HOST}:${port}`;
+              }
+              if (data.step === 'complete' && data.status === 'done') {
+                siteId = data.detail?.site_id || '';
+              }
+            } catch { /* skip invalid JSON */ }
+          }
+        }
+      }
+    }
+
+    const shopResult = {
+      url: siteUrl || `http://${GPU2_HOST}:${port}`,
+      site_id: siteId,
+      sales_channel_id: '',
+      products_created: enrichedProducts.length,
+    };
+
     track('create_shop', 'done', { url: shopResult.url, products: shopResult.products_created }, 85);
 
     // Step 4: SEO Audit
@@ -277,14 +303,14 @@ export async function runFastPipeline(
     track('marketing_plans', 'done', marketingResult, 98);
 
     // Save campaigns to Supabase
-    const siteId = String(shopResult.site_id ?? '');
-    if (siteId) {
+    const finalSiteId = String(shopResult.site_id ?? '');
+    if (finalSiteId) {
       try {
         const supabase = getSupabase();
         if (supabase) {
           const campaigns = [
             {
-              site_id: siteId,
+              site_id: finalSiteId,
               platform: 'google_ads',
               name: `${shopName} - Google Search`,
               daily_budget: (input.budget_eur ?? 10) * 100,
@@ -294,7 +320,7 @@ export async function runFastPipeline(
               creatives: { landing_page: shopUrl },
             },
             {
-              site_id: siteId,
+              site_id: finalSiteId,
               platform: 'meta',
               name: `${shopName} - Meta Conversions`,
               daily_budget: (input.budget_eur ?? 10) * 100,

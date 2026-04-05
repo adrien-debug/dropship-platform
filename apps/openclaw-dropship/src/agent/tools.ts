@@ -118,45 +118,65 @@ const generateSiteContentHandler = async (args: Record<string, unknown>) => {
   return content;
 };
 
-// ---------- Tool: create_shop ----------
+// ---------- Tool: create_shop (via launcher codegen) ----------
+const ADMIN_URL = process.env['ADMIN_URL'] ?? 'http://localhost:3200';
+
 const createShopHandler = async (args: Record<string, unknown>) => {
   const name = args['name'] as string;
   const slug = args['slug'] as string;
-  const port = (args['port'] as number) ?? 3101 + Math.floor(Math.random() * 90);
   const design_system = (args['design_system'] as string) ?? 'swiss';
   const products = args['products'] as EnrichedProduct[];
   const site_content = args['site_content'] as SiteContent | undefined;
+  const niche = (args['niche'] as string) ?? name;
 
-  const body = {
-    name,
-    slug,
-    port,
-    design_system,
-    products: products.map(p => ({
-      title: p.title,
-      price: p.price,
-      image: p.images?.[0],
-      description: p.description,
-      images: p.images,
-      seo_title: p.seo_title,
-      seo_description: p.seo_description,
-    })),
-    site_content,
-  };
+  const steps = ['scaffold', 'codegen', 'integrations', 'assets', 'install', 'build-check', 'debug-fix', 'launch', 'deploy'];
+  const outputDir = `~/sites/${slug}`;
+  const config = { projectName: name, niche, outputDir };
+  const results: Record<string, { success: boolean; output?: string; error?: string }> = {};
 
-  const res = await fetch(`${OPENCLAW_URL}/shop/execute`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(120_000),
-  });
+  for (const stepId of steps) {
+    try {
+      const res = await fetch(`${ADMIN_URL}/api/launcher/test-step`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stepId, config }),
+        signal: AbortSignal.timeout(300_000),
+      });
 
-  if (!res.ok) {
-    const err = await res.text().catch(() => '');
-    throw new Error(`Shop creation failed: ${res.status} ${err.slice(0, 200)}`);
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '');
+        results[stepId] = { success: false, error: `HTTP ${res.status}: ${errText.slice(0, 200)}` };
+        console.error(`[tools:create_shop] Step ${stepId} HTTP error: ${res.status}`);
+        if (['scaffold', 'install', 'build-check'].includes(stepId)) break;
+        continue;
+      }
+
+      const stepResult = await res.json() as { success: boolean; output?: string; error?: string };
+      results[stepId] = stepResult;
+      console.log(`[tools:create_shop] Step ${stepId}: ${stepResult.success ? 'OK' : 'FAIL'}`);
+
+      if (!stepResult.success && ['scaffold', 'install'].includes(stepId)) break;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      results[stepId] = { success: false, error: msg };
+      console.error(`[tools:create_shop] Step ${stepId} failed: ${msg}`);
+      if (['scaffold', 'install'].includes(stepId)) break;
+    }
   }
 
-  return res.json();
+  const allPassed = Object.values(results).every(r => r.success);
+  const deployOutput = results['deploy']?.output ?? '';
+  const urlMatch = deployOutput.match(/URL:\s*(http[^\s]+)/);
+
+  return {
+    success: allPassed,
+    name,
+    slug,
+    design_system,
+    url: urlMatch?.[1] ?? `Generated at ${outputDir}`,
+    products_count: products?.length ?? 0,
+    steps: Object.fromEntries(Object.entries(results).map(([k, v]) => [k, v.success ? 'pass' : 'fail'])),
+  };
 };
 
 // ---------- Tool: check_health ----------

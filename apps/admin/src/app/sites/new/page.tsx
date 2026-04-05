@@ -19,19 +19,10 @@ interface DSEntry {
   textColor: string;
 }
 
-interface TrendingProduct {
-  id: string;
-  title: string;
-  price: number;
-  image?: string;
-  source?: string;
-}
-
 interface WizardData {
   niche: string;
   market: (typeof MARKETS)[number];
   positioning: (typeof POSITIONINGS)[number];
-  selectedProducts: TrendingProduct[];
   designSystemId: string;
   shopName: string;
   slug: string;
@@ -43,11 +34,14 @@ const MARKETS = ['France', 'Europe', 'US', 'Monde'] as const;
 const POSITIONINGS = ['Budget', 'Milieu de gamme', 'Premium'] as const;
 
 const DEPLOY_STEPS = [
-  'Creation du Sales Channel Medusa...',
-  'Import des produits...',
-  'Configuration design system...',
-  'Build du storefront...',
-  'Deploiement GPU2...',
+  { id: 'medusa', label: 'Creation Sales Channel Medusa + cle API' },
+  { id: 'scaffold', label: 'Scaffold du projet Next.js' },
+  { id: 'codegen', label: 'Generation du code par IA (Qwen)' },
+  { id: 'integrations', label: 'Integration Medusa, Stripe, Supabase' },
+  { id: 'assets', label: 'Generation logo & hero image' },
+  { id: 'install', label: 'Installation des dependances' },
+  { id: 'build', label: 'Build du storefront' },
+  { id: 'deploy', label: 'Deploiement sur GPU2' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -60,7 +54,6 @@ export default function NewSiteWizard() {
     niche: '',
     market: 'France',
     positioning: 'Milieu de gamme',
-    selectedProducts: [],
     designSystemId: '',
     shopName: '',
     slug: '',
@@ -68,15 +61,17 @@ export default function NewSiteWizard() {
     darkMode: false,
   });
 
-  const [deployStatus, setDeployStatus] = useState<('pending' | 'running' | 'done')[]>(
-    DEPLOY_STEPS.map(() => 'pending'),
+  const [deployStatus, setDeployStatus] = useState<Record<string, 'pending' | 'running' | 'done' | 'error'>>(
+    Object.fromEntries(DEPLOY_STEPS.map(s => [s.id, 'pending'])),
   );
   const [deployedUrl, setDeployedUrl] = useState('');
+  const [deployError, setDeployError] = useState('');
+  const [deployLogs, setDeployLogs] = useState<string[]>([]);
 
   const canNext = useCallback((): boolean => {
     switch (step) {
       case 0:
-        return data.niche.trim().length > 0 && data.selectedProducts.length > 0;
+        return data.niche.trim().length > 0;
       case 1:
         return data.designSystemId !== '';
       case 2:
@@ -90,41 +85,116 @@ export default function NewSiteWizard() {
 
   const startDeploy = async () => {
     setStep(4);
-    const statuses: ('pending' | 'running' | 'done')[] = DEPLOY_STEPS.map(() => 'pending');
-
-    for (let i = 0; i < DEPLOY_STEPS.length; i++) {
-      statuses[i] = 'running';
-      setDeployStatus([...statuses]);
-      await new Promise(r => setTimeout(r, 800 + Math.random() * 600));
-      statuses[i] = 'done';
-      setDeployStatus([...statuses]);
-    }
+    setDeployError('');
+    setDeployLogs([]);
+    const statuses: Record<string, 'pending' | 'running' | 'done' | 'error'> =
+      Object.fromEntries(DEPLOY_STEPS.map(s => [s.id, 'pending' as const]));
+    const updateStep = (id: string, status: 'running' | 'done' | 'error') => {
+      statuses[id] = status;
+      setDeployStatus({ ...statuses });
+    };
+    const addLog = (msg: string) => setDeployLogs(prev => [...prev, msg]);
 
     try {
-      const res = await fetch('/api/shops/create', {
+      // Step 1: Medusa setup (sales channel + pub key + Supabase record)
+      updateStep('medusa', 'running');
+      addLog('Creation du Sales Channel Medusa...');
+      const medusaRes = await fetch('/api/shops/setup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          niche: data.niche,
-          market: data.market,
-          positioning: data.positioning,
-          products: data.selectedProducts.map(p => ({
-            title: p.title,
-            price: p.price,
-            image: p.image,
-            supplier: p.source,
-          })),
-          designSystem: data.designSystemId,
           name: data.shopName,
           slug: data.slug,
           port: data.port,
-          darkMode: data.darkMode,
+          niche: data.niche,
+          market: data.market,
+          positioning: data.positioning,
+          designSystem: data.designSystemId,
         }),
       });
-      const json = await res.json();
-      setDeployedUrl(json.shop?.url ?? `http://100.110.74.114:${data.port}`);
-    } catch {
-      setDeployedUrl(`http://100.110.74.114:${data.port}`);
+      const medusaJson = await medusaRes.json();
+      if (!medusaRes.ok) throw new Error(medusaJson.error || 'Medusa setup failed');
+      updateStep('medusa', 'done');
+      addLog(`Sales Channel: ${medusaJson.salesChannelId}`);
+      addLog(`Site ID: ${medusaJson.siteId}`);
+
+      // Step 2+: Launcher SSE pipeline
+      const launcherRes = await fetch('/api/launcher/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          config: {
+            projectName: data.shopName,
+            niche: data.niche,
+            outputDir: `~/sites/${data.slug}`,
+            designSystem: data.designSystemId,
+            port: data.port,
+          },
+        }),
+      });
+
+      if (!launcherRes.body) throw new Error('No stream body');
+      const reader = launcherRes.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      const stepMap: Record<string, string> = {
+        scaffold: 'scaffold',
+        codegen: 'codegen',
+        integrations: 'integrations',
+        assets: 'assets',
+        install: 'install',
+        'build-check': 'build',
+        'debug-fix': 'build',
+        launch: 'deploy',
+        deploy: 'deploy',
+        done: 'deploy',
+      };
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const evt = JSON.parse(line.slice(6));
+            const uiStep = stepMap[evt.step] || evt.step;
+
+            if (evt.status === 'running' && statuses[uiStep] === 'pending') {
+              updateStep(uiStep, 'running');
+            }
+            if (evt.status === 'done') {
+              updateStep(uiStep, 'done');
+            }
+            if (evt.status === 'error') {
+              updateStep(uiStep, 'error');
+              addLog(`Erreur: ${evt.detail}`);
+            }
+            addLog(`[${evt.step}] ${evt.detail}`);
+
+            if (evt.step === 'done' && evt.status === 'done') {
+              DEPLOY_STEPS.forEach(s => updateStep(s.id, 'done'));
+              setDeployedUrl(`http://100.110.74.114:${data.port}`);
+            }
+          } catch { /* skip malformed SSE */ }
+        }
+      }
+
+      if (!Object.values(statuses).every(s => s === 'done')) {
+        DEPLOY_STEPS.forEach(s => {
+          if (statuses[s.id] === 'running') updateStep(s.id, 'done');
+        });
+        if (!deployedUrl) setDeployedUrl(`http://100.110.74.114:${data.port}`);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setDeployError(msg);
+      addLog(`ERREUR: ${msg}`);
     }
   };
 
@@ -134,15 +204,16 @@ export default function NewSiteWizard() {
       niche: '',
       market: 'France',
       positioning: 'Milieu de gamme',
-      selectedProducts: [],
       designSystemId: '',
       shopName: '',
       slug: '',
       port: 3102,
       darkMode: false,
     });
-    setDeployStatus(DEPLOY_STEPS.map(() => 'pending'));
+    setDeployStatus(Object.fromEntries(DEPLOY_STEPS.map(s => [s.id, 'pending'])));
     setDeployedUrl('');
+    setDeployError('');
+    setDeployLogs([]);
   };
 
   return (
@@ -162,7 +233,13 @@ export default function NewSiteWizard() {
         {step === 2 && <StepConfig data={data} setData={setData} />}
         {step === 3 && <StepSummary data={data} />}
         {step === 4 && (
-          <StepDeploy statuses={deployStatus} deployedUrl={deployedUrl} onReset={reset} />
+          <StepDeploy
+            statuses={deployStatus}
+            deployedUrl={deployedUrl}
+            deployError={deployError}
+            logs={deployLogs}
+            onReset={reset}
+          />
         )}
       </div>
 
@@ -201,7 +278,7 @@ export default function NewSiteWizard() {
 // Progress Bar
 // ---------------------------------------------------------------------------
 
-const STEP_LABELS = ['Niche & Produits', 'Design', 'Configuration', 'Resume', 'Deploiement'];
+const STEP_LABELS = ['Niche & Marche', 'Design', 'Configuration', 'Resume', 'Deploiement'];
 
 function ProgressBar({ step }: { step: number }) {
   return (
@@ -226,6 +303,17 @@ function ProgressBar({ step }: { step: number }) {
 // Step 1 — Niche & Products
 // ---------------------------------------------------------------------------
 
+const NICHE_SUGGESTIONS = [
+  'Figurines anime',
+  'Cosmetique bio',
+  'Tech & Gadgets',
+  'Mode streetwear',
+  'Bijoux minimalistes',
+  'Accessoires gaming',
+  'Maison & Deco',
+  'Sport & Fitness',
+];
+
 function StepNiche({
   data,
   setData,
@@ -233,60 +321,38 @@ function StepNiche({
   data: WizardData;
   setData: React.Dispatch<React.SetStateAction<WizardData>>;
 }) {
-  const [searchResults, setSearchResults] = useState<TrendingProduct[]>([]);
-  const [searching, setSearching] = useState(false);
-
-  const search = async () => {
-    if (!data.niche.trim()) return;
-    setSearching(true);
-    try {
-      const res = await fetch(`/api/trending?q=${encodeURIComponent(data.niche)}`);
-      const json = await res.json();
-      setSearchResults(json.products ?? []);
-    } catch {
-      setSearchResults([]);
-    }
-    setSearching(false);
-  };
-
-  const toggleProduct = (product: TrendingProduct) => {
-    setData(prev => {
-      const exists = prev.selectedProducts.find(p => p.id === product.id);
-      return {
-        ...prev,
-        selectedProducts: exists
-          ? prev.selectedProducts.filter(p => p.id !== product.id)
-          : [...prev.selectedProducts, product],
-      };
-    });
-  };
-
-  const isSelected = (id: string) => data.selectedProducts.some(p => p.id === id);
-
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-semibold">Niche & Produits</h3>
+      <h3 className="text-lg font-semibold">Niche & Marche</h3>
+      <p className="text-sm text-gray-500">
+        Decrivez votre niche. Les produits seront recherches automatiquement chez les fournisseurs.
+      </p>
 
       <div>
         <label className="block text-sm font-medium text-gray-700">
-          Quel type de produits ?
+          Quelle niche / type de produits ?
         </label>
-        <div className="mt-1 flex gap-2">
-          <input
-            type="text"
-            value={data.niche}
-            onChange={e => setData(prev => ({ ...prev, niche: e.target.value }))}
-            placeholder='ex: "figurines anime", "cosmetique bio"'
-            className="flex-1 rounded-lg border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
-            onKeyDown={e => e.key === 'Enter' && search()}
-          />
-          <button
-            onClick={search}
-            disabled={searching || !data.niche.trim()}
-            className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-light disabled:opacity-40"
-          >
-            {searching ? 'Recherche...' : 'Rechercher'}
-          </button>
+        <input
+          type="text"
+          value={data.niche}
+          onChange={e => setData(prev => ({ ...prev, niche: e.target.value }))}
+          placeholder='ex: "figurines anime One Piece", "cosmetique bio coreen"'
+          className="mt-1 w-full rounded-lg border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+        />
+        <div className="mt-2 flex flex-wrap gap-2">
+          {NICHE_SUGGESTIONS.map(s => (
+            <button
+              key={s}
+              onClick={() => setData(prev => ({ ...prev, niche: s }))}
+              className={`rounded-full border px-3 py-1 text-xs transition ${
+                data.niche === s
+                  ? 'border-brand bg-brand/10 text-brand font-medium'
+                  : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700'
+              }`}
+            >
+              {s}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -328,57 +394,10 @@ function StepNiche({
         </div>
       </div>
 
-      {searchResults.length > 0 && (
-        <div>
-          <div className="mb-2 flex items-center justify-between">
-            <p className="text-sm font-medium text-gray-700">
-              Resultats ({searchResults.length})
-            </p>
-            {data.selectedProducts.length > 0 && (
-              <span className="rounded-full bg-green-100 px-3 py-0.5 text-xs font-medium text-green-700">
-                {data.selectedProducts.length} selectionne
-                {data.selectedProducts.length > 1 ? 's' : ''}
-              </span>
-            )}
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {searchResults.map(product => (
-              <button
-                key={product.id}
-                onClick={() => toggleProduct(product)}
-                className={`rounded-lg border p-3 text-left transition ${
-                  isSelected(product.id)
-                    ? 'border-green-500 bg-green-50 ring-1 ring-green-500'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                {product.image && (
-                  <img
-                    src={product.image}
-                    alt={product.title}
-                    className="mb-2 h-24 w-full rounded object-cover"
-                  />
-                )}
-                <p className="text-sm font-medium line-clamp-2">{product.title}</p>
-                <p className="mt-1 text-xs text-gray-500">
-                  {product.price.toFixed(2)} € — {product.source ?? 'AliExpress'}
-                </p>
-                {isSelected(product.id) && (
-                  <span className="mt-1 inline-block text-xs font-medium text-green-600">
-                    ✓ Selectionne
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {searching && (
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <Spinner /> Recherche de produits tendance...
-        </div>
-      )}
+      <div className="flex items-center gap-2 rounded-lg bg-blue-50 p-3 text-sm text-blue-700">
+        <span>💡</span>
+        Les produits seront automatiquement sourced via CJ Dropshipping et Medusa lors du deploiement.
+      </div>
     </div>
   );
 }
@@ -596,10 +615,6 @@ function StepSummary({ data }: { data: WizardData }) {
         <SummaryCard label="Niche" value={data.niche} />
         <SummaryCard label="Marche cible" value={data.market} />
         <SummaryCard label="Positionnement" value={data.positioning} />
-        <SummaryCard
-          label="Produits selectionnes"
-          value={`${data.selectedProducts.length} produit${data.selectedProducts.length > 1 ? 's' : ''}`}
-        />
         <SummaryCard label="Design System" value={data.designSystemId} />
         <SummaryCard label="Nom" value={data.shopName} />
         <SummaryCard label="Slug" value={data.slug} />
@@ -631,46 +646,89 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
 function StepDeploy({
   statuses,
   deployedUrl,
+  deployError,
+  logs,
   onReset,
 }: {
-  statuses: ('pending' | 'running' | 'done')[];
+  statuses: Record<string, 'pending' | 'running' | 'done' | 'error'>;
   deployedUrl: string;
+  deployError: string;
+  logs: string[];
   onReset: () => void;
 }) {
-  const allDone = statuses.every(s => s === 'done');
+  const allDone = DEPLOY_STEPS.every(s => statuses[s.id] === 'done');
+  const hasError = Object.values(statuses).some(s => s === 'error') || !!deployError;
+  const [showLogs, setShowLogs] = useState(false);
 
   return (
     <div className="space-y-6">
       <h3 className="text-lg font-semibold">Deploiement</h3>
 
-      <div className="space-y-3">
-        {DEPLOY_STEPS.map((label, i) => (
-          <div key={i} className="flex items-center gap-3 rounded-lg border p-3">
-            {statuses[i] === 'pending' && (
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-100 text-xs text-gray-400">
-                {i + 1}
+      <div className="space-y-2">
+        {DEPLOY_STEPS.map((step, i) => {
+          const status = statuses[step.id];
+          return (
+            <div key={step.id} className={`flex items-center gap-3 rounded-lg border p-3 ${
+              status === 'error' ? 'border-red-200 bg-red-50' : ''
+            }`}>
+              {status === 'pending' && (
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-100 text-xs text-gray-400">
+                  {i + 1}
+                </span>
+              )}
+              {status === 'running' && <Spinner />}
+              {status === 'done' && (
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-100 text-xs text-green-600">
+                  ✓
+                </span>
+              )}
+              {status === 'error' && (
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-100 text-xs text-red-600">
+                  ✗
+                </span>
+              )}
+              <span className={`text-sm ${
+                status === 'pending' ? 'text-gray-400'
+                  : status === 'running' ? 'font-medium text-brand'
+                  : status === 'error' ? 'font-medium text-red-600'
+                  : 'text-gray-700'
+              }`}>
+                {step.label}
               </span>
-            )}
-            {statuses[i] === 'running' && <Spinner />}
-            {statuses[i] === 'done' && (
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-100 text-xs text-green-600">
-                ✓
-              </span>
-            )}
-            <span
-              className={`text-sm ${
-                statuses[i] === 'pending'
-                  ? 'text-gray-400'
-                  : statuses[i] === 'running'
-                    ? 'font-medium text-brand'
-                    : 'text-gray-700'
-              }`}
-            >
-              {label}
-            </span>
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </div>
+
+      {logs.length > 0 && (
+        <div>
+          <button
+            onClick={() => setShowLogs(v => !v)}
+            className="text-xs text-gray-500 hover:text-gray-700"
+          >
+            {showLogs ? '▼ Masquer les logs' : '▶ Voir les logs'}
+          </button>
+          {showLogs && (
+            <pre className="mt-2 max-h-48 overflow-y-auto rounded-lg bg-gray-900 p-3 text-xs text-green-400">
+              {logs.join('\n')}
+            </pre>
+          )}
+        </div>
+      )}
+
+      {hasError && (
+        <div className="rounded-xl border-2 border-red-200 bg-red-50 p-4 text-center">
+          <p className="text-sm font-medium text-red-700">
+            {deployError || 'Une erreur est survenue pendant le deploiement.'}
+          </p>
+          <button
+            onClick={onReset}
+            className="mt-3 rounded-lg border px-5 py-2 text-sm font-medium text-gray-700 transition hover:bg-white"
+          >
+            Reessayer
+          </button>
+        </div>
+      )}
 
       {allDone && deployedUrl && (
         <div className="space-y-4 rounded-xl border-2 border-green-200 bg-green-50 p-6 text-center">

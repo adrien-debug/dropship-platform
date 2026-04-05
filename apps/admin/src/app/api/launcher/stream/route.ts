@@ -81,6 +81,52 @@ export async function POST(req: NextRequest) {
         writeFileSync(join(dir, 'src', 'app', 'layout.tsx'), `import type { Metadata } from 'next';\nimport './globals.css';\n\nexport const metadata: Metadata = { title: '${brand}', description: '${brand} — ${config.niche}' };\n\nexport default function RootLayout({ children }: { children: React.ReactNode }) {\n  return <html lang="en"><body className="min-h-screen bg-gray-950 text-white antialiased">{children}</body></html>;\n}\n`);
         writeFileSync(join(dir, 'src', 'app', 'page.tsx'), `export default function Home() {\n  return <main className="flex min-h-screen flex-col items-center justify-center"><h1 className="text-5xl font-bold">${brand}</h1><p className="mt-4 text-lg text-gray-400">${config.niche}</p></main>;\n}\n`);
 
+        // Create medusa.ts client
+        writeFileSync(join(dir, 'src', 'lib', 'medusa.ts'), `const MEDUSA_URL = process.env.NEXT_PUBLIC_MEDUSA_URL || 'http://100.110.74.114:9000';
+const PUB_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || 'REDACTED_MEDUSA_PK';
+const REGION_ID = process.env.NEXT_PUBLIC_MEDUSA_REGION_ID || 'reg_01KNCT3QEHAN10H1R98PM3XT2B';
+
+type Json = Record<string, unknown>;
+
+async function medusaFetch(path: string, opts?: RequestInit): Promise<Json> {
+  const res = await fetch(\`\${MEDUSA_URL}\${path}\`, {
+    ...opts,
+    headers: { 'Content-Type': 'application/json', 'x-publishable-api-key': PUB_KEY, ...(opts?.headers || {}) },
+    next: { revalidate: 0 },
+  });
+  if (!res.ok) throw new Error(\`Medusa \${res.status}\`);
+  return res.json() as Promise<Json>;
+}
+
+export interface MedusaProduct {
+  id: string;
+  title: string;
+  handle: string;
+  description: string;
+  thumbnail: string | null;
+  images: { id: string; url: string }[];
+  variants: { id: string; title: string; calculated_price?: { calculated_amount: number; currency_code: string } }[];
+}
+
+export async function getProducts(opts?: { limit?: number; offset?: number; q?: string }): Promise<{ products: MedusaProduct[]; count: number }> {
+  const params = new URLSearchParams();
+  params.set('region_id', REGION_ID);
+  if (opts?.limit) params.set('limit', String(opts.limit));
+  if (opts?.offset) params.set('offset', String(opts.offset));
+  if (opts?.q) params.set('q', opts.q);
+  const data = await medusaFetch(\`/store/products?\${params.toString()}\`);
+  return { products: (data.products || []) as MedusaProduct[], count: (data.count || 0) as number };
+}
+
+export async function getProductByHandle(handle: string): Promise<MedusaProduct | null> {
+  try {
+    const data = await medusaFetch(\`/store/products?handle=\${handle}&region_id=\${REGION_ID}\`);
+    const products = (data.products || []) as MedusaProduct[];
+    return products[0] || null;
+  } catch { return null; }
+}
+`);
+
         const files = listFiles(dir);
         emit(controller, 'scaffold', 'done', `${files.length} files created at ${dir}`);
 
@@ -184,7 +230,7 @@ Requirements:
         try {
           const out = execSync('npx next build 2>&1', {
             cwd: dir, timeout: 300_000, maxBuffer: 10 * 1024 * 1024,
-            shell: '/bin/zsh', env: { ...EXEC_ENV, NODE_ENV: 'production' },
+            shell: '/bin/zsh', env: { ...EXEC_ENV, NODE_ENV: 'production' as const },
           }).toString();
           const routes = out.match(/Route \(app\)[\s\S]*?○\s+\(Static\)/)?.[0] ?? '';
           emit(controller, 'build', 'done', routes || 'Build succeeded');
