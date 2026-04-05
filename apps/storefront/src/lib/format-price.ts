@@ -1,6 +1,9 @@
-export function formatPriceUsd(cents: number): string {
-  return new Intl.NumberFormat('en-US', {
+export function formatPriceEur(cents: number): string {
+  return new Intl.NumberFormat('fr-FR', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'EUR',
   }).format(cents / 100);
 }
+
+/** @deprecated Use formatPriceEur */
+export const formatPriceUsd = formatPriceEur;

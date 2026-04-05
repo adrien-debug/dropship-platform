@@ -43,7 +43,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'messages[] required' }, { status: 400 });
     }
 
-    const baseUrl = model === 'fast' ? VLLM_FAST_URL : VLLM_URL;
+    const isFast = model === 'fast';
+    const baseUrl = isFast ? VLLM_FAST_URL : VLLM_URL;
+    const modelId = isFast
+      ? (process.env.VLLM_FAST_MODEL ?? 'Qwen/Qwen2.5-Coder-7B-Instruct-AWQ')
+      : (process.env.VLLM_MODEL ?? 'Qwen/Qwen2.5-Coder-32B-Instruct-AWQ');
 
     const fullMessages: ChatMessage[] = [
       { role: 'system', content: SYSTEM_PROMPT },
@@ -57,8 +61,9 @@ export async function POST(req: NextRequest) {
         Authorization: `Bearer ${VLLM_API_KEY}`,
       },
       body: JSON.stringify({
+        model: modelId,
         messages: fullMessages,
-        max_tokens: 2048,
+        max_tokens: 1024,
         temperature: 0.7,
         stream: false,
       }),

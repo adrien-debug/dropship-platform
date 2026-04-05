@@ -1,30 +1,9 @@
-import { createAdminClient } from '@/utils/supabase/admin';
 import type { ProductDto } from './product-types';
 
-interface DbProduct {
-  id: string;
-  name: string;
-  description: string;
-  price_cents: number;
-  category: string;
-  in_stock: boolean;
-  image_urls: string[];
-  created_at: string;
-  updated_at: string;
-}
-
-function toDto(row: DbProduct): ProductDto {
-  return {
-    id: row.id,
-    name: row.name,
-    description: row.description,
-    priceCents: row.price_cents,
-    category: row.category,
-    inStock: row.in_stock,
-    imageUrls: row.image_urls,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  };
+function getApiBase(): string {
+  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
+  const port = process.env.PORT || '3100';
+  return `http://localhost:${port}`;
 }
 
 export type FetchProductResult =
@@ -32,21 +11,16 @@ export type FetchProductResult =
   | { ok: false; status: number; message: string };
 
 export async function fetchProductById(id: string): Promise<FetchProductResult> {
-  const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from('products')
-    .select('*')
-    .eq('id', id)
-    .single();
-
-  if (error) {
-    if (error.code === 'PGRST116') {
-      return { ok: false, status: 404, message: 'Product not found' };
-    }
-    return { ok: false, status: 500, message: error.message };
+  try {
+    const res = await fetch(`${getApiBase()}/api/products?limit=300`, { next: { revalidate: 3600 } });
+    if (!res.ok) return { ok: false, status: res.status, message: 'API error' };
+    const data = await res.json();
+    const product = (data.items as ProductDto[])?.find(p => p.id === id);
+    if (!product) return { ok: false, status: 404, message: 'Product not found' };
+    return { ok: true, product };
+  } catch (e) {
+    return { ok: false, status: 500, message: e instanceof Error ? e.message : 'Unknown error' };
   }
-
-  return { ok: true, product: toDto(data as DbProduct) };
 }
 
 export async function fetchRelatedProducts(
@@ -54,15 +28,15 @@ export async function fetchRelatedProducts(
   excludeId: string,
   limit: number,
 ): Promise<ProductDto[]> {
-  const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from('products')
-    .select('*')
-    .eq('category', category)
-    .eq('in_stock', true)
-    .neq('id', excludeId)
-    .limit(limit);
-
-  if (error) return [];
-  return ((data ?? []) as DbProduct[]).map(toDto);
+  try {
+    const res = await fetch(
+      `${getApiBase()}/api/products?category=${encodeURIComponent(category)}&limit=${limit + 1}`,
+      { next: { revalidate: 3600 } },
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    return ((data.items ?? []) as ProductDto[]).filter(p => p.id !== excludeId).slice(0, limit);
+  } catch {
+    return [];
+  }
 }

@@ -2,12 +2,14 @@ import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import type { PipelineEvent, PipelineInput, PipelineResult } from './types.js';
 import { createToolRegistry, getToolSpecs, getToolHandler } from './tools.js';
+import { withRetry, extractJSON } from './content-writer.js';
 
 const VLLM_URL = process.env['VLLM_AGENT_URL'] ?? process.env['VLLM_GPU1_URL'] ?? 'http://100.88.191.49:8000/v1';
 const VLLM_API_KEY = process.env['VLLM_API_KEY'] ?? 'not-needed';
 const VLLM_MODEL = process.env['VLLM_MODEL'] ?? 'Qwen/Qwen2.5-Coder-32B-Instruct-AWQ';
 const MAX_ITERATIONS = 25;
 const TIMEOUT_MS = 10 * 60 * 1000;
+const MAX_CONSECUTIVE_ERRORS = 3;
 
 const SYSTEM_PROMPT = `You are the autonomous agent of the Dropship platform. Your mission: take product keywords and create a complete, ready-to-sell e-commerce site from A to Z.
 
@@ -40,6 +42,16 @@ const SYSTEM_PROMPT = `You are the autonomous agent of the Dropship platform. Yo
 - All content in English
 - At the end, provide a complete recap with the site URL, product count, design, and marketing plans`;
 
+// Pipeline stage → tools needed at that stage
+const TOOL_STAGES: string[][] = [
+  ['search_products', 'generate_site_content'],            // Phase 1: discovery + content (parallel)
+  ['enrich_products'],                                      // Phase 2: enrich (needs search done)
+  ['create_shop'],                                          // Phase 3: create shop (needs enrich + content)
+  ['check_health', 'create_google_ads_campaign', 'create_meta_ads_campaign', 'run_seo_audit'], // Phase 4: post-launch
+];
+
+const MAX_MESSAGES = 24; // keep context bounded (~12 exchange pairs)
+
 export class AgentOrchestrator {
   private client: OpenAI;
   private registry = createToolRegistry();
@@ -49,10 +61,40 @@ export class AgentOrchestrator {
     this.client = new OpenAI({ baseURL: VLLM_URL, apiKey: VLLM_API_KEY });
   }
 
+  private getRelevantTools(calledTools: Set<string>): ReturnType<typeof getToolSpecs> {
+    const all = getToolSpecs(this.registry);
+    const allowed = new Set<string>();
+
+    const has = (t: string) => calledTools.has(t);
+
+    if (!has('search_products')) allowed.add('search_products');
+    if (!has('generate_site_content')) allowed.add('generate_site_content');
+    if (has('search_products') && !has('enrich_products')) allowed.add('enrich_products');
+    if (has('enrich_products') && has('generate_site_content') && !has('create_shop')) allowed.add('create_shop');
+    if (has('create_shop')) {
+      if (!has('check_health')) allowed.add('check_health');
+      if (!has('create_google_ads_campaign')) allowed.add('create_google_ads_campaign');
+      if (!has('create_meta_ads_campaign')) allowed.add('create_meta_ads_campaign');
+      if (!has('run_seo_audit')) allowed.add('run_seo_audit');
+    }
+
+    if (allowed.size === 0) return all;
+    return all.filter(t => allowed.has(t.function.name));
+  }
+
+  private pruneHistory(messages: ChatCompletionMessageParam[]): ChatCompletionMessageParam[] {
+    if (messages.length <= MAX_MESSAGES) return messages;
+    // Keep system + user (first 2), drop oldest tool/assistant pairs in the middle
+    const [sys, usr, ...rest] = messages;
+    const overflow = rest.length - (MAX_MESSAGES - 2);
+    const pruned = rest.slice(overflow);
+    return [sys, usr, ...pruned];
+  }
+
   private emit(event: PipelineEvent, onEvent?: (e: PipelineEvent) => void): void {
     this.events.push(event);
     onEvent?.(event);
-    console.log(`[orchestrator] ${event.step}: ${event.status}`, event.detail ? JSON.stringify(event.detail).slice(0, 200) : '');
+    console.log(`[opencore:orchestrator] ${event.step}: ${event.status}`, event.detail ? JSON.stringify(event.detail).slice(0, 200) : '');
   }
 
   private parseInlineToolCalls(content: string): Array<{
@@ -77,8 +119,8 @@ export class AgentOrchestrator {
       while ((match = pattern.exec(content)) !== null) {
         try {
           if (pattern.source.includes('tool_call')) {
-            const obj = JSON.parse(match[1]);
-            if (obj.name && toolNames.includes(obj.name)) {
+            const obj = extractJSON<{ name: string; arguments?: Record<string, unknown> }>(match[1]);
+            if (obj?.name && toolNames.includes(obj.name)) {
               results.push({
                 id: `call_${Date.now()}_${results.length}`,
                 type: 'function',
@@ -97,7 +139,7 @@ export class AgentOrchestrator {
               });
             }
           }
-        } catch { /* skip */ }
+        } catch { /* skip malformed inline calls */ }
       }
     }
 
@@ -108,8 +150,8 @@ export class AgentOrchestrator {
     input: PipelineInput,
     onEvent?: (event: PipelineEvent) => void,
   ): Promise<PipelineResult> {
-    const startTime = Date.now();
-    const deadline = startTime + TIMEOUT_MS;
+    const t0 = Date.now();
+    const deadline = t0 + TIMEOUT_MS;
 
     this.emit({
       step: 'pipeline_start',
@@ -133,8 +175,10 @@ export class AgentOrchestrator {
     ];
 
     let iteration = 0;
+    let consecutiveErrors = 0;
     let shopResult: PipelineResult['shop'] | undefined;
     let marketingResult: PipelineResult['marketing'] | undefined;
+    const calledTools = new Set<string>();
 
     while (iteration < MAX_ITERATIONS && Date.now() < deadline) {
       iteration++;
@@ -147,15 +191,25 @@ export class AgentOrchestrator {
         timestamp: Date.now(),
       }, onEvent);
 
+      const relevantTools = this.getRelevantTools(calledTools);
+      const prunedMessages = this.pruneHistory(messages);
+
+      console.log(`[opencore:orchestrator] iter=${iteration} tools=[${relevantTools.map(t => t.function.name).join(',')}] msgs=${prunedMessages.length}`);
+
       try {
-        const response = await this.client.chat.completions.create({
-          model: VLLM_MODEL,
-          messages,
-          tools: getToolSpecs(this.registry),
-          tool_choice: 'auto',
-          max_tokens: 4096,
-          temperature: 0.3,
-        });
+        const response = await withRetry(
+          () => this.client.chat.completions.create({
+            model: VLLM_MODEL,
+            messages: prunedMessages,
+            tools: relevantTools,
+            tool_choice: 'auto',
+            max_tokens: 4096,
+            temperature: 0.3,
+          }),
+          { attempts: 2, delayMs: 2000, label: `orchestrator:iteration_${iteration}` },
+        );
+
+        consecutiveErrors = 0;
 
         const choice = response.choices[0];
         if (!choice) break;
@@ -196,6 +250,7 @@ export class AgentOrchestrator {
             if (handler) {
               try {
                 result = await handler(args);
+                calledTools.add(toolName);
 
                 if (toolName === 'create_shop' && result && typeof result === 'object') {
                   const r = result as Record<string, unknown>;
@@ -236,7 +291,7 @@ export class AgentOrchestrator {
                 }, onEvent);
               } catch (err) {
                 const errMsg = err instanceof Error ? err.message : String(err);
-                console.error(`[orchestrator] Tool ${toolName} failed:`, errMsg);
+                console.error(`[opencore:orchestrator] Tool ${toolName} failed:`, errMsg);
                 result = { error: errMsg };
 
                 this.emit({
@@ -252,7 +307,7 @@ export class AgentOrchestrator {
             }
 
             const resultStr = typeof result === 'string' ? result : JSON.stringify(result);
-            const truncated = resultStr.length > 3000 ? resultStr.slice(0, 3000) + '...(truncated)' : resultStr;
+            const truncated = resultStr.length > 1500 ? resultStr.slice(0, 1500) + '...(truncated)' : resultStr;
             messages.push({
               role: 'tool',
               tool_call_id: toolCall.id,
@@ -272,8 +327,9 @@ export class AgentOrchestrator {
           }
         }
       } catch (err) {
+        consecutiveErrors++;
         const errMsg = err instanceof Error ? err.message : String(err);
-        console.error(`[orchestrator] Iteration ${iteration} error:`, errMsg);
+        console.error(`[opencore:orchestrator] Iteration ${iteration} error (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS}):`, errMsg);
 
         this.emit({
           step: `iteration_${iteration}_error`,
@@ -282,19 +338,23 @@ export class AgentOrchestrator {
           timestamp: Date.now(),
         }, onEvent);
 
-        if (iteration >= 3) break;
-        await new Promise(r => setTimeout(r, 2000));
+        if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+          console.error(`[opencore:orchestrator] ${MAX_CONSECUTIVE_ERRORS} consecutive errors — aborting`);
+          break;
+        }
+        await new Promise(r => setTimeout(r, 2000 * consecutiveErrors));
       }
     }
 
-    const durationMs = Date.now() - startTime;
+    const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+    console.log(`[opencore:orchestrator] Pipeline finished in ${elapsed}s — success=${!!shopResult}`);
 
     return {
       success: !!shopResult,
       shop: shopResult,
       marketing: marketingResult,
       events: this.events,
-      duration_ms: durationMs,
+      duration_ms: Date.now() - t0,
     };
   }
 }

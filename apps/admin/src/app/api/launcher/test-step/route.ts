@@ -252,7 +252,7 @@ Requirements:
           body: JSON.stringify({
             model: VLLM_MODEL,
             messages: [{ role: 'user', content: prompt }],
-            max_tokens: 8000,
+            max_tokens: 4096,
             temperature: 0.1,
           }),
           signal: AbortSignal.timeout(120_000),
@@ -547,7 +547,7 @@ async function testBuild(config: TestConfig): Promise<StepResult> {
 
 async function testDebugFix(config: TestConfig): Promise<StepResult> {
   const dir = resolveDir(config.outputDir);
-  const MAX_RETRIES = 5;
+  const MAX_RETRIES = 3;
   const VLLM_URL = process.env['VLLM_GPU1_URL'] || 'http://100.88.191.49:8000/v1';
   const VLLM_KEY = process.env['VLLM_API_KEY'] || 'vllm-local-key';
   const VLLM_MODEL = process.env['VLLM_MODEL'] || 'Qwen/Qwen2.5-Coder-32B-Instruct-AWQ';
@@ -661,7 +661,7 @@ Requirements:
           body: JSON.stringify({
             model: VLLM_MODEL,
             messages: [{ role: 'user', content: prompt }],
-            max_tokens: 8000,
+            max_tokens: 4096,
             temperature: 0.05,
           }),
           signal: AbortSignal.timeout(120_000),

@@ -1,14 +1,9 @@
-import { AccountGate } from '@/components/account/account-gate';
-import { AccountLayout } from '@/components/account/account-layout';
+'use client';
 
-export default function AccountSectionLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}): React.ReactElement {
-  return (
-    <AccountGate>
-      <AccountLayout>{children}</AccountLayout>
-    </AccountGate>
-  );
+import { AccountAuthProvider } from '@/components/account/account-auth-provider';
+
+export const dynamic = 'force-dynamic';
+
+export default function AccountLayout({ children }: { children: React.ReactNode }) {
+  return <AccountAuthProvider>{children}</AccountAuthProvider>;
 }

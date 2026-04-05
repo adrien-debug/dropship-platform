@@ -31,7 +31,7 @@ export const SortDropdown: FC<SortDropdownProps> = ({ value, onChange }) => {
             color: 'var(--dashboard-text-primary)',
           }}
         >
-          <span>{selected.label}</span>
+          <span>{selected?.label}</span>
           <svg
             width="16"
             height="16"

@@ -90,8 +90,8 @@ export const ProductGrid: FC<ProductGridProps> = ({ items, layout, loading, erro
                 {product.imageUrls[0] ? (
                   <img
                     src={product.imageUrls[0]}
-                    alt=""
-                    className="h-full w-full object-cover transition-transform duration-500 hover:scale-110"
+                    alt={product.name}
+                    className="h-full w-full object-contain bg-white p-2 transition-transform duration-500 hover:scale-110"
                     loading="lazy"
                   />
                 ) : (

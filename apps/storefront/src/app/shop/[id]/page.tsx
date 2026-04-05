@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation';
-import { z } from 'zod';
 import { ImageGallery } from '@/components/shop/image-gallery';
 import { ProductBuyBox } from '@/components/shop/product-buy-box';
 import { ProductInfo } from '@/components/shop/product-info';
@@ -8,7 +7,7 @@ import { RelatedProducts } from '@/components/shop/related-products';
 import { ShopBreadcrumb } from '@/components/shop/shop-breadcrumb';
 import { fetchProductById, fetchRelatedProducts } from '@/lib/product-api';
 
-const idSchema = z.string().uuid();
+export const dynamic = 'force-dynamic';
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -16,11 +15,8 @@ type PageProps = {
 
 export async function generateMetadata({ params }: PageProps) {
   const { id } = await params;
-  const parsed = idSchema.safeParse(id);
-  if (!parsed.success) {
-    return { title: 'Product · One Peace Shop' };
-  }
-  const result = await fetchProductById(parsed.data);
+  if (!id) return { title: 'Product · One Peace Shop' };
+  const result = await fetchProductById(id);
   if (!result.ok) {
     return { title: 'Product · One Peace Shop' };
   }
@@ -32,12 +28,9 @@ export async function generateMetadata({ params }: PageProps) {
 
 export default async function ProductDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const parsed = idSchema.safeParse(id);
-  if (!parsed.success) {
-    notFound();
-  }
+  if (!id) notFound();
 
-  const result = await fetchProductById(parsed.data);
+  const result = await fetchProductById(id);
   if (!result.ok) {
     if (result.status === 404) {
       notFound();

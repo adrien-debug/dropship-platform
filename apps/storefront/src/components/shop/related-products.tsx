@@ -1,6 +1,8 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { formatPriceUsd } from '@/lib/format-price';
+function formatEur(cents: number): string {
+  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(cents / 100);
+}
 import type { ProductDto } from '@/lib/product-types';
 
 export function RelatedProducts({ products }: { products: ProductDto[] }) {
@@ -23,7 +25,7 @@ export function RelatedProducts({ products }: { products: ProductDto[] }) {
               style={{ boxShadow: 'var(--dashboard-shadow-sm)' }}
             >
               <div className="relative aspect-square w-full bg-[var(--dashboard-card-2)]">
-                {p.imageUrls.length > 0 ? (
+                {p.imageUrls[0] ? (
                   <Image
                     src={p.imageUrls[0]}
                     alt={p.name}
@@ -43,7 +45,7 @@ export function RelatedProducts({ products }: { products: ProductDto[] }) {
                   {p.name}
                 </p>
                 <p className="font-[family-name:var(--font-mono)] text-[var(--dashboard-accent)]">
-                  {formatPriceUsd(p.priceCents)}
+                  {formatEur(p.priceCents)}
                 </p>
               </div>
             </Link>

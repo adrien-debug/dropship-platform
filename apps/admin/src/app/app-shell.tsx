@@ -6,6 +6,7 @@ const NAV_LINKS = [
   { href: '/', label: 'Dashboard', icon: '📊' },
   { href: '/sites', label: 'Shops', icon: '🌐' },
   { href: '/catalogs', label: 'Catalogs', icon: '📦' },
+  { href: '/products', label: 'Products', icon: '🏷️' },
   { href: '/marketing', label: 'Marketing', icon: '📣' },
   { href: '/discover', label: 'Discover', icon: '🔥' },
   { href: '/agents', label: 'AI Agent', icon: '🤖' },

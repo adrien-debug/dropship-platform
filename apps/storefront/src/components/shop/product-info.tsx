@@ -1,4 +1,4 @@
-import { formatPriceUsd } from '@/lib/format-price';
+import { formatPriceEur } from '@/lib/format-price';
 import type { ProductDto } from '@/lib/product-types';
 
 export function ProductInfo({ product }: { product: ProductDto }) {
@@ -11,7 +11,7 @@ export function ProductInfo({ product }: { product: ProductDto }) {
         {product.name}
       </h1>
       <p className="text-2xl font-semibold text-[var(--dashboard-accent)] md:text-3xl">
-        {formatPriceUsd(product.priceCents)}
+        {formatPriceEur(product.priceCents)}
       </p>
       <div className="flex flex-wrap items-center gap-3">
         <span
@@ -21,7 +21,7 @@ export function ProductInfo({ product }: { product: ProductDto }) {
               : 'bg-[var(--dashboard-error-bg)] text-[var(--dashboard-error)] ring-1 ring-[var(--dashboard-error-border)]'
           }`}
         >
-          {product.inStock ? 'In stock' : 'Out of stock'}
+          {product.inStock ? 'En stock' : 'Rupture de stock'}
         </span>
       </div>
       {product.description.trim().length > 0 ? (

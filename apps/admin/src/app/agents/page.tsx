@@ -18,30 +18,34 @@ interface PipelineEvent {
 const OPENCLAW_URL = process.env.NEXT_PUBLIC_OPENCLAW_URL || 'http://100.110.74.114:3849';
 
 const PRESETS = [
-  { label: 'Product ideas', prompt: 'Suggest trending product categories for a new dropshipping store' },
-  { label: 'Shop plan', prompt: 'Draft a plan for a luxury watches e-commerce shop with the swiss design system' },
-  { label: 'Marketing strategy', prompt: 'Propose a marketing strategy to launch a streetwear clothing site' },
-  { label: 'Niche research', prompt: 'Help me choose between 3 niches: bags, watches, or streetwear' },
+  { label: 'Idées produits', prompt: 'Suggère des catégories de produits tendance pour une nouvelle boutique dropshipping' },
+  { label: 'Plan boutique', prompt: 'Rédige un plan pour une boutique e-commerce de montres de luxe avec le design system swiss' },
+  { label: 'Stratégie marketing', prompt: 'Propose une stratégie marketing pour lancer un site de vêtements streetwear' },
+  { label: 'Recherche niche', prompt: 'Aide-moi à choisir entre 3 niches : sacs, montres ou streetwear' },
 ];
 
 const STEP_LABELS: Record<string, string> = {
-  pipeline_start: 'Starting',
-  search_products: 'Searching products',
-  enrich_products: 'AI enrichment',
-  generate_content: 'Site content',
-  create_shop: 'Creating shop',
-  check_health: 'Health check',
-  seo_audit: 'SEO audit',
-  marketing_plans: 'Marketing plans',
-  tool_search_products: 'Searching products',
-  tool_enrich_products: 'AI enrichment',
-  tool_generate_site_content: 'Site content',
-  tool_create_shop: 'Creating shop',
-  tool_check_health: 'Health check',
+  input_validation: 'Validation input',
+  pipeline_start: 'Démarrage',
+  search_products: 'Recherche produits',
+  enrich_products: 'Enrichissement IA',
+  generate_content: 'Contenu site',
+  create_shop: 'Création boutique',
+  check_health: 'Vérification santé',
+  seo_audit: 'Audit SEO',
+  marketing_plans: 'Plans marketing',
+  no_products: 'Aucun produit trouvé',
+  tool_search_products: 'Recherche produits',
+  tool_enrich_products: 'Enrichissement IA',
+  tool_generate_site_content: 'Contenu site',
+  tool_create_shop: 'Création boutique',
+  tool_check_health: 'Vérification santé',
   tool_create_google_ads_campaign: 'Google Ads',
   tool_create_meta_ads_campaign: 'Meta Ads',
-  tool_run_seo_audit: 'SEO audit',
-  pipeline_complete: 'Complete',
+  tool_run_seo_audit: 'Audit SEO',
+  pipeline_complete: 'Terminé',
+  error: 'Erreur',
+  fatal: 'Erreur fatale',
 };
 
 function getStepLabel(step: string): string {
@@ -124,12 +128,20 @@ function PipelinePanel() {
 
   const latestProgress = [...events].reverse().find((e: PipelineEvent) => e.progress != null)?.progress ?? 0;
   const shopResult = (result as Record<string, unknown>)?.shop as Record<string, unknown> | undefined;
+  const shopUrl = shopResult ? String(shopResult.url ?? '') : '';
+  const shopName = shopResult ? String(shopResult.name ?? '') : '';
+  const shopDesign = shopResult ? String(shopResult.design_system ?? '') : '';
+  const shopProducts = shopResult ? String(shopResult.products_created ?? '') : '';
+  const pipelineSuccess = result ? Boolean((result as Record<string, unknown>).success) : undefined;
+  const failedAt = result ? String((result as Record<string, unknown>).failed_at ?? '') : '';
+  const errorMsg = result ? String((result as Record<string, unknown>).error ?? '') : '';
+  const hasPipelineError = pipelineSuccess === false || failedAt || errorMsg;
 
   return (
     <div className="flex h-full flex-col gap-4">
       <div className="rounded-xl border bg-white p-6 shadow-sm">
         <h3 className="mb-4 text-lg font-semibold">Pipeline A-Z</h3>
-        <p className="mb-4 text-sm text-gray-500">2 keywords = 1 live site with products, AI content, Stripe checkout and marketing plan</p>
+        <p className="mb-4 text-sm text-gray-500">2 mots-clés = 1 site live avec produits, contenu IA, checkout Stripe et plan marketing</p>
 
         <div className="mb-4 grid grid-cols-2 gap-3">
           {keywords.map((kw, i) => (
@@ -138,7 +150,7 @@ function PipelinePanel() {
               type="text"
               value={kw}
               onChange={e => setKeywords(prev => prev.map((v, j) => j === i ? e.target.value : v))}
-              placeholder={`Keyword ${i + 1}`}
+              placeholder={`Mot-clé ${i + 1}`}
               className="rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={running}
             />
@@ -155,7 +167,7 @@ function PipelinePanel() {
           <select value={positioning} onChange={e => setPositioning(e.target.value as typeof positioning)}
             className="rounded-lg border px-3 py-2 text-sm" disabled={running}>
             <option value="budget">Budget</option>
-            <option value="mid">Mid-range</option>
+            <option value="mid">Milieu de gamme</option>
             <option value="premium">Premium</option>
           </select>
           <button
@@ -163,7 +175,7 @@ function PipelinePanel() {
             className="rounded-lg border px-3 py-2 text-sm text-gray-500 hover:bg-gray-50"
             disabled={running || keywords.length >= 5}
           >
-            + Keyword
+            + Mot-clé
           </button>
         </div>
 
@@ -172,7 +184,7 @@ function PipelinePanel() {
           disabled={running || keywords.filter(k => k.trim()).length === 0}
           className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-3 text-sm font-semibold text-white transition hover:from-blue-700 hover:to-purple-700 disabled:opacity-50"
         >
-          {running ? 'Pipeline running...' : 'Launch Pipeline A-Z'}
+          {running ? 'Pipeline en cours...' : 'Lancer Pipeline A-Z'}
         </button>
       </div>
 
@@ -181,7 +193,7 @@ function PipelinePanel() {
           {running && (
             <div className="mb-4">
               <div className="mb-1 flex justify-between text-xs text-gray-500">
-                <span>Progress</span>
+                <span>Progression</span>
                 <span>{latestProgress}%</span>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-gray-200">
@@ -195,7 +207,9 @@ function PipelinePanel() {
             {events
               .filter(e => !e.step.startsWith('iteration_') || e.status === 'error')
               .map((e, i) => (
-              <div key={i} className="flex items-start gap-3 text-sm">
+              <div key={i} className={`flex items-start gap-3 text-sm ${
+                e.status === 'error' && ['input_validation', 'fatal'].includes(e.step) ? 'rounded-lg bg-red-50 p-3' : ''
+              }`}>
                 <div className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${
                   e.status === 'done' ? 'bg-green-500'
                   : e.status === 'running' ? 'animate-pulse bg-blue-500'
@@ -203,9 +217,13 @@ function PipelinePanel() {
                   : 'bg-gray-300'
                 }`} />
                 <div className="flex-1">
-                  <span className="font-medium">{getStepLabel(e.step)}</span>
+                  <span className={`font-medium ${e.status === 'error' ? 'text-red-700' : ''}`}>
+                    {getStepLabel(e.step)}
+                  </span>
                   {typeof e.detail === 'string' && e.detail && (
-                    <p className="mt-0.5 text-xs text-gray-500">{(e.detail as string).slice(0, 200)}</p>
+                    <p className={`mt-0.5 text-xs ${e.status === 'error' ? 'text-red-600' : 'text-gray-500'}`}>
+                      {(e.detail as string).slice(0, 300)}
+                    </p>
                   )}
                 </div>
                 <span className="text-xs text-gray-400">
@@ -216,23 +234,41 @@ function PipelinePanel() {
             <div ref={eventsEndRef} />
           </div>
 
-          {shopResult && (
+          {shopResult && shopUrl && shopUrl.startsWith('http') && (
             <div className="mt-6 rounded-lg border-2 border-green-200 bg-green-50 p-4">
-              <h4 className="mb-2 font-semibold text-green-800">Site Deployed</h4>
+              <h4 className="mb-2 font-semibold text-green-800">✓ Site déployé</h4>
               <div className="grid grid-cols-2 gap-2 text-sm">
-                <div><span className="text-gray-500">Name:</span> {String(shopResult.name)}</div>
-                <div><span className="text-gray-500">Design:</span> {String(shopResult.design_system)}</div>
-                <div><span className="text-gray-500">Products:</span> {String(shopResult.products_created)}</div>
-                <div><span className="text-gray-500">Status:</span> {String(shopResult.status)}</div>
+                <div><span className="text-gray-500">Nom :</span> {shopName}</div>
+                <div><span className="text-gray-500">Design :</span> {shopDesign}</div>
+                <div><span className="text-gray-500">Produits :</span> {shopProducts}</div>
               </div>
               <a
-                href={String(shopResult.url)}
+                href={shopUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mt-3 inline-block rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
               >
-                View Site
+                Voir le site →
               </a>
+            </div>
+          )}
+
+          {!running && hasPipelineError && (
+            <div className="mt-6 rounded-lg border-2 border-red-200 bg-red-50 p-4">
+              <h4 className="mb-2 font-semibold text-red-800">✗ Pipeline échouée</h4>
+              {failedAt && (
+                <p className="mb-2 text-sm text-red-700">
+                  <span className="font-medium">Échec à :</span> {failedAt}
+                </p>
+              )}
+              {errorMsg && (
+                <p className="text-sm text-red-600">
+                  <span className="font-medium">Erreur :</span> {errorMsg.slice(0, 300)}
+                </p>
+              )}
+              <p className="mt-3 text-xs text-gray-600">
+                Consultez la timeline ci-dessus pour les détails. Aucun site n&apos;a été déployé.
+              </p>
             </div>
           )}
         </div>
@@ -288,8 +324,8 @@ function ChatPanel() {
     <div className="flex h-full flex-col">
       {showWarning && (
         <div className="mb-3 flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          <span className="font-medium">⚠️ Mode draft-only :</span>
-          <span>Ce chat rédige et propose, il n'exécute pas la pipeline.</span>
+          <span className="font-medium">⚠️ Mode brouillon uniquement :</span>
+          <span>Ce chat rédige et propose, il n&apos;exécute pas la pipeline.</span>
           <button onClick={() => setShowWarning(false)} className="ml-auto text-amber-600 hover:text-amber-900">✕</button>
         </div>
       )}
@@ -299,7 +335,7 @@ function ChatPanel() {
           <option value="fast">Qwen 7B (fast)</option>
           <option value="main">Qwen 32B (powerful)</option>
         </select>
-        <button onClick={() => setMessages([])} className="rounded-lg border px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50">Clear</button>
+        <button onClick={() => setMessages([])} className="rounded-lg border px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50">Effacer</button>
       </div>
 
       <div className="flex-1 overflow-y-auto py-2">
@@ -344,11 +380,11 @@ function ChatPanel() {
 
       <form onSubmit={e => { e.preventDefault(); send(input); }} className="flex gap-2 border-t pt-3">
         <input type="text" value={input} onChange={e => setInput(e.target.value)}
-          placeholder="Type your message..." disabled={loading}
+          placeholder="Tapez votre message..." disabled={loading}
           className="flex-1 rounded-xl border bg-white px-4 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
         <button type="submit" disabled={loading || !input.trim()}
           className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
-          Send
+          Envoyer
         </button>
       </form>
     </div>
@@ -364,8 +400,8 @@ export default function AgentsPage() {
     <div className="flex h-[calc(100vh-3rem)] flex-col">
       <div className="flex items-center justify-between border-b pb-4">
         <div>
-          <h2 className="text-2xl font-bold">AI Agent</h2>
-          <p className="text-sm text-gray-500">Pipeline exécutable ou assistant draft</p>
+          <h2 className="text-2xl font-bold">Agent IA</h2>
+          <p className="text-sm text-gray-500">Pipeline exécutable ou assistant brouillon</p>
         </div>
         <div className="flex rounded-lg border bg-gray-100 p-0.5">
           <button
@@ -378,7 +414,7 @@ export default function AgentsPage() {
             onClick={() => setTab('chat')}
             className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${tab === 'chat' ? 'bg-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
           >
-            Assistant Draft
+            Assistant Brouillon
           </button>
         </div>
       </div>

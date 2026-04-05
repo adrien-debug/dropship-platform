@@ -373,9 +373,9 @@ export default function OnePiecePage() {
                   >
                     <div className="relative aspect-square overflow-hidden bg-[#f5f5f5]">
                       <img
-                        src={product.imageUrls[0] ?? '/placeholder-product.svg'}
+                        src={product.imageUrls[0] || '/placeholder-product.svg'}
                         alt={product.name}
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        className="h-full w-full object-contain bg-white p-2 transition-transform duration-500 group-hover:scale-110"
                         loading="lazy"
                       />
                       {!product.inStock && (

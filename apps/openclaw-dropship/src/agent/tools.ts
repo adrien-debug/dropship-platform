@@ -2,11 +2,11 @@ import type { ChatCompletionTool } from 'openai/resources/chat/completions';
 import type { ToolDefinition, EnrichedProduct, SiteContent } from './types.js';
 import { CJClient } from '../services/cj-client.js';
 import { MedusaClient } from '../services/medusa-client.js';
+import { AliExpressClient } from '../services/aliexpress-client.js';
 import { generateSiteContent, generateProductDescriptions } from './content-writer.js';
 import { normalizeKeywords, normalizeMarket, normalizePositioning } from './input-normalizer.js';
 
 const GPU2_HOST = process.env['GPU2_HOST'] ?? '100.110.74.114';
-const OPENCLAW_URL = `http://${GPU2_HOST}:${Number(process.env['PORT'] ?? 3849)}`;
 
 function toolSpec(name: string, description: string, parameters: Record<string, unknown>): ChatCompletionTool {
   return {
@@ -58,6 +58,27 @@ const searchProductsHandler = async (args: Record<string, unknown>) => {
   }
 
   try {
+    const ae = AliExpressClient.create();
+    if (ae) {
+      const aeProducts = await ae.searchProducts(normalizedKeywords, limit);
+      if (aeProducts.length > 0) {
+        const mapped = aeProducts.map(p => ({
+          id: p.externalId,
+          name: p.name,
+          image: p.imageUrls[0] ?? '',
+          price_usd: p.costCents / 100,
+          category: p.category,
+          source: 'aliexpress',
+        }));
+        results.push({ source: 'aliexpress', products: mapped });
+        console.log(`[tools:search] AliExpress: ${mapped.length} results`);
+      }
+    }
+  } catch (err) {
+    console.error('[tools:search] AliExpress failed:', err instanceof Error ? err.message : err);
+  }
+
+  try {
     const medusa = new MedusaClient();
     for (const kw of normalizedKeywords) {
       const mp = await medusa.searchProducts(kw, 1, 10);
@@ -105,15 +126,11 @@ const generateSiteContentHandler = async (args: Record<string, unknown>) => {
 
   // Reject invalid explicit values
   if (marketResult.provided && !marketResult.valid) {
-    return { 
-      error: `Invalid market value: "${marketResult.input}". Valid: FR, EU, US, france, europe, usa, etc.` 
-    };
+    throw new Error(`Invalid market value: "${marketResult.input}". Valid: FR, EU, US, france, europe, usa, etc.`);
   }
   
   if (positioningResult.provided && !positioningResult.valid) {
-    return { 
-      error: `Invalid positioning value: "${positioningResult.input}". Valid: budget, mid, premium, luxe, pas cher, etc.` 
-    };
+    throw new Error(`Invalid positioning value: "${positioningResult.input}". Valid: budget, mid, premium, luxe, pas cher, etc.`);
   }
 
   // Apply defaults only for absent values
@@ -125,7 +142,7 @@ const generateSiteContentHandler = async (args: Record<string, unknown>) => {
 };
 
 // ---------- Tool: create_shop (via launcher codegen) ----------
-const ADMIN_URL = process.env['ADMIN_URL'] ?? 'http://localhost:3200';
+const ADMIN_URL = process.env['ADMIN_URL'] ?? `http://${GPU2_HOST}:3200`;
 
 const createShopHandler = async (args: Record<string, unknown>) => {
   const name = args['name'] as string;
@@ -135,7 +152,8 @@ const createShopHandler = async (args: Record<string, unknown>) => {
   const site_content = args['site_content'] as SiteContent | undefined;
   const niche = (args['niche'] as string) ?? name;
 
-  const steps = ['scaffold', 'codegen', 'integrations', 'assets', 'install', 'build-check', 'debug-fix', 'launch', 'deploy'];
+  // Removed 'debug-fix' from critical path — fail fast on build errors
+  const steps = ['scaffold', 'codegen', 'integrations', 'assets', 'install', 'build-check', 'launch', 'deploy'];
   const outputDir = `~/sites/${slug}`;
   const config = { projectName: name, niche, outputDir };
   const results: Record<string, { success: boolean; output?: string; error?: string }> = {};
@@ -146,14 +164,18 @@ const createShopHandler = async (args: Record<string, unknown>) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stepId, config }),
-        signal: AbortSignal.timeout(300_000),
+        signal: AbortSignal.timeout(600_000),
       });
 
       if (!res.ok) {
         const errText = await res.text().catch(() => '');
         results[stepId] = { success: false, error: `HTTP ${res.status}: ${errText.slice(0, 200)}` };
         console.error(`[tools:create_shop] Step ${stepId} HTTP error: ${res.status}`);
-        if (['scaffold', 'install', 'build-check'].includes(stepId)) break;
+        // Break on critical failures
+        if (['scaffold', 'install', 'build-check'].includes(stepId)) {
+          console.error(`[tools:create_shop] Critical step ${stepId} failed — aborting`);
+          break;
+        }
         continue;
       }
 
@@ -161,27 +183,39 @@ const createShopHandler = async (args: Record<string, unknown>) => {
       results[stepId] = stepResult;
       console.log(`[tools:create_shop] Step ${stepId}: ${stepResult.success ? 'OK' : 'FAIL'}`);
 
-      if (!stepResult.success && ['scaffold', 'install'].includes(stepId)) break;
+      // Break on critical failures
+      if (!stepResult.success && ['scaffold', 'install', 'build-check'].includes(stepId)) {
+        console.error(`[tools:create_shop] Critical step ${stepId} failed — aborting`);
+        break;
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       results[stepId] = { success: false, error: msg };
       console.error(`[tools:create_shop] Step ${stepId} failed: ${msg}`);
-      if (['scaffold', 'install'].includes(stepId)) break;
+      // Break on critical failures
+      if (['scaffold', 'install', 'build-check'].includes(stepId)) {
+        console.error(`[tools:create_shop] Critical step ${stepId} failed — aborting`);
+        break;
+      }
     }
   }
 
   const allPassed = Object.values(results).every(r => r.success);
   const deployOutput = results['deploy']?.output ?? '';
   const urlMatch = deployOutput.match(/URL:\s*(http[^\s]+)/);
+  
+  // Identify first failed step for clear error reporting
+  const firstFailure = steps.find(s => results[s] && !results[s].success);
 
   return {
     success: allPassed,
     name,
     slug,
     design_system,
-    url: urlMatch?.[1] ?? `Generated at ${outputDir}`,
+    url: allPassed ? (urlMatch?.[1] ?? '') : '', // No fake URL on failure
     products_count: products?.length ?? 0,
     steps: Object.fromEntries(Object.entries(results).map(([k, v]) => [k, v.success ? 'pass' : 'fail'])),
+    ...(firstFailure && { failed_at: firstFailure, error: results[firstFailure]?.error }),
   };
 };
 

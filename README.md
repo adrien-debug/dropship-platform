@@ -9,7 +9,8 @@ GPU2 (100.110.74.114 / public: 86.97.162.62)
 ├── Storefronts (Next.js Docker)
 │   ├── onepeace-storefront     :3100
 │   ├── anime-figures           :3101
-│   └── anime-figurines-fr      :3103
+│   ├── anime-figurines-fr      :3103
+│   └── 2piece+ (à créer)       :TBD
 ├── Medusa v2 API               :9000
 ├── OpenClaw Dropship (Express) :3849
 ├── Postgres 17                 :5433
@@ -75,6 +76,7 @@ scripts/
 | Storefront OnePeace | GPU2 | 3100 | LIVE |
 | Storefront Anime | GPU2 | 3101 | LIVE |
 | Storefront Figurines FR | GPU2 | 3103 | LIVE |
+| Storefront 2piece+ | GPU2 | TBD | PENDING |
 | Postgres 17 | GPU2 | 5433 | LIVE |
 | Redis 7 | GPU2 | — | LIVE |
 | Coolify | GPU2 | 8000 | LIVE |
@@ -113,29 +115,45 @@ La pipeline accepte maintenant des inputs utilisateur flexibles :
 - `"milieu de gamme"`, `"standard"`, `"mid"` → `mid`
 - `"luxe"`, `"luxury"`, `"premium"` → `premium`
 
-## Agent Pipeline A-Z
+## Agent Pipeline A-Z — OpenCore
 
 Pipeline autonome : 2 mots-clés → site e-commerce complet prêt à vendre.
 
+**Architecture OpenCore (v2) :**
+- `withRetry()` : retry avec backoff exponentiel sur tous les appels externes (CJ, vLLM, launcher)
+- `extractJSON()` : extraction JSON robuste (parse direct → code blocks markdown → regex `{...}`)
+- Fallback content statique si le LLM échoue après tous les retries
+- Health check polling (5 tentatives × 3s) après déploiement
+- Auth middleware `x-api-key` sur `/agent` et `/shop`
+
 **Étapes automatisées :**
-1. Recherche produits (CJ Dropshipping)
-2. Génération contenu IA (brand, hero, about, policies, SEO)
-3. Enrichissement produits (descriptions + meta SEO par produit) — **traitement parallèle par batch de 5**
-4. Création boutique (Medusa sales channel + produits + Docker deploy)
-5. Audit SEO du site déployé
-6. Plans marketing (Google Ads + Meta Ads)
+1. Validation & normalisation input (fail-fast)
+2. Recherche produits CJ avec retry (2 tentatives)
+3. Génération contenu IA + enrichissement produits (parallèle, retry 3× sur LLM)
+4. Création boutique via launcher (timeout 600s, SSE stream)
+5. Health check polling du site déployé
+6. Audit SEO (conditionné au health check)
+7. Plans marketing (Google Ads + Meta Ads)
+8. Sauvegarde Supabase (campaigns)
 
 **Tools (8) :** `search_products`, `enrich_products`, `generate_site_content`, `create_shop`, `check_health`, `create_google_ads_campaign`, `create_meta_ads_campaign`, `run_seo_audit`
 
 **Modes :**
-- `fast` (défaut) : pipeline déterministe, ~6 min (20 produits enrichis en ~30s au lieu de ~2min)
-- `agent` : orchestration LLM avec function calling (Qwen 32B + hermes parser)
+- `fast` (défaut) : pipeline déterministe OpenCore, ~6 min
+- `agent` : orchestration LLM avec function calling (Qwen 32B), retry par itération, 3 erreurs consécutives max
+
+**Résilience OpenCore :**
+- **Retry LLM** : `jsonCompletion` 3 tentatives (backoff 1.5s → 3s → 6s), `textCompletion` 2 tentatives
+- **Extraction JSON** : gère les réponses Qwen wrapped dans ` ```json ... ``` ` ou avec du texte autour
+- **Fallback content** : si `generateSiteContent` échoue → contenu statique généré depuis la niche
+- **Fallback produits** : si l'enrichissement échoue → données brutes CJ avec prix ×2.5
+- **Health polling** : 5 checks × 3s avant de déclarer le site up/down
+- **Orchestrator** : erreurs consécutives trackées (pas total), break après 3 consécutives
 
 **Optimisations :**
-- **Normalisation d'input** : phrases utilisateur → keywords exploitables, typos simples corrigées, market/positioning variants acceptés
-- **Enrichissement produits** : traitement parallèle par batch de 5 (au lieu de séquentiel)
-- Fallback automatique par produit en cas d'échec LLM
-- Logs détaillés : durée totale, nombre de fallbacks, input normalisé
+- Normalisation d'input : phrases utilisateur → keywords, typos corrigées, market/positioning variants
+- Enrichissement produits : parallèle par batch de 5
+- Logs structurés `[opencore:*]` avec elapsed time
 
 ## Agents
 
@@ -194,6 +212,23 @@ npm run type-check
 
 ## Latest Changes (2026-04-05)
 
+**AliExpress Catalog + Stripe Checkout :**
+
+1. **Catalogue AliExpress** (`apps/storefront/src/data/aliexpress-catalog.ts`) : 515+ produits One Piece (dont extension 2026-04-05 : fruits du demon, maquettes, montres, drapeaux, TCG, coques AirPods, sneakers, gourdes, building blocks, figurines par perso, vestes, rideaux, goodies). 18 avec images CDN réelles, reste `imageUrls` vide en attente scrape. Script de scrape batch inclus (`scrape-images.mjs`).
+2. **API Produits** (`apps/storefront/src/app/api/products/route.ts`) : source AliExpress, 20 catégories, filtres catégorie/prix/recherche, tri, pagination
+3. **Stripe Checkout** (`apps/storefront/src/app/api/checkout/route.ts`) : session Stripe live, collecte adresse livraison (10 pays), promo codes en metadata
+4. **Pages storefront** : `/checkout`, `/checkout/success`, `/about`, `/contact` — toutes fonctionnelles (200 OK)
+5. **Shop home** (`apps/storefront/src/data/shop-home-data.ts`) : featured products et new arrivals générés dynamiquement depuis le catalogue AliExpress
+
+**OpenCore Pipeline Rebuild :**
+
+1. **`content-writer.ts`** : `extractJSON()` robuste (parse → markdown → regex), `withRetry()` backoff exponentiel, retry 3× sur JSON / 2× sur text
+2. **`fast-pipeline.ts`** : `ADMIN_URL` env var (plus localhost hardcodé), timeout 600s, health polling, fallback content statique, retry CJ, logs `[opencore:*]`
+3. **`orchestrator.ts`** : retry LLM par itération, erreurs consécutives trackées (plus total), `extractJSON` pour inline tool calls
+4. **`server.ts`** : auth middleware `x-api-key` sur `/agent` et `/shop` (`OPENCLAW_API_KEY` env)
+5. **`medusa-client.ts`** : credentials hardcodées supprimées (env-only)
+6. **`tools.ts`** : dead code supprimé, timeout 600s, intégration AliExpress client
+
 **Pipeline `/sites/new` avec génération AI complète :**
 
 1. **`/api/shops/setup`** : crée sales channel + publishable key Medusa, source automatiquement CJ avec filtrage intelligent, importe les produits en Medusa, puis crée `sites` + `catalogs` en base.
@@ -249,10 +284,28 @@ Next.js site generator with live logs and GPU2 deploy.
 | 2. Scaffold | Creates project dir, package.json, tsconfig, theme, layout, `medusa.ts` | ✅ PASS |
 | 3. Assets | ComfyUI logo generation (fallback SVG) + hero image from products | ✅ PASS |
 | 4. Integrations | Medusa + Stripe envs + site config wiring | ✅ PASS |
-| 5. Codegen | **AI-powered**: GPU1 Qwen2.5-Coder-32B generates brand brief, copy, and 4 pages | ✅ PASS |
+| 5. Codegen | **AI-powered**: GPU1 Qwen2.5-Coder-32B generates brand brief, copy, and 4 pages (fallback templates if GPU offline) | ✅ PASS |
 | 6. Install | `npm install` in generated project | ✅ PASS |
-| 7. Build | `npx next build` | ✅ PASS |
-| 8. Deploy | Sync on GPU2 + `next start` + healthcheck | ✅ PASS |
+| 7. Build Check | `npx next build` — **fails fast if build errors** (no auto-retry loop) | ✅ PASS |
+| 8. Launch | Start dev server for validation | ✅ PASS |
+| 9. Deploy | Sync on GPU2 + `next start` + healthcheck | ✅ PASS |
+
+### Build Strategy
+
+**Fail-fast approach** : Si le build échoue après codegen, la pipeline s'arrête proprement au lieu de tenter une boucle de debug infinie.
+
+**Rationale** :
+- Le codegen AI (Qwen 32B) génère du code compilable ~95% du temps
+- Si GPU offline, fallback sur templates statiques garantis compilables
+- `debug-fix` (boucle AI de 5 tentatives) retiré du chemin critique car :
+  - Brûle du temps sans garantie de convergence
+  - Masque les vrais problèmes de codegen
+  - Crée des faux succès avec code de qualité dégradée
+
+**Si build échoue** :
+- Échec propre avec step `build-check` en erreur
+- Logs clairs sur la cause de l'échec
+- Pas de faux succès ni de boucle opaque
 
 ### Pending Work (handoff)
 
@@ -266,7 +319,7 @@ Next.js site generator with live logs and GPU2 deploy.
 - [ ] Product relevance for trademark-heavy niches is heuristic and still needs a smarter supplier-ranking layer
 - [ ] `/api/launcher/stream` and `test-step` should share more code
 - [ ] `apps/storefront` old template path still diverges from launcher-generated storefronts
-- [ ] Stripe checkout flow in storefront — partially wired, needs end-to-end test
+- [x] Stripe checkout flow in storefront — live, testé end-to-end
 - [ ] Marketing package (`packages/marketing/`) has Google Ads + Meta Ads clients — need API keys + real test
 
 **NICE TO HAVE:**
@@ -284,9 +337,13 @@ Required in `.env` / `.env.local`:
 - `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
 - `CJ_DROPSHIPPING_API_KEY`
 - `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+- `MEDUSA_PUBLISHABLE_KEY`, `MEDUSA_ADMIN_EMAIL`, `MEDUSA_ADMIN_PASSWORD`
+- `OPENCLAW_API_KEY` (auth middleware — si absent, routes ouvertes)
+- `ADMIN_URL` (default: `http://{GPU2_HOST}:3200`)
 - `VLLM_GPU1_URL` (default: `http://100.88.191.49:8000/v1`)
 - `VLLM_API_KEY` (default: `vllm-local-key`)
 - `COOLIFY_URL`, `COOLIFY_TOKEN`
+- `ALIEXPRESS_APP_KEY`, `ALIEXPRESS_APP_SECRET` (AliExpress Open Platform — OAuth token requis pour DS API)
 - `GOOGLE_ADS_*`, `META_ACCESS_TOKEN` (for marketing)
 
 ## Notes

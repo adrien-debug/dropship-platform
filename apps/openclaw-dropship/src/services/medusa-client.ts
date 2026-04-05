@@ -1,8 +1,7 @@
 const MEDUSA_URL = process.env['MEDUSA_URL'] ?? 'http://100.110.74.114:9000';
-const MEDUSA_API_KEY = process.env['MEDUSA_API_KEY'] ?? '';
-const MEDUSA_PUBLISHABLE_KEY = process.env['MEDUSA_PUBLISHABLE_KEY'] ?? 'REDACTED_MEDUSA_PK';
-const MEDUSA_ADMIN_EMAIL = process.env['MEDUSA_ADMIN_EMAIL'] ?? 'adrien@hearstcorporation.io';
-const MEDUSA_ADMIN_PASSWORD = process.env['MEDUSA_ADMIN_PASSWORD'] ?? 'Hearst0334';
+const MEDUSA_PUBLISHABLE_KEY = process.env['MEDUSA_PUBLISHABLE_KEY'] ?? '';
+const MEDUSA_ADMIN_EMAIL = process.env['MEDUSA_ADMIN_EMAIL'] ?? '';
+const MEDUSA_ADMIN_PASSWORD = process.env['MEDUSA_ADMIN_PASSWORD'] ?? '';
 
 interface MedusaProduct {
   id: string;

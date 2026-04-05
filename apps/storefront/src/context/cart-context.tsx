@@ -8,8 +8,10 @@ import {
   useMemo,
   useState,
 } from 'react';
+import { shippingEur, type ShippingMethod } from '@/lib/shipping';
 
 const STORAGE_KEY = 'onepeace-shop-cart';
+const PROMO_STORAGE_KEY = 'onepeace-shop-promo-code';
 
 export type CartLine = {
   productId: string;
@@ -19,13 +21,27 @@ export type CartLine = {
   quantity: number;
 };
 
+export type ValidatedDiscount = {
+  code: string;
+  discountCents: number;
+  finalCents: number;
+  freeShipping: boolean;
+};
+
 type CartContextValue = {
   items: CartLine[];
+  promoCode: string;
+  validatedDiscount: ValidatedDiscount | null;
+  setPromoCode: (code: string) => void;
+  setValidatedDiscount: (d: ValidatedDiscount | null) => void;
   addItem: (line: Omit<CartLine, 'quantity'> & { quantity?: number }) => void;
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
   subtotal: number;
+  discountEur: number;
+  shippingEurFor: (method: ShippingMethod) => number;
+  totalFor: (method: ShippingMethod) => number;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -52,12 +68,24 @@ function loadItems(): CartLine[] {
   }
 }
 
+function loadPromoCode(): string {
+  if (typeof window === 'undefined') return '';
+  try {
+    return window.localStorage.getItem(PROMO_STORAGE_KEY) ?? '';
+  } catch {
+    return '';
+  }
+}
+
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartLine[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  const [promoCode, setPromoCodeState] = useState('');
+  const [validatedDiscount, setValidatedDiscount] = useState<ValidatedDiscount | null>(null);
 
   useEffect(() => {
     setItems(loadItems());
+    setPromoCodeState(loadPromoCode());
     setHydrated(true);
   }, []);
 
@@ -70,15 +98,35 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }, [items, hydrated]);
 
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      if (promoCode) window.localStorage.setItem(PROMO_STORAGE_KEY, promoCode);
+      else window.localStorage.removeItem(PROMO_STORAGE_KEY);
+    } catch {
+      /* ignore */
+    }
+  }, [promoCode, hydrated]);
+
+  const setPromoCode = useCallback((code: string) => {
+    setPromoCodeState(code);
+    setValidatedDiscount(null);
+  }, []);
+
   const addItem = useCallback((line: Omit<CartLine, 'quantity'> & { quantity?: number }) => {
     const qty = line.quantity ?? 1;
+    console.log('[CartContext] addItem called with:', line, 'qty:', qty);
     setItems(prev => {
       const i = prev.findIndex(p => p.productId === line.productId);
+      console.log('[CartContext] Previous items:', prev, 'Found index:', i);
       if (i === -1) {
-        return [...prev, { ...line, quantity: qty }];
+        const newItems = [...prev, { ...line, quantity: qty }];
+        console.log('[CartContext] New items after add:', newItems);
+        return newItems;
       }
       const next = [...prev];
       next[i] = { ...next[i], quantity: next[i].quantity + qty };
+      console.log('[CartContext] Updated items after increment:', next);
       return next;
     });
   }, []);
@@ -97,6 +145,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const clearCart = useCallback(() => {
     setItems([]);
+    setValidatedDiscount(null);
+    setPromoCodeState('');
   }, []);
 
   const subtotal = useMemo(
@@ -104,22 +154,58 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     [items],
   );
 
+  const discountEur = useMemo(() => {
+    if (!validatedDiscount) return 0;
+    return validatedDiscount.discountCents / 100;
+  }, [validatedDiscount]);
+
+  const subtotalAfterDiscount = useMemo(
+    () => Math.max(0, subtotal - discountEur),
+    [subtotal, discountEur],
+  );
+
+  const shippingEurFor = useCallback(
+    (method: ShippingMethod) => {
+      if (validatedDiscount?.freeShipping) return 0;
+      return shippingEur(method, subtotalAfterDiscount);
+    },
+    [validatedDiscount, subtotalAfterDiscount],
+  );
+
+  const totalFor = useCallback(
+    (method: ShippingMethod) => subtotalAfterDiscount + shippingEurFor(method),
+    [subtotalAfterDiscount, shippingEurFor],
+  );
+
   const value = useMemo<CartContextValue>(
     () => ({
       items,
+      promoCode,
+      validatedDiscount,
+      setPromoCode,
+      setValidatedDiscount,
       addItem,
       removeItem,
       updateQuantity,
       clearCart,
       subtotal,
+      discountEur,
+      shippingEurFor,
+      totalFor,
     }),
     [
       items,
+      promoCode,
+      validatedDiscount,
+      setPromoCode,
       addItem,
       removeItem,
       updateQuantity,
       clearCart,
       subtotal,
+      discountEur,
+      shippingEurFor,
+      totalFor,
     ],
   );
 
