@@ -18,10 +18,10 @@ interface PipelineEvent {
 const OPENCLAW_URL = process.env.NEXT_PUBLIC_OPENCLAW_URL || 'http://100.110.74.114:3849';
 
 const PRESETS = [
-  { label: 'Search products', prompt: 'Search trending products in the "bags" category from CJ and Medusa' },
-  { label: 'Create a shop', prompt: 'Create a new luxury watches e-commerce shop with the swiss design system on port 3101' },
-  { label: 'Service status', prompt: 'Give me the status of all services (GPU, Medusa, OpenClaw, Supabase)' },
-  { label: 'Marketing plan', prompt: 'Propose a marketing plan to launch a streetwear clothing site' },
+  { label: 'Product ideas', prompt: 'Suggest trending product categories for a new dropshipping store' },
+  { label: 'Shop plan', prompt: 'Draft a plan for a luxury watches e-commerce shop with the swiss design system' },
+  { label: 'Marketing strategy', prompt: 'Propose a marketing strategy to launch a streetwear clothing site' },
+  { label: 'Niche research', prompt: 'Help me choose between 3 niches: bags, watches, or streetwear' },
 ];
 
 const STEP_LABELS: Record<string, string> = {
@@ -249,6 +249,7 @@ function ChatPanel() {
   const [loading, setLoading] = useState(false);
   const [model, setModel] = useState<'fast' | 'main'>('fast');
   const endRef = useRef<HTMLDivElement>(null);
+  const [showWarning, setShowWarning] = useState(true);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -285,6 +286,14 @@ function ChatPanel() {
 
   return (
     <div className="flex h-full flex-col">
+      {showWarning && (
+        <div className="mb-3 flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          <span className="font-medium">⚠️ Mode draft-only :</span>
+          <span>Ce chat rédige et propose, il n'exécute pas la pipeline.</span>
+          <button onClick={() => setShowWarning(false)} className="ml-auto text-amber-600 hover:text-amber-900">✕</button>
+        </div>
+      )}
+
       <div className="mb-3 flex items-center gap-3">
         <select value={model} onChange={e => setModel(e.target.value as 'fast' | 'main')} className="rounded-lg border px-3 py-1.5 text-sm">
           <option value="fast">Qwen 7B (fast)</option>
@@ -296,7 +305,7 @@ function ChatPanel() {
       <div className="flex-1 overflow-y-auto py-2">
         {messages.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-4">
-            <p className="text-sm text-gray-500">Free chat with AI agent</p>
+            <p className="text-sm text-gray-500">Assistant de cadrage et planification</p>
             <div className="grid grid-cols-2 gap-2">
               {PRESETS.map(p => (
                 <button key={p.label} onClick={() => send(p.prompt)}
@@ -356,7 +365,7 @@ export default function AgentsPage() {
       <div className="flex items-center justify-between border-b pb-4">
         <div>
           <h2 className="text-2xl font-bold">AI Agent</h2>
-          <p className="text-sm text-gray-500">A-Z Pipeline or free chat</p>
+          <p className="text-sm text-gray-500">Pipeline exécutable ou assistant draft</p>
         </div>
         <div className="flex rounded-lg border bg-gray-100 p-0.5">
           <button
@@ -369,7 +378,7 @@ export default function AgentsPage() {
             onClick={() => setTab('chat')}
             className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${tab === 'chat' ? 'bg-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
           >
-            Chat
+            Assistant Draft
           </button>
         </div>
       </div>

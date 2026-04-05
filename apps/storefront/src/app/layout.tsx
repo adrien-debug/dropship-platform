@@ -1,58 +1,27 @@
 import type { Metadata } from 'next';
-import { getSiteConfig } from '@/lib/site-config';
-import { getTheme } from '@/lib/theme';
-import { CartProvider } from '@/lib/cart-context';
-import { CartBadge } from './cart-badge';
+import { CartProvider } from '@/context/cart-context';
+import { OnePieceHeader } from '@/components/one-piece-header';
+import { OnePieceFooter } from '@/components/one-piece-footer';
 import './globals.css';
 
-export async function generateMetadata(): Promise<Metadata> {
-  const site = await getSiteConfig();
-  const siteName = (site as Record<string, unknown>).name as string || 'Store';
-  return {
-    title: siteName,
-    description: `Boutique en ligne — ${siteName}`,
-  };
-}
+export const metadata: Metadata = {
+  title: 'One Piece Store — Boutique Officielle',
+  description: 'Figurines, T-shirts, Mugs et goodies One Piece exclusifs',
+};
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const site = await getSiteConfig();
-  const siteName = (site as Record<string, unknown>).name as string || 'Store';
-  const { ds, css, fontsUrl } = getTheme();
-
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" className={ds.darkMode ? 'dark' : ''}>
+    <html lang="fr">
       <head>
-        {fontsUrl && (
-          <>
-            <link rel="preconnect" href="https://fonts.googleapis.com" />
-            <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-            <link href={fontsUrl} rel="stylesheet" />
-          </>
-        )}
-        <style dangerouslySetInnerHTML={{ __html: css }} />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet" />
       </head>
-      <body className="min-h-screen bg-[var(--ds-bg)] text-[var(--ds-text)] antialiased" style={{ fontFamily: 'var(--ds-font-primary)' }}>
+      <body className="min-h-screen antialiased">
         <CartProvider>
-          <header className="border-b border-[var(--ds-border)]">
-            <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
-              <a href="/" className="text-xl font-bold" style={{ color: 'var(--ds-accent)' }}>
-                {siteName}
-              </a>
-              <nav className="flex items-center gap-6 text-sm">
-                <a href="/shop" className="transition-colors hover:text-[var(--ds-accent)]" style={{ transition: 'var(--ds-transition)' }}>
-                  Boutique
-                </a>
-                <a href="/cart" className="relative transition-colors hover:text-[var(--ds-accent)]" style={{ transition: 'var(--ds-transition)' }}>
-                  Panier
-                  <CartBadge />
-                </a>
-              </nav>
-            </div>
-          </header>
-          <main>{children}</main>
-          <footer className="border-t border-[var(--ds-border)] py-8 text-center text-sm text-[var(--ds-text-muted)]">
-            {siteName} — Tous droits reserves
-          </footer>
+          <OnePieceHeader />
+          <main className="min-h-[60vh]">{children}</main>
+          <OnePieceFooter />
         </CartProvider>
       </body>
     </html>

@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plan de relance — Dropship Agent System</title>
+<style>
+:root{--bg:#09090b;--s1:#111114;--s2:#18181c;--s3:#222228;--brd:#2a2a35;--txt:#e4e4ec;--mut:#83839a;--g:#22c55e;--gbg:rgba(34,197,94,.08);--o:#f59e0b;--obg:rgba(245,158,11,.08);--r:#ef4444;--rbg:rgba(239,68,68,.07);--a:#818cf8;--abg:rgba(129,140,248,.08)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--txt);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.55;padding:2.5rem;max-width:1380px;margin:0 auto}
+h1{font-size:2.2rem;font-weight:900;letter-spacing:-.04em}
+h2{font-size:1.15rem;font-weight:800;margin:2.2rem 0 1rem;letter-spacing:-.02em}
+h3{font-size:.9rem;font-weight:800;margin:0 0 .45rem}
+p{font-size:.86rem}
+.sub{color:var(--mut);font-size:.8rem;margin-top:.45rem;max-width:780px}
+.mono{font-family:"SF Mono","Fira Code",monospace}
+
+.hero{display:grid;grid-template-columns:1.5fr 1fr;gap:1rem;align-items:stretch;margin-bottom:1.5rem}
+.panel{background:var(--s1);border:1px solid var(--brd);border-radius:1rem;padding:1.2rem}
+.hero-main{padding:1.5rem}
+.hero-main p{font-size:.92rem;max-width:780px}
+.hero-main strong{color:#fff}
+.hero-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem}
+.stat{background:var(--s1);border:1px solid var(--brd);border-radius:.9rem;padding:1rem}
+.stat .v{font-size:1.55rem;font-weight:900;line-height:1}
+.stat .l{font-size:.62rem;color:var(--mut);text-transform:uppercase;letter-spacing:.12em;margin-top:.35rem}
+.stat .d{font-size:.75rem;color:var(--mut);margin-top:.45rem}
+
+.banner{border-radius:1rem;padding:1rem 1.2rem;margin:1rem 0}
+.banner p{font-size:.82rem}
+.danger{background:var(--rbg);border:1px solid rgba(239,68,68,.28)}
+.warn{background:var(--obg);border:1px solid rgba(245,158,11,.28)}
+.accent{background:var(--abg);border:1px solid rgba(129,140,248,.28)}
+.danger h3{color:var(--r)}
+.warn h3{color:var(--o)}
+.accent h3{color:var(--a)}
+
+.grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}
+.card{background:var(--s1);border:1px solid var(--brd);border-radius:1rem;padding:1.2rem}
+.card p{color:var(--mut)}
+.list{display:grid;gap:.7rem;margin-top:.9rem}
+.item{background:var(--s2);border:1px solid var(--brd);border-radius:.8rem;padding:.85rem .95rem}
+.item strong{display:block;font-size:.82rem}
+.item span{display:block;font-size:.76rem;color:var(--mut);margin-top:.2rem}
+
+.step-list{display:grid;gap:.8rem}
+.step{display:grid;grid-template-columns:44px 1fr;gap:.9rem;align-items:flex-start;background:var(--s1);border:1px solid var(--brd);border-radius:.95rem;padding:1rem}
+.step-num{width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-weight:900;background:var(--s2);border:1px solid var(--brd);color:#fff}
+.step p{color:var(--mut);font-size:.8rem}
+
+.tbl{width:100%;border-collapse:collapse;font-size:.78rem;margin-top:.75rem}
+.tbl th{text-align:left;padding:.55rem .65rem;font-weight:800;font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;color:var(--mut);border-bottom:2px solid var(--brd);background:var(--s1)}
+.tbl td{padding:.65rem;border-bottom:1px solid var(--brd);vertical-align:top}
+.tbl tr:hover td{background:var(--s2)}
+
+.badge{display:inline-block;font-size:.58rem;font-weight:800;padding:.16rem .42rem;border-radius:.3rem;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
+.bg{background:var(--gbg);color:var(--g)}
+.bo{background:var(--obg);color:var(--o)}
+.br{background:var(--rbg);color:var(--r)}
+.ba{background:var(--abg);color:var(--a)}
+
+.note{font-size:.75rem;color:var(--mut);padding:.85rem 1rem;background:var(--s1);border:1px solid var(--brd);border-radius:.8rem;margin-top:1.2rem}
+
+@media(max-width:980px){
+body{padding:1rem}
+.hero,.grid-2{grid-template-columns:1fr}
+.hero-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:640px){
+h1{font-size:1.6rem}
+.hero-stats{grid-template-columns:1fr}
+.step{grid-template-columns:1fr}
+.step-num{width:38px;height:38px}
+}
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <div class="panel hero-main">
+    <h1>Plan de relance</h1>
+    <p class="sub">Ce document reformule la situation après les tests réels. Le sujet n'est plus "est-ce que tout marche ?". Le sujet est : <strong>quel produit on garde, qu'est-ce qu'on coupe, et dans quel ordre on répare</strong>.</p>
+    <div class="banner danger" style="margin-top:1rem">
+      <h3>Résumé exécutif</h3>
+      <p>Le système n'est pas un agent autonome complet. En l'état, c'est un <strong>pipeline e-commerce partiellement fonctionnel</strong> entouré de couches qui hallucinent, ralentissent ou bloquent. Le plan n'est donc pas d'améliorer tout en parallèle, mais de <strong>resserrer le produit autour du pipeline qui exécute vraiment</strong>.</p>
+    </div>
+  </div>
+
+  <div class="hero-stats">
+    <div class="stat">
+      <div class="v" style="color:var(--r)">31/100</div>
+      <div class="l">Score réel</div>
+      <div class="d">Mesuré sur 28 tests live, pas sur les intentions.</div>
+    </div>
+    <div class="stat">
+      <div class="v" style="color:var(--r)">0%</div>
+      <div class="l">Chat exécution</div>
+      <div class="d">Le chat parle, mais n'agit pas.</div>
+    </div>
+    <div class="stat">
+      <div class="v" style="color:var(--o)">7.2 min</div>
+      <div class="l">Enrichissement</div>
+      <div class="d">Le goulot principal du système.</div>
+    </div>
+    <div class="stat">
+      <div class="v" style="color:var(--g)">3</div>
+      <div class="l">Briques utiles</div>
+      <div class="d">Search pipeline, CJ client, génération site partielle.</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>1. Ce qu'on essaye vraiment de construire</h2>
+  <div class="grid-2">
+    <div class="card">
+      <h3>Vision produit</h3>
+      <p>L'utilisateur donne une niche, un marché, un positionnement et éventuellement un design system. Ensuite le système doit trouver des produits cohérents, créer la boutique, générer le contenu, brancher le storefront et déployer sans intervention manuelle lourde.</p>
+      <div class="list">
+        <div class="item">
+          <strong>Input attendu</strong>
+          <span>Niche produit, marché cible, gamme de prix, identité visuelle éventuelle.</span>
+        </div>
+        <div class="item">
+          <strong>Output attendu</strong>
+          <span>Une boutique live avec les bons produits, un branding cohérent et des pages utilisables.</span>
+        </div>
+        <div class="item">
+          <strong>Promesse minimale crédible</strong>
+          <span>Transformer une intention e-commerce en pipeline exécutable, pas en chat “magique”.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Architecture produit cible</h3>
+      <div class="step-list">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div>
+            <strong>Sourcing produits</strong>
+            <p>Extraction et normalisation des bons keywords, recherche CJ, filtrage et sélection.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div>
+            <strong>Import Medusa</strong>
+            <p>Création du canal de vente et import des produits retenus.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div>
+            <strong>Branding + contenu</strong>
+            <p>Nom, angle, copy, hero, pages et design system alignés avec la niche.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div>
+            <strong>Build + déploiement</strong>
+            <p>Storefront compilé, vérifié, déployé, puis statut final mis à jour.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>2. Ce que disent les tests, sans se mentir</h2>
+  <div class="banner warn">
+    <h3>Constat</h3>
+    <p>Les tests ne disent pas que "tout est mauvais". Ils disent que <strong>le coeur pipeline existe</strong>, mais qu'il est entouré de mauvais abstractions. Le danger actuel vient surtout du décalage entre la promesse d'un agent complet et la réalité d'un pipeline incomplet.</p>
+  </div>
+
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th>Brique</th>
+        <th>État réel</th>
+        <th>Ce qui marche</th>
+        <th>Ce qui casse</th>
+        <th>Décision</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Search pipeline</strong></td>
+        <td><span class="badge bg">utile</span></td>
+        <td>Recherche CJ rapide, résultats pertinents sur keywords propres.</td>
+        <td>Faible tolérance aux typos, phrases longues, langage oral.</td>
+        <td><span class="badge bg">garder</span></td>
+      </tr>
+      <tr>
+        <td><strong>CJ client</strong></td>
+        <td><span class="badge bg">solide</span></td>
+        <td>Résultats rapides, infra stable côté sourcing.</td>
+        <td>La qualité finale dépend trop du pré-traitement amont.</td>
+        <td><span class="badge bg">garder</span></td>
+      </tr>
+      <tr>
+        <td><strong>Content writer site</strong></td>
+        <td><span class="badge bo">partiel</span></td>
+        <td>Peut produire une base de boutique crédible.</td>
+        <td>La partie enrichissement est beaucoup trop lente.</td>
+        <td><span class="badge bo">resserrer</span></td>
+      </tr>
+      <tr>
+        <td><strong>Chat agent</strong></td>
+        <td><span class="badge br">toxique</span></td>
+        <td>Peut reformuler et produire du texte.</td>
+        <td>N'exécute rien, hallucine, simule des actions inexistantes.</td>
+        <td><span class="badge br">retirer du flux</span></td>
+      </tr>
+      <tr>
+        <td><strong>Debug-fix loop</strong></td>
+        <td><span class="badge br">instable</span></td>
+        <td>Essaye de corriger automatiquement.</td>
+        <td>Boucle sur les mêmes erreurs, brûle du temps et du compute.</td>
+        <td><span class="badge br">désactiver</span></td>
+      </tr>
+      <tr>
+        <td><strong>Marketing tools</strong></td>
+        <td><span class="badge br">ambigu</span></td>
+        <td>Peuvent générer un plan de campagne.</td>
+        <td>Le retour ressemble à une action alors que ce n'est qu'un draft.</td>
+        <td><span class="badge bo">renommer</span></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>3. Le vrai plan maintenant</h2>
+  <div class="grid-2">
+    <div class="card">
+      <h3>Principe directeur</h3>
+      <p>Arrêter de vendre un “agent tout faire”. Revenir à une promesse simple : <strong>pipeline e-commerce pilotée par intention</strong>. Chaque brique doit soit exécuter réellement, soit être sortie du chemin critique.</p>
+      <div class="list">
+        <div class="item">
+          <strong>Ce qu'on garde comme coeur produit</strong>
+          <span>Search pipeline, CJ client, import catalogue, génération storefront contrôlée.</span>
+        </div>
+        <div class="item">
+          <strong>Ce qu'on retire du chemin critique</strong>
+          <span>Chat libre, debug-fix en boucle, sorties marketing ambiguës.</span>
+        </div>
+        <div class="item">
+          <strong>Ce qu'on ajoute avant tout</strong>
+          <span>Pré-traitement d'input pour absorber phrases, typos, oral et enums humains.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Ordre d'exécution recommandé</h3>
+      <div class="step-list">
+        <div class="step">
+          <div class="step-num">A</div>
+          <div>
+            <strong>Réduire le périmètre</strong>
+            <p>Le produit devient officiellement un pipeline assistée, pas un agent autonome.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">B</div>
+          <div>
+            <strong>Accélérer l'enrichissement</strong>
+            <p>Batch + parallélisation pour faire tomber le temps d'attente perçu.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">C</div>
+          <div>
+            <strong>Normaliser l'input utilisateur</strong>
+            <p>Traduction, correction, extraction de keywords, mapping marché/positioning.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">D</div>
+          <div>
+            <strong>Fallbacks fiables</strong>
+            <p>Quand le codegen échoue, revenir à un template sûr au lieu de re-boucler.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>4. Priorités des 2 prochains sprints</h2>
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th>Priorité</th>
+        <th>Objectif</th>
+        <th>Impact utilisateur</th>
+        <th>Pourquoi maintenant</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="badge br">P1</span></td>
+        <td>Sortir le chat agent du flux principal</td>
+        <td>Réduit les promesses fausses et la confusion.</td>
+        <td>C'est la source principale de perte de confiance.</td>
+      </tr>
+      <tr>
+        <td><span class="badge br">P1</span></td>
+        <td>Paralléliser l'enrichissement produit</td>
+        <td>Réduit fortement le temps d'attente de bout en bout.</td>
+        <td>C'est le plus gros bottleneck mesuré.</td>
+      </tr>
+      <tr>
+        <td><span class="badge bo">P2</span></td>
+        <td>Ajouter un pré-processeur NLP simple</td>
+        <td>Accepte enfin les vraies formulations utilisateur.</td>
+        <td>Améliore le taux de succès sans refaire toute l'architecture.</td>
+      </tr>
+      <tr>
+        <td><span class="badge bo">P2</span></td>
+        <td>Remplacer la debug-fix loop par un fallback template</td>
+        <td>Évite les boucles de 7 minutes pour zéro résultat.</td>
+        <td>La stratégie actuelle prouve qu'elle ne converge pas.</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>5. Conclusion</h2>
+  <div class="banner accent">
+    <h3>Le plan, en une phrase</h3>
+    <p><strong>On ne cherche plus à sauver un faux agent généraliste.</strong> On consolide un pipeline e-commerce qui exécute vraiment, on supprime les couches trompeuses, puis on réintroduit de l'intelligence uniquement là où elle améliore le taux de succès réel.</p>
+  </div>
+  <p class="note">Base de lecture : 28 tests live exécutés le 5 avril 2026, services disponibles, résultats observés sur exécution réelle. Ce document sert à réaligner la roadmap, pas à embellir les résultats.</p>
+</section>
+
+</body>
+</html>

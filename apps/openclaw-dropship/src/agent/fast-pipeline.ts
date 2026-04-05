@@ -1,6 +1,7 @@
 import type { PipelineEvent, PipelineInput, PipelineResult, EnrichedProduct, SiteContent } from './types.js';
 import { CJClient } from '../services/cj-client.js';
 import { generateSiteContent, generateProductDescriptions } from './content-writer.js';
+import { normalizePipelineInput } from './input-normalizer.js';
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env['SUPABASE_URL'] ?? '';
@@ -9,21 +10,6 @@ const SUPABASE_SERVICE_KEY = process.env['SUPABASE_SERVICE_ROLE_KEY'] ?? process
 function getSupabase() {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) return null;
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-}
-
-const KEYWORD_TRANSLATIONS: Record<string, string> = {
-  montres: 'watches', montre: 'watch', homme: 'men', femme: 'women',
-  sacs: 'bags', sac: 'bag', chaussures: 'shoes', vetements: 'clothing',
-  bijoux: 'jewelry', lunettes: 'sunglasses', accessoires: 'accessories',
-  sport: 'sports', cuisine: 'kitchen', maison: 'home', jardin: 'garden',
-  enfant: 'kids', bebe: 'baby', beaute: 'beauty', electronique: 'electronics',
-  telephone: 'phone', ordinateur: 'computer', jouets: 'toys', animaux: 'pets',
-  luxe: 'luxury', mode: 'fashion', tech: 'tech', fitness: 'fitness',
-};
-
-function translateToEnglish(keyword: string): string {
-  const words = keyword.toLowerCase().trim().split(/\s+/);
-  return words.map(w => KEYWORD_TRANSLATIONS[w] ?? w).join(' ');
 }
 
 const GPU2_HOST = process.env['GPU2_HOST'] ?? '100.110.74.114';
@@ -75,7 +61,14 @@ export async function runFastPipeline(
     events.push(ev);
   };
 
-  track('pipeline_start', 'running', { keywords: input.keywords, market: input.market ?? 'FR' }, 0);
+  // Normalize input
+  const normalized = normalizePipelineInput({
+    keywords: input.keywords,
+    market: input.market,
+    positioning: input.positioning,
+  });
+
+  track('pipeline_start', 'running', { keywords: normalized.keywords, market: normalized.market }, 0);
 
   // Step 1: Search products
   track('search_products', 'running', undefined, 5);
@@ -83,14 +76,13 @@ export async function runFastPipeline(
 
   try {
     const cj = new CJClient();
-    const translatedKeywords = input.keywords.map(translateToEnglish);
     const audienceWords = new Set(['men', 'women', 'man', 'woman', 'kids', 'baby', 'boys', 'girls']);
-    const searchQueries = translatedKeywords.map(kw => {
+    const searchQueries = normalized.keywords.map(kw => {
       const words = kw.split(/\s+/);
       const coreWords = words.filter(w => !audienceWords.has(w));
       return coreWords.length > 0 ? coreWords.join(' ') : kw;
     });
-    console.log(`[fast-pipeline] Search queries: ${searchQueries.join(', ')} (from: ${input.keywords.join(', ')})`);
+    console.log(`[fast-pipeline] Search queries: ${searchQueries.join(', ')}`);
     const searchPromises = searchQueries.map(kw => cj.searchProducts(kw, 1, 20).catch(() => []));
     const allResults = await Promise.all(searchPromises);
     const flat = allResults.flat();
@@ -107,7 +99,7 @@ export async function runFastPipeline(
     }).filter(p => p.name && p.price_usd > 0);
 
     const stopWords = new Set(['men', 'women', 'man', 'woman', 'for', 'the', 'and', 'with', 'new', 'de', 'a', 'le', 'la', 'les']);
-    const coreKeywords = translatedKeywords
+    const coreKeywords = normalized.keywords
       .flatMap(k => k.split(/\s+/))
       .filter(w => !stopWords.has(w))
       .map(w => w.replace(/(?:es|s|ing)$/, ''));
@@ -135,15 +127,15 @@ export async function runFastPipeline(
 
   // Step 2: Generate site content (parallel with product enrichment)
   track('generate_content', 'running', undefined, 20);
-  const niche = input.keywords.join(', ');
-  const designSystem = input.design_system ?? pickDesignSystem(niche, input.positioning ?? 'mid');
+  const niche = normalized.keywords.join(', ');
+  const designSystem = input.design_system ?? pickDesignSystem(niche, normalized.positioning);
   const topProductNames = rawProducts.slice(0, 5).map(p => p.name);
 
   const [siteContent, enrichedProducts] = await Promise.all([
     generateSiteContent({
       niche,
-      market: input.market ?? 'FR',
-      positioning: input.positioning ?? 'mid',
+      market: normalized.market,
+      positioning: normalized.positioning,
       topProducts: topProductNames,
     }).catch(err => {
       console.error('[fast-pipeline] Content gen failed:', err);
@@ -189,7 +181,7 @@ export async function runFastPipeline(
 
   // Step 3: Create shop via launcher codegen
   track('create_shop', 'running', undefined, 70);
-  const shopName = siteContent?.brand?.name ?? `Shop ${input.keywords[0]}`;
+  const shopName = siteContent?.brand?.name ?? `Shop ${normalized.keywords[0]}`;
   const shopSlug = slugify(shopName);
   const port = 3101 + Math.floor(Math.random() * 90);
 
@@ -286,7 +278,7 @@ export async function runFastPipeline(
         campaign: {
           type: 'SEARCH',
           daily_budget_eur: input.budget_eur ?? 10,
-          keywords: input.keywords,
+          keywords: normalized.keywords,
           landing_page: shopUrl,
         },
       },
@@ -295,7 +287,7 @@ export async function runFastPipeline(
         campaign: {
           objective: 'CONVERSIONS',
           daily_budget_eur: input.budget_eur ?? 10,
-          targeting: { interests: input.keywords, countries: [input.market ?? 'FR'] },
+          targeting: { interests: normalized.keywords, countries: [normalized.market] },
           website_url: shopUrl,
         },
       },
@@ -316,7 +308,7 @@ export async function runFastPipeline(
               daily_budget: (input.budget_eur ?? 10) * 100,
               status: 'draft',
               metrics: {},
-              targeting: { keywords: input.keywords },
+              targeting: { keywords: normalized.keywords },
               creatives: { landing_page: shopUrl },
             },
             {
@@ -326,7 +318,7 @@ export async function runFastPipeline(
               daily_budget: (input.budget_eur ?? 10) * 100,
               status: 'draft',
               metrics: {},
-              targeting: { interests: input.keywords, countries: [input.market ?? 'US'] },
+              targeting: { interests: normalized.keywords, countries: [normalized.market] },
               creatives: { website_url: shopUrl },
             },
           ];

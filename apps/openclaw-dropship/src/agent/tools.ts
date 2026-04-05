@@ -3,25 +3,10 @@ import type { ToolDefinition, EnrichedProduct, SiteContent } from './types.js';
 import { CJClient } from '../services/cj-client.js';
 import { MedusaClient } from '../services/medusa-client.js';
 import { generateSiteContent, generateProductDescriptions } from './content-writer.js';
+import { normalizeKeywords, normalizeMarket, normalizePositioning } from './input-normalizer.js';
 
 const GPU2_HOST = process.env['GPU2_HOST'] ?? '100.110.74.114';
 const OPENCLAW_URL = `http://${GPU2_HOST}:${Number(process.env['PORT'] ?? 3849)}`;
-
-const KEYWORD_TRANSLATIONS: Record<string, string> = {
-  montres: 'watches', montre: 'watch', homme: 'men', femme: 'women',
-  sacs: 'bags', sac: 'bag', chaussures: 'shoes', vetements: 'clothing',
-  bijoux: 'jewelry', lunettes: 'sunglasses', accessoires: 'accessories',
-  sport: 'sports', cuisine: 'kitchen', maison: 'home', jardin: 'garden',
-  enfant: 'kids', bebe: 'baby', beaute: 'beauty', electronique: 'electronics',
-  telephone: 'phone', ordinateur: 'computer', jouets: 'toys', animaux: 'pets',
-  luxe: 'luxury', mode: 'fashion', tech: 'tech', fitness: 'fitness',
-};
-
-function translateToEnglish(keyword: string): string {
-  const words = keyword.toLowerCase().trim().split(/\s+/);
-  const translated = words.map(w => KEYWORD_TRANSLATIONS[w] ?? w);
-  return translated.join(' ');
-}
 
 function toolSpec(name: string, description: string, parameters: Record<string, unknown>): ChatCompletionTool {
   return {
@@ -32,20 +17,21 @@ function toolSpec(name: string, description: string, parameters: Record<string, 
 
 // ---------- Tool: search_products ----------
 const searchProductsHandler = async (args: Record<string, unknown>) => {
-  const keywords = args['keywords'] as string[];
+  const rawKeywords = args['keywords'] as string[];
   const limit = Math.min((args['limit'] as number) ?? 20, 20);
   const results: { source: string; products: unknown[] }[] = [];
 
+  const normalizedKeywords = normalizeKeywords(rawKeywords);
+  console.log(`[tools:search] Normalized keywords: ${rawKeywords.join(', ')} -> ${normalizedKeywords.join(', ')}`);
+
   try {
     const cj = new CJClient();
-    const translatedKeywords = keywords.map(translateToEnglish);
-    console.log(`[tools:search] Translated keywords: ${keywords.join(', ')} -> ${translatedKeywords.join(', ')}`);
     const cjProducts = await Promise.all(
-      translatedKeywords.map(k => cj.searchProducts(k, 1, Math.ceil(limit / keywords.length)))
+      normalizedKeywords.map(k => cj.searchProducts(k, 1, Math.ceil(limit / normalizedKeywords.length)))
     );
     const flat = cjProducts.flat();
     const stopWords = new Set(['men', 'women', 'man', 'woman', 'for', 'the', 'and', 'with', 'new', 'de', 'a', 'le', 'la', 'les']);
-    const coreKeywords = translatedKeywords
+    const coreKeywords = normalizedKeywords
       .flatMap(k => k.split(/\s+/))
       .filter(w => !stopWords.has(w))
       .map(w => w.replace(/(?:es|s|ing)$/, ''));
@@ -73,7 +59,7 @@ const searchProductsHandler = async (args: Record<string, unknown>) => {
 
   try {
     const medusa = new MedusaClient();
-    for (const kw of keywords) {
+    for (const kw of normalizedKeywords) {
       const mp = await medusa.searchProducts(kw, 1, 10);
       if (mp.length > 0) results.push({ source: 'medusa', products: mp });
     }
@@ -110,9 +96,29 @@ const enrichProductsHandler = async (args: Record<string, unknown>) => {
 // ---------- Tool: generate_site_content ----------
 const generateSiteContentHandler = async (args: Record<string, unknown>) => {
   const niche = args['niche'] as string;
-  const market = (args['market'] as string) ?? 'FR';
-  const positioning = (args['positioning'] as string) ?? 'mid';
+  const rawMarket = args['market'] as string | undefined;
+  const rawPositioning = args['positioning'] as string | undefined;
   const topProducts = (args['top_product_names'] as string[]) ?? [];
+
+  const marketResult = normalizeMarket(rawMarket);
+  const positioningResult = normalizePositioning(rawPositioning);
+
+  // Reject invalid explicit values
+  if (marketResult.provided && !marketResult.valid) {
+    return { 
+      error: `Invalid market value: "${marketResult.input}". Valid: FR, EU, US, france, europe, usa, etc.` 
+    };
+  }
+  
+  if (positioningResult.provided && !positioningResult.valid) {
+    return { 
+      error: `Invalid positioning value: "${positioningResult.input}". Valid: budget, mid, premium, luxe, pas cher, etc.` 
+    };
+  }
+
+  // Apply defaults only for absent values
+  const market = marketResult.value ?? 'FR';
+  const positioning = positioningResult.value ?? 'mid';
 
   const content = await generateSiteContent({ niche, market, positioning, topProducts });
   return content;

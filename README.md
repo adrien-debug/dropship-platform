@@ -94,6 +94,25 @@ Express backend sur GPU2:3849.
 | `POST /agent/pipeline` | **Pipeline A-Z** (SSE) — mots-clés → site live + marketing |
 | `GET /agent/status` | Status agent + tools disponibles |
 
+### Input Normalization
+
+La pipeline accepte maintenant des inputs utilisateur flexibles :
+
+**Keywords :**
+- Phrases complètes : `"je veux vendre des sacs de luxe pour femmes"` → `["bags", "luxury", "women"]`
+- Typos simples : `"chausure"` → `"shoes"`
+- Filler words supprimés : `"hey jveu des trucs gaming"` → `["gaming"]`
+
+**Market :**
+- `"france"`, `"fr"`, `"français"` → `FR`
+- `"europe"`, `"eu"` → `EU`
+- `"usa"`, `"us"`, `"america"` → `US`
+
+**Positioning :**
+- `"pas cher"`, `"cheap"`, `"budget"` → `budget`
+- `"milieu de gamme"`, `"standard"`, `"mid"` → `mid`
+- `"luxe"`, `"luxury"`, `"premium"` → `premium`
+
 ## Agent Pipeline A-Z
 
 Pipeline autonome : 2 mots-clés → site e-commerce complet prêt à vendre.
@@ -101,7 +120,7 @@ Pipeline autonome : 2 mots-clés → site e-commerce complet prêt à vendre.
 **Étapes automatisées :**
 1. Recherche produits (CJ Dropshipping)
 2. Génération contenu IA (brand, hero, about, policies, SEO)
-3. Enrichissement produits (descriptions + meta SEO par produit)
+3. Enrichissement produits (descriptions + meta SEO par produit) — **traitement parallèle par batch de 5**
 4. Création boutique (Medusa sales channel + produits + Docker deploy)
 5. Audit SEO du site déployé
 6. Plans marketing (Google Ads + Meta Ads)
@@ -109,18 +128,37 @@ Pipeline autonome : 2 mots-clés → site e-commerce complet prêt à vendre.
 **Tools (8) :** `search_products`, `enrich_products`, `generate_site_content`, `create_shop`, `check_health`, `create_google_ads_campaign`, `create_meta_ads_campaign`, `run_seo_audit`
 
 **Modes :**
-- `fast` (défaut) : pipeline déterministe, ~6 min
+- `fast` (défaut) : pipeline déterministe, ~6 min (20 produits enrichis en ~30s au lieu de ~2min)
 - `agent` : orchestration LLM avec function calling (Qwen 32B + hermes parser)
+
+**Optimisations :**
+- **Normalisation d'input** : phrases utilisateur → keywords exploitables, typos simples corrigées, market/positioning variants acceptés
+- **Enrichissement produits** : traitement parallèle par batch de 5 (au lieu de séquentiel)
+- Fallback automatique par produit en cas d'échec LLM
+- Logs détaillés : durée totale, nombre de fallbacks, input normalisé
 
 ## Agents
 
 | Agent | Fichier / Endpoint | Rôle |
 |-------|---------|------|
-| Pipeline A-Z | `/agent/pipeline` (SSE) + `/agents` page | 2 mots-clés → site live + marketing |
-| Agent IA (chat) | `/agents` page + `/api/agents/chat` | Chat LLM (Qwen 7B/32B) pour piloter la plateforme |
+| **Pipeline A-Z** (exécutable) | `/agent/pipeline` (SSE) + `/agents` page | 2 mots-clés → site live + marketing — **EXÉCUTE** réellement les actions |
+| **Assistant Draft** (chat) | `/agents` page + `/api/agents/chat` | Chat LLM (Qwen 7B/32B) en mode **draft-only** — rédige plans et stratégies, **N'EXÉCUTE PAS** d'actions |
 | Content Writer | `agent/content-writer.ts` | Brand identity, hero, about, policies, SEO meta, product descriptions |
 | Shop Creator | `prompts/agent-shop-creator.md` | Création de boutique end-to-end |
 | Supplier Research | `prompts/agent-supplier-research.md` | Audit et scoring de fournisseurs |
+
+### Pipeline vs Assistant Draft
+
+**Pipeline A-Z** (`/agent/pipeline`) :
+- Mode exécutable : crée réellement shops, produits, campagnes
+- SSE streaming avec events runtime
+- Chemin critique produit
+
+**Assistant Draft** (`/api/agents/chat`) :
+- Mode draft-only : rédige plans, propose stratégies
+- Ne peut pas exécuter d'actions, créer de shop, lancer de pub
+- Redirige vers Pipeline A-Z pour exécution réelle
+- Utile pour cadrage, brainstorming, clarification besoins
 
 ### vLLM Models (GPU1)
 

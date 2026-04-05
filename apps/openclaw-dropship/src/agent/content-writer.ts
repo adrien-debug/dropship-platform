@@ -130,6 +130,62 @@ export async function generateSiteContent(input: {
   };
 }
 
+async function enrichSingleProduct(
+  product: {
+    name: string;
+    category: string;
+    costCents: number;
+    image?: string;
+    externalId?: string;
+  },
+  brandName: string,
+  niche: string,
+): Promise<EnrichedProduct> {
+  try {
+    const [desc, seo] = await Promise.all([
+      textCompletion(
+        `You are the copywriter for "${brandName}", a store specializing in ${niche}. Write an e-commerce product description, 80-120 words, engaging, highlighting benefits. Do not repeat the title.`,
+        `Product: ${product.name}\nCategory: ${product.category}\nPrice: $${(product.costCents / 100 * 2.5).toFixed(2)}`,
+        300,
+      ),
+      jsonCompletion<{ title: string; description: string; keywords: string[] }>(
+        `Generate SEO metadata for an e-commerce product. JSON with: title (max 60 chars), description (max 160 chars), keywords (array of 3-5 terms).`,
+        `Product: ${product.name}\nCategory: ${product.category}`,
+        true,
+      ),
+    ]);
+
+    const sellingPrice = Math.round(product.costCents * 2.5) / 100;
+
+    return {
+      title: product.name,
+      description: desc,
+      price: sellingPrice,
+      cost_cents: product.costCents,
+      images: product.image ? [product.image] : [],
+      seo_title: seo.title ?? product.name,
+      seo_description: seo.description ?? '',
+      category: product.category,
+      supplier: 'cj',
+      external_id: product.externalId ?? '',
+    };
+  } catch (err) {
+    console.error(`[content-writer] Failed to enrich "${product.name}":`, err instanceof Error ? err.message : err);
+    return {
+      title: product.name,
+      description: '',
+      price: Math.round(product.costCents * 2.5) / 100,
+      cost_cents: product.costCents,
+      images: product.image ? [product.image] : [],
+      seo_title: product.name,
+      seo_description: '',
+      category: product.category,
+      supplier: 'cj',
+      external_id: product.externalId ?? '',
+    };
+  }
+}
+
 export async function generateProductDescriptions(
   products: Array<{
     name: string;
@@ -141,57 +197,30 @@ export async function generateProductDescriptions(
   brandName: string,
   niche: string,
 ): Promise<EnrichedProduct[]> {
-  console.log(`[content-writer] Enriching ${products.length} products for "${brandName}"`);
+  const startTime = Date.now();
+  const BATCH_SIZE = 5;
+  
+  console.log(`[content-writer] Enriching ${products.length} products for "${brandName}" (batch size: ${BATCH_SIZE})`);
 
   const enriched: EnrichedProduct[] = [];
+  let failedCount = 0;
 
-  for (const product of products) {
-    try {
-      const [desc, seo] = await Promise.all([
-        textCompletion(
-          `You are the copywriter for "${brandName}", a store specializing in ${niche}. Write an e-commerce product description, 80-120 words, engaging, highlighting benefits. Do not repeat the title.`,
-          `Product: ${product.name}\nCategory: ${product.category}\nPrice: $${(product.costCents / 100 * 2.5).toFixed(2)}`,
-          300,
-        ),
-        jsonCompletion<{ title: string; description: string; keywords: string[] }>(
-          `Generate SEO metadata for an e-commerce product. JSON with: title (max 60 chars), description (max 160 chars), keywords (array of 3-5 terms).`,
-          `Product: ${product.name}\nCategory: ${product.category}`,
-          true,
-        ),
-      ]);
-
-      const sellingPrice = Math.round(product.costCents * 2.5) / 100;
-
-      enriched.push({
-        title: product.name,
-        description: desc,
-        price: sellingPrice,
-        cost_cents: product.costCents,
-        images: product.image ? [product.image] : [],
-        seo_title: seo.title ?? product.name,
-        seo_description: seo.description ?? '',
-        category: product.category,
-        supplier: 'cj',
-        external_id: product.externalId ?? '',
-      });
-    } catch (err) {
-      console.error(`[content-writer] Failed to enrich "${product.name}":`, err instanceof Error ? err.message : err);
-      enriched.push({
-        title: product.name,
-        description: '',
-        price: Math.round(product.costCents * 2.5) / 100,
-        cost_cents: product.costCents,
-        images: product.image ? [product.image] : [],
-        seo_title: product.name,
-        seo_description: '',
-        category: product.category,
-        supplier: 'cj',
-        external_id: product.externalId ?? '',
-      });
+  for (let i = 0; i < products.length; i += BATCH_SIZE) {
+    const batch = products.slice(i, i + BATCH_SIZE);
+    const batchResults = await Promise.all(
+      batch.map(product => enrichSingleProduct(product, brandName, niche))
+    );
+    
+    failedCount += batchResults.filter(r => !r.description).length;
+    enriched.push(...batchResults);
+    
+    if (i + BATCH_SIZE < products.length) {
+      await new Promise(r => setTimeout(r, 100));
     }
-
-    await new Promise(r => setTimeout(r, 150));
   }
+
+  const duration = Date.now() - startTime;
+  console.log(`[content-writer] Enriched ${products.length} products in ${(duration / 1000).toFixed(1)}s (${failedCount} fallbacks)`);
 
   return enriched;
 }

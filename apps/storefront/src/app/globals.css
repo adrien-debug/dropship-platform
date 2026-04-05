@@ -2,52 +2,68 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  * {
-    transition-property: color, background-color, border-color, opacity;
-    transition-duration: 0.2s;
-  }
+:root {
+  /* One Peace — light e-commerce theme */
+  --dashboard-page: #f5f0e8;
+  --dashboard-surface: #fffdf8;
+  --dashboard-card: #ffffff;
+  --dashboard-card-2: #faf7f2;
+  --dashboard-accent: #d9312b;
+  --dashboard-accent-dim: rgba(217, 49, 43, 0.12);
+  --dashboard-accent-soft: rgba(217, 49, 43, 0.06);
+  --dashboard-accent-ring: rgba(217, 49, 43, 0.35);
+  --dashboard-accent-muted: rgba(217, 49, 43, 0.25);
+  --dashboard-text-bright: #1a1512;
+  --dashboard-text-primary: #1a1512;
+  --dashboard-text-secondary: #5c534c;
+  --dashboard-text-muted: #8c8078;
+  --dashboard-text-ghost: #b3aaa2;
+  --dashboard-border: rgba(26, 21, 18, 0.08);
+  --dashboard-border-mid: rgba(26, 21, 18, 0.14);
+  --dashboard-border-strong: rgba(26, 21, 18, 0.22);
+  --dashboard-radius-card: 16px;
+  --dashboard-radius-input: 10px;
+  --dashboard-radius-button: 9999px;
+  --dashboard-radius-box: 12px;
+  --dashboard-shadow-md: 0 2px 8px rgba(26, 21, 18, 0.06);
+  --dashboard-shadow-lg: 0 8px 24px rgba(26, 21, 18, 0.08);
+  --dashboard-success: #16a34a;
+  --dashboard-warning: #d97706;
+  --dashboard-error: #dc2626;
+  --dashboard-info: #2563eb;
+  --font-sans: 'Plus Jakarta Sans', -apple-system, sans-serif;
+  --font-body: 'Plus Jakarta Sans', -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
 
-  body {
-    background-color: var(--ds-bg, #fff);
-    color: var(--ds-text, #000);
-    font-family: var(--ds-font-primary, 'Inter', sans-serif);
-  }
+  /* One Peace brand */
+  --op-brand: #d9312b;
+  --op-brand-hover: #c62828;
+  --op-cream: #f5f0e8;
+  --op-ink: #333333;
+  --op-ink-dark: #1a1a1a;
+  --op-muted: #999999;
+  --op-muted-dark: #555555;
+  --op-card: #ffffff;
+  --op-border: #eeeeee;
+  --op-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  --op-shadow-hover: 0 4px 16px rgba(0,0,0,0.15);
 
-  h1 { font-size: var(--ds-size-h1, 3rem); }
-  h2 { font-size: var(--ds-size-h2, 2rem); }
-  h3 { font-size: var(--ds-size-h3, 1.5rem); }
+  --dashboard-font-display: 'Bricolage Grotesque', system-ui, sans-serif;
 }
 
-@layer components {
-  .ds-btn {
-    padding: var(--ds-btn-padding, 12px 24px);
-    border-radius: var(--ds-radius, 0);
-    border: var(--ds-border-width, 1px) solid var(--ds-border, currentColor);
-    transition: var(--ds-transition, 0.2s ease);
-    font-weight: var(--ds-weight-bold, 700);
-    cursor: pointer;
-  }
+html,
+body {
+  min-height: 100%;
+  background: var(--op-cream);
+  color: var(--op-ink);
+  font-family: var(--font-sans);
+}
 
-  .ds-btn-primary {
-    background-color: var(--ds-accent, #000);
-    color: var(--ds-bg, #fff);
-    border-color: var(--ds-accent, #000);
-  }
+::selection {
+  background: rgba(217, 49, 43, 0.2);
+  color: var(--op-ink);
+}
 
-  .ds-btn-primary:hover {
-    opacity: 0.85;
-  }
-
-  .ds-card {
-    background: var(--ds-bg-alt, #f5f5f5);
-    border: var(--ds-border-width, 1px) solid var(--ds-border, #ddd);
-    border-radius: var(--ds-radius, 0);
-    overflow: hidden;
-    transition: var(--ds-transition, 0.2s ease);
-  }
-
-  .ds-card:hover {
-    box-shadow: var(--ds-shadow, none);
-  }
+input[type="search"]::-webkit-search-cancel-button {
+  -webkit-appearance: none;
 }
