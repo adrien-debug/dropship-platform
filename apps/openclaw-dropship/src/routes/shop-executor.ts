@@ -51,23 +51,7 @@ const executeSchema = z.object({
     supplier: z.string().optional(),
     external_id: z.string().optional(),
   })).min(1).max(200),
-  site_content: z.object({
-    brand: z.object({
-      name: z.string(),
-      tagline: z.string(),
-      tone_of_voice: z.string().optional(),
-      color_mood: z.string().optional(),
-    }).optional(),
-    hero_title: z.string().optional(),
-    hero_subtitle: z.string().optional(),
-    hero_cta: z.string().optional(),
-    about_html: z.string().optional(),
-    shipping_policy: z.string().optional(),
-    return_policy: z.string().optional(),
-    seo_title: z.string().optional(),
-    seo_description: z.string().optional(),
-    seo_keywords: z.array(z.string()).optional(),
-  }).optional(),
+  site_content: z.record(z.unknown()).optional(),
 });
 
 shopExecutorRouter.post('/execute', async (req: Request, res: Response) => {
@@ -222,10 +206,38 @@ shopExecutorRouter.post('/execute', async (req: Request, res: Response) => {
       const supabase = getSupabase();
       await supabase.from('sites').update({
         status: healthy ? 'live' : 'error',
-        config: { port, publishable_key: pubKeyToken, container_id: containerId },
+        config: {
+          port,
+          publishable_key: pubKeyToken,
+          container_id: containerId,
+          ...(site_content ? { site_content } : {}),
+        },
       }).eq('id', siteId);
     } catch (err) {
       console.error(`[shop-executor] Status update failed:`, err instanceof Error ? err.message : err);
+    }
+  }
+
+  // Step 7: Create catalog entry
+  if (siteId && productsCreated > 0) {
+    try {
+      const supabase = getSupabase();
+      const keywords = products.map(p => p.category).filter(Boolean);
+      const uniqueKeywords = [...new Set(keywords)];
+      await supabase.from('catalogs').insert({
+        site_id: siteId,
+        name: `${name} Catalog`,
+        supplier: products[0]?.supplier ?? 'cj',
+        keywords: uniqueKeywords.length > 0 ? uniqueKeywords : [slug],
+        margin: 150,
+        product_count: productsCreated,
+        auto_sync: false,
+        last_sync_at: new Date().toISOString(),
+      });
+      results.push({ step: 7, action: 'create_catalog', status: 'done', detail: `${productsCreated} products` });
+      console.log(`[shop-executor] Catalog created for site ${siteId}`);
+    } catch (err) {
+      console.error(`[shop-executor] Catalog creation failed:`, err instanceof Error ? err.message : err);
     }
   }
 

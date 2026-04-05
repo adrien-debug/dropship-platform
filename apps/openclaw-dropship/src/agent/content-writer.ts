@@ -53,9 +53,9 @@ export async function generateBrandIdentity(
   niche: string, market: string, positioning: string
 ): Promise<BrandIdentity> {
   return jsonCompletion<BrandIdentity>(
-    `Tu es un expert en branding e-commerce. Genere une identite de marque pour une boutique en ligne.
-Retourne un JSON avec: name (nom de marque court, memorable, 1-2 mots), tagline (slogan accrocheur en francais, max 8 mots), tone_of_voice (style redactionnel: "luxe", "decontracte", "expert", etc.), color_mood (humeur de couleur: "sombre et elegant", "vif et energique", etc.)`,
-    `Niche: ${niche}\nMarche cible: ${market}\nPositionnement: ${positioning}`,
+    `You are an expert e-commerce branding strategist. Generate a brand identity for an online store.
+Return JSON with: name (short memorable brand name, 1-2 words), tagline (catchy slogan, max 8 words), tone_of_voice (writing style: "luxury", "casual", "expert", etc.), color_mood (color mood: "dark and elegant", "bright and energetic", etc.)`,
+    `Niche: ${niche}\nTarget market: ${market}\nPositioning: ${positioning}`,
     true,
   );
 }
@@ -64,30 +64,29 @@ export async function generateHeroSection(
   brand: BrandIdentity, topProducts: string[]
 ): Promise<{ hero_title: string; hero_subtitle: string; hero_cta: string }> {
   return jsonCompletion(
-    `Tu crees des sections hero pour des sites e-commerce. Retourne un JSON avec:
-hero_title (titre principal, max 6 mots, impactant),
-hero_subtitle (sous-titre, max 20 mots, evoque la valeur),
-hero_cta (texte du bouton CTA, max 4 mots, action-oriented)`,
-    `Marque: ${brand.name}\nTagline: ${brand.tagline}\nTon: ${brand.tone_of_voice}\nProduits phares: ${topProducts.join(', ')}`,
+    `You create hero sections for e-commerce websites. Return JSON with:
+hero_title (main headline, max 6 words, impactful),
+hero_subtitle (subtitle, max 20 words, conveys value),
+hero_cta (CTA button text, max 4 words, action-oriented)`,
+    `Brand: ${brand.name}\nTagline: ${brand.tagline}\nTone: ${brand.tone_of_voice}\nTop products: ${topProducts.join(', ')}`,
     true,
   );
 }
 
 export async function generateAboutPage(brand: BrandIdentity, niche: string): Promise<string> {
   return textCompletion(
-    `Tu rediges des pages "A propos" pour des boutiques e-commerce francaises. Ecris un texte engageant de 150-250 mots en HTML simple (utilise <p>, <h2>, <strong>). Le texte doit etre authentique, inspirer confiance, et refleter les valeurs de la marque. Pas de lorem ipsum.`,
-    `Marque: ${brand.name}\nSlogan: ${brand.tagline}\nTon: ${brand.tone_of_voice}\nNiche: ${niche}`,
+    `You write "About Us" pages for e-commerce stores. Write an engaging 150-250 word text in simple HTML (use <p>, <h2>, <strong>). The text should be authentic, build trust, and reflect the brand values. No lorem ipsum.`,
+    `Brand: ${brand.name}\nTagline: ${brand.tagline}\nTone: ${brand.tone_of_voice}\nNiche: ${niche}`,
     800,
   );
 }
 
 export async function generatePolicies(market: string): Promise<{ shipping: string; returns: string }> {
   return jsonCompletion(
-    `Tu rediges des politiques e-commerce conformes au droit ${market === 'FR' ? 'francais' : 'europeen'}.
-Retourne un JSON avec:
-shipping (politique de livraison en HTML, ~100 mots, delais, frais, zones),
-returns (politique de retours en HTML, ~100 mots, delai 14 jours legal, conditions, remboursement)`,
-    `Marche: ${market}. Dropshipping avec livraison 7-15 jours ouvrables. Retours acceptes sous 14 jours conformement au droit de retractation ${market === 'FR' ? 'francais' : 'europeen'}.`,
+    `You write e-commerce store policies. Return JSON with:
+shipping (shipping policy in HTML, ~100 words, delivery times, fees, zones),
+returns (return policy in HTML, ~100 words, 14-day return window, conditions, refund process)`,
+    `Market: ${market}. Dropshipping with 7-15 business days delivery. Returns accepted within 14 days.`,
     true,
   );
 }
@@ -111,8 +110,8 @@ export async function generateSiteContent(input: {
     generateHeroSection(brand, input.topProducts),
     generateAboutPage(brand, input.niche),
     jsonCompletion<{ seo_title: string; seo_description: string; seo_keywords: string[] }>(
-      `Genere les meta SEO pour un site e-commerce. JSON avec: seo_title (max 60 chars), seo_description (max 160 chars), seo_keywords (array 5-10 mots-cles en francais).`,
-      `Marque: ${brand.name}\nNiche: ${input.niche}\nMarche: ${input.market}`,
+      `Generate SEO metadata for an e-commerce website. JSON with: seo_title (max 60 chars), seo_description (max 160 chars), seo_keywords (array of 5-10 keywords).`,
+      `Brand: ${brand.name}\nNiche: ${input.niche}\nMarket: ${input.market}`,
       true,
     ),
   ]);
@@ -150,13 +149,13 @@ export async function generateProductDescriptions(
     try {
       const [desc, seo] = await Promise.all([
         textCompletion(
-          `Tu es le copywriter de "${brandName}", boutique specialisee en ${niche}. Ecris une description produit e-commerce en francais, 80-120 mots, engageante, qui met en valeur les avantages. Pas de repetition du titre.`,
-          `Produit: ${product.name}\nCategorie: ${product.category}\nPrix: ${(product.costCents / 100 * 2.5).toFixed(2)} EUR`,
+          `You are the copywriter for "${brandName}", a store specializing in ${niche}. Write an e-commerce product description, 80-120 words, engaging, highlighting benefits. Do not repeat the title.`,
+          `Product: ${product.name}\nCategory: ${product.category}\nPrice: $${(product.costCents / 100 * 2.5).toFixed(2)}`,
           300,
         ),
         jsonCompletion<{ title: string; description: string; keywords: string[] }>(
-          `Genere les meta SEO pour un produit e-commerce. JSON avec: title (max 60 chars), description (max 160 chars), keywords (array 3-5 mots). Francais.`,
-          `Produit: ${product.name}\nCategorie: ${product.category}`,
+          `Generate SEO metadata for an e-commerce product. JSON with: title (max 60 chars), description (max 160 chars), keywords (array of 3-5 terms).`,
+          `Product: ${product.name}\nCategory: ${product.category}`,
           true,
         ),
       ]);

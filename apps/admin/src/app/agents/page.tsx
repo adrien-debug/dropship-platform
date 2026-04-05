@@ -18,23 +18,30 @@ interface PipelineEvent {
 const OPENCLAW_URL = process.env.NEXT_PUBLIC_OPENCLAW_URL || 'http://100.110.74.114:3849';
 
 const PRESETS = [
-  { label: 'Rechercher des produits', prompt: 'Recherche des produits tendance dans la catégorie "sacs" avec CJ et Medusa' },
-  { label: 'Créer un shop', prompt: 'Crée un nouveau shop e-commerce de montres de luxe avec le design system swiss sur le port 3101' },
-  { label: 'Status services', prompt: 'Donne-moi le statut de tous les services (GPU, Medusa, OpenClaw, Supabase)' },
-  { label: 'Plan marketing', prompt: 'Propose un plan marketing pour lancer un site de vêtements streetwear' },
+  { label: 'Search products', prompt: 'Search trending products in the "bags" category from CJ and Medusa' },
+  { label: 'Create a shop', prompt: 'Create a new luxury watches e-commerce shop with the swiss design system on port 3101' },
+  { label: 'Service status', prompt: 'Give me the status of all services (GPU, Medusa, OpenClaw, Supabase)' },
+  { label: 'Marketing plan', prompt: 'Propose a marketing plan to launch a streetwear clothing site' },
 ];
 
 const STEP_LABELS: Record<string, string> = {
-  pipeline_start: 'Démarrage',
-  tool_search_products: 'Recherche produits',
-  tool_enrich_products: 'Enrichissement IA',
-  tool_generate_site_content: 'Contenu du site',
-  tool_create_shop: 'Création boutique',
-  tool_check_health: 'Vérification santé',
+  pipeline_start: 'Starting',
+  search_products: 'Searching products',
+  enrich_products: 'AI enrichment',
+  generate_content: 'Site content',
+  create_shop: 'Creating shop',
+  check_health: 'Health check',
+  seo_audit: 'SEO audit',
+  marketing_plans: 'Marketing plans',
+  tool_search_products: 'Searching products',
+  tool_enrich_products: 'AI enrichment',
+  tool_generate_site_content: 'Site content',
+  tool_create_shop: 'Creating shop',
+  tool_check_health: 'Health check',
   tool_create_google_ads_campaign: 'Google Ads',
   tool_create_meta_ads_campaign: 'Meta Ads',
-  tool_run_seo_audit: 'Audit SEO',
-  pipeline_complete: 'Terminé',
+  tool_run_seo_audit: 'SEO audit',
+  pipeline_complete: 'Complete',
 };
 
 function getStepLabel(step: string): string {
@@ -45,7 +52,7 @@ function getStepLabel(step: string): string {
 
 function PipelinePanel() {
   const [keywords, setKeywords] = useState(['', '']);
-  const [market, setMarket] = useState<'FR' | 'EU' | 'US'>('FR');
+  const [market, setMarket] = useState<'FR' | 'EU' | 'US'>('US');
   const [positioning, setPositioning] = useState<'budget' | 'mid' | 'premium'>('mid');
   const [running, setRunning] = useState(false);
   const [events, setEvents] = useState<PipelineEvent[]>([]);
@@ -122,7 +129,7 @@ function PipelinePanel() {
     <div className="flex h-full flex-col gap-4">
       <div className="rounded-xl border bg-white p-6 shadow-sm">
         <h3 className="mb-4 text-lg font-semibold">Pipeline A-Z</h3>
-        <p className="mb-4 text-sm text-gray-500">2 mots-clés = 1 site live avec produits, contenu IA, checkout Stripe et plan marketing</p>
+        <p className="mb-4 text-sm text-gray-500">2 keywords = 1 live site with products, AI content, Stripe checkout and marketing plan</p>
 
         <div className="mb-4 grid grid-cols-2 gap-3">
           {keywords.map((kw, i) => (
@@ -131,7 +138,7 @@ function PipelinePanel() {
               type="text"
               value={kw}
               onChange={e => setKeywords(prev => prev.map((v, j) => j === i ? e.target.value : v))}
-              placeholder={`Mot-clé ${i + 1}`}
+              placeholder={`Keyword ${i + 1}`}
               className="rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={running}
             />
@@ -141,14 +148,14 @@ function PipelinePanel() {
         <div className="mb-4 flex gap-3">
           <select value={market} onChange={e => setMarket(e.target.value as typeof market)}
             className="rounded-lg border px-3 py-2 text-sm" disabled={running}>
-            <option value="FR">France</option>
-            <option value="EU">Europe</option>
             <option value="US">USA</option>
+            <option value="EU">Europe</option>
+            <option value="FR">France</option>
           </select>
           <select value={positioning} onChange={e => setPositioning(e.target.value as typeof positioning)}
             className="rounded-lg border px-3 py-2 text-sm" disabled={running}>
             <option value="budget">Budget</option>
-            <option value="mid">Milieu de gamme</option>
+            <option value="mid">Mid-range</option>
             <option value="premium">Premium</option>
           </select>
           <button
@@ -156,7 +163,7 @@ function PipelinePanel() {
             className="rounded-lg border px-3 py-2 text-sm text-gray-500 hover:bg-gray-50"
             disabled={running || keywords.length >= 5}
           >
-            + Mot-clé
+            + Keyword
           </button>
         </div>
 
@@ -165,7 +172,7 @@ function PipelinePanel() {
           disabled={running || keywords.filter(k => k.trim()).length === 0}
           className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-3 text-sm font-semibold text-white transition hover:from-blue-700 hover:to-purple-700 disabled:opacity-50"
         >
-          {running ? 'Pipeline en cours...' : 'Lancer le Pipeline A-Z'}
+          {running ? 'Pipeline running...' : 'Launch Pipeline A-Z'}
         </button>
       </div>
 
@@ -174,7 +181,7 @@ function PipelinePanel() {
           {running && (
             <div className="mb-4">
               <div className="mb-1 flex justify-between text-xs text-gray-500">
-                <span>Progression</span>
+                <span>Progress</span>
                 <span>{latestProgress}%</span>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-gray-200">
@@ -211,11 +218,11 @@ function PipelinePanel() {
 
           {shopResult && (
             <div className="mt-6 rounded-lg border-2 border-green-200 bg-green-50 p-4">
-              <h4 className="mb-2 font-semibold text-green-800">Site déployé</h4>
+              <h4 className="mb-2 font-semibold text-green-800">Site Deployed</h4>
               <div className="grid grid-cols-2 gap-2 text-sm">
-                <div><span className="text-gray-500">Nom:</span> {String(shopResult.name)}</div>
+                <div><span className="text-gray-500">Name:</span> {String(shopResult.name)}</div>
                 <div><span className="text-gray-500">Design:</span> {String(shopResult.design_system)}</div>
-                <div><span className="text-gray-500">Produits:</span> {String(shopResult.products_created)}</div>
+                <div><span className="text-gray-500">Products:</span> {String(shopResult.products_created)}</div>
                 <div><span className="text-gray-500">Status:</span> {String(shopResult.status)}</div>
               </div>
               <a
@@ -224,7 +231,7 @@ function PipelinePanel() {
                 rel="noopener noreferrer"
                 className="mt-3 inline-block rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
               >
-                Voir le site
+                View Site
               </a>
             </div>
           )}
@@ -280,16 +287,16 @@ function ChatPanel() {
     <div className="flex h-full flex-col">
       <div className="mb-3 flex items-center gap-3">
         <select value={model} onChange={e => setModel(e.target.value as 'fast' | 'main')} className="rounded-lg border px-3 py-1.5 text-sm">
-          <option value="fast">Qwen 7B (rapide)</option>
-          <option value="main">Qwen 32B (puissant)</option>
+          <option value="fast">Qwen 7B (fast)</option>
+          <option value="main">Qwen 32B (powerful)</option>
         </select>
-        <button onClick={() => setMessages([])} className="rounded-lg border px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50">Effacer</button>
+        <button onClick={() => setMessages([])} className="rounded-lg border px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50">Clear</button>
       </div>
 
       <div className="flex-1 overflow-y-auto py-2">
         {messages.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-4">
-            <p className="text-sm text-gray-500">Chat libre avec l'agent IA</p>
+            <p className="text-sm text-gray-500">Free chat with AI agent</p>
             <div className="grid grid-cols-2 gap-2">
               {PRESETS.map(p => (
                 <button key={p.label} onClick={() => send(p.prompt)}
@@ -328,11 +335,11 @@ function ChatPanel() {
 
       <form onSubmit={e => { e.preventDefault(); send(input); }} className="flex gap-2 border-t pt-3">
         <input type="text" value={input} onChange={e => setInput(e.target.value)}
-          placeholder="Message..." disabled={loading}
+          placeholder="Type your message..." disabled={loading}
           className="flex-1 rounded-xl border bg-white px-4 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
         <button type="submit" disabled={loading || !input.trim()}
           className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
-          Envoyer
+          Send
         </button>
       </form>
     </div>
@@ -348,8 +355,8 @@ export default function AgentsPage() {
     <div className="flex h-[calc(100vh-3rem)] flex-col">
       <div className="flex items-center justify-between border-b pb-4">
         <div>
-          <h2 className="text-2xl font-bold">Agent IA</h2>
-          <p className="text-sm text-gray-500">Pipeline A-Z ou chat libre</p>
+          <h2 className="text-2xl font-bold">AI Agent</h2>
+          <p className="text-sm text-gray-500">A-Z Pipeline or free chat</p>
         </div>
         <div className="flex rounded-lg border bg-gray-100 p-0.5">
           <button

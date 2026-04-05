@@ -7,6 +7,22 @@ import { generateSiteContent, generateProductDescriptions } from './content-writ
 const GPU2_HOST = process.env['GPU2_HOST'] ?? '100.110.74.114';
 const OPENCLAW_URL = `http://${GPU2_HOST}:${Number(process.env['PORT'] ?? 3849)}`;
 
+const KEYWORD_TRANSLATIONS: Record<string, string> = {
+  montres: 'watches', montre: 'watch', homme: 'men', femme: 'women',
+  sacs: 'bags', sac: 'bag', chaussures: 'shoes', vetements: 'clothing',
+  bijoux: 'jewelry', lunettes: 'sunglasses', accessoires: 'accessories',
+  sport: 'sports', cuisine: 'kitchen', maison: 'home', jardin: 'garden',
+  enfant: 'kids', bebe: 'baby', beaute: 'beauty', electronique: 'electronics',
+  telephone: 'phone', ordinateur: 'computer', jouets: 'toys', animaux: 'pets',
+  luxe: 'luxury', mode: 'fashion', tech: 'tech', fitness: 'fitness',
+};
+
+function translateToEnglish(keyword: string): string {
+  const words = keyword.toLowerCase().trim().split(/\s+/);
+  const translated = words.map(w => KEYWORD_TRANSLATIONS[w] ?? w);
+  return translated.join(' ');
+}
+
 function toolSpec(name: string, description: string, parameters: Record<string, unknown>): ChatCompletionTool {
   return {
     type: 'function' as const,
@@ -22,23 +38,35 @@ const searchProductsHandler = async (args: Record<string, unknown>) => {
 
   try {
     const cj = new CJClient();
+    const translatedKeywords = keywords.map(translateToEnglish);
+    console.log(`[tools:search] Translated keywords: ${keywords.join(', ')} -> ${translatedKeywords.join(', ')}`);
     const cjProducts = await Promise.all(
-      keywords.map(k => cj.searchProducts(k, 1, Math.ceil(limit / keywords.length)))
+      translatedKeywords.map(k => cj.searchProducts(k, 1, Math.ceil(limit / keywords.length)))
     );
-    const flat = cjProducts.flat().slice(0, limit);
-    results.push({
-      source: 'cj',
-      products: flat.map(p => {
-        const raw = p as unknown as Record<string, unknown>;
-        return {
-          id: raw.pid,
-          name: raw.productNameEn,
-          image: raw.productImage,
-          price_usd: raw.sellPrice,
-          category: raw.categoryName ?? 'General',
-        };
-      }),
+    const flat = cjProducts.flat();
+    const stopWords = new Set(['men', 'women', 'man', 'woman', 'for', 'the', 'and', 'with', 'new', 'de', 'a', 'le', 'la', 'les']);
+    const coreKeywords = translatedKeywords
+      .flatMap(k => k.split(/\s+/))
+      .filter(w => !stopWords.has(w))
+      .map(w => w.replace(/(?:es|s|ing)$/, ''));
+
+    const mapped = flat.map(p => {
+      const raw = p as unknown as Record<string, unknown>;
+      return {
+        id: raw.pid,
+        name: String(raw.productNameEn ?? ''),
+        image: raw.productImage,
+        price_usd: raw.sellPrice,
+        category: raw.categoryName ?? 'General',
+      };
     });
+
+    const filtered = mapped.filter(p => {
+      const nameLower = p.name.toLowerCase();
+      return coreKeywords.some(kw => nameLower.includes(kw));
+    }).slice(0, limit);
+
+    results.push({ source: 'cj', products: filtered });
   } catch (err) {
     console.error('[tools:search] CJ failed:', err instanceof Error ? err.message : err);
   }

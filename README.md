@@ -91,14 +91,36 @@ Express backend sur GPU2:3849.
 | `GET /products/search?q=...&supplier=cj\|medusa\|all` | Recherche produits fournisseurs |
 | `POST /shop/create` | Pipeline création boutique |
 | `POST /shop/execute` | Exécuter pipeline complet (sales channel + produits + deploy) |
+| `POST /agent/pipeline` | **Pipeline A-Z** (SSE) — mots-clés → site live + marketing |
+| `GET /agent/status` | Status agent + tools disponibles |
+
+## Agent Pipeline A-Z
+
+Pipeline autonome : 2 mots-clés → site e-commerce complet prêt à vendre.
+
+**Étapes automatisées :**
+1. Recherche produits (CJ Dropshipping)
+2. Génération contenu IA (brand, hero, about, policies, SEO)
+3. Enrichissement produits (descriptions + meta SEO par produit)
+4. Création boutique (Medusa sales channel + produits + Docker deploy)
+5. Audit SEO du site déployé
+6. Plans marketing (Google Ads + Meta Ads)
+
+**Tools (8) :** `search_products`, `enrich_products`, `generate_site_content`, `create_shop`, `check_health`, `create_google_ads_campaign`, `create_meta_ads_campaign`, `run_seo_audit`
+
+**Modes :**
+- `fast` (défaut) : pipeline déterministe, ~6 min
+- `agent` : orchestration LLM avec function calling (Qwen 32B + hermes parser)
 
 ## Agents
 
 | Agent | Fichier / Endpoint | Rôle |
 |-------|---------|------|
+| Pipeline A-Z | `/agent/pipeline` (SSE) + `/agents` page | 2 mots-clés → site live + marketing |
 | Agent IA (chat) | `/agents` page + `/api/agents/chat` | Chat LLM (Qwen 7B/32B) pour piloter la plateforme |
-| Shop Creator | `prompts/agent-shop-creator.md` | Création de boutique end-to-end (niche → produits → design → deploy → Stripe) |
-| Supplier Research | `prompts/agent-supplier-research.md` | Audit et scoring de 20 fournisseurs dropshipping |
+| Content Writer | `agent/content-writer.ts` | Brand identity, hero, about, policies, SEO meta, product descriptions |
+| Shop Creator | `prompts/agent-shop-creator.md` | Création de boutique end-to-end |
+| Supplier Research | `prompts/agent-supplier-research.md` | Audit et scoring de fournisseurs |
 
 ### vLLM Models (GPU1)
 

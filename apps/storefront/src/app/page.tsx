@@ -11,9 +11,9 @@ export default async function HomePage() {
   ]);
 
   const content = siteConfig ? getSiteContent(siteConfig as Record<string, unknown>) : null;
-  const heroTitle = content?.hero_title || 'Bienvenue';
-  const heroSubtitle = content?.hero_subtitle || 'Decouvrez nos produits';
-  const heroCta = content?.hero_cta || 'Voir la boutique';
+  const heroTitle = content?.hero_title || 'Welcome';
+  const heroSubtitle = content?.hero_subtitle || 'Discover our products';
+  const heroCta = content?.hero_cta || 'Shop Now';
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-ds-xl">
@@ -34,7 +34,7 @@ export default async function HomePage() {
 
       <section>
         <h2 className="mb-ds-lg font-bold" style={{ fontSize: 'var(--ds-size-h2)' }}>
-          Produits populaires
+          Popular Products
         </h2>
         <ShopGrid products={products} />
       </section>

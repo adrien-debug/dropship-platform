@@ -12,13 +12,13 @@ export default async function AboutPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-ds-xl">
       <h1 className="mb-8 font-ds-display text-center" style={{ fontWeight: 'var(--ds-weight-black, 900)' }}>
-        A propos{siteName ? ` de ${siteName}` : ''}
+        About{siteName ? ` ${siteName}` : ' Us'}
       </h1>
       {aboutHtml ? (
         <div className="prose prose-lg mx-auto" dangerouslySetInnerHTML={{ __html: aboutHtml }} />
       ) : (
         <p className="text-center text-[var(--ds-text-muted)]">
-          Contenu a venir.
+          Content coming soon.
         </p>
       )}
     </div>

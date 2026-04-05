@@ -1,12 +1,15 @@
 const CJ_BASE_URL = 'https://developers.cjdropshipping.com/api2.0/v1';
 const CJ_API_KEY = process.env['CJ_API_KEY'] ?? '';
 
-interface CJProduct {
+export interface CJProduct {
   pid: string;
   productNameEn: string;
   productImage: string;
   sellPrice: number;
   categoryName?: string;
+  categoryId?: string;
+  productSku?: string;
+  listedNum?: number;
 }
 
 interface CJAccessTokenResponse {
@@ -14,10 +17,30 @@ interface CJAccessTokenResponse {
   data: { accessToken: string; accessTokenExpiryDate: string };
 }
 
-interface CJProductListResponse {
+interface CJListV2Response {
   code: number;
-  data: { list: CJProduct[]; total: number };
+  result: boolean;
   message?: string;
+  data: {
+    pageSize: number;
+    pageNumber: number;
+    totalRecords: number;
+    content: Array<{
+      productList: Array<{
+        id: string;
+        nameEn: string;
+        sku: string;
+        bigImage: string;
+        sellPrice: string;
+        listedNum: number;
+        categoryId?: string;
+        threeCategoryName?: string;
+        twoCategoryName?: string;
+        oneCategoryName?: string;
+        addMarkStatus?: number;
+      }>;
+    }>;
+  };
 }
 
 export class CJClient {
@@ -81,17 +104,35 @@ export class CJClient {
 
   async searchProducts(query: string, page = 1, limit = 20): Promise<CJProduct[]> {
     const params = new URLSearchParams({
-      productNameEn: query,
-      pageNum: String(page),
-      pageSize: String(limit),
+      keyWord: query,
+      page: String(page),
+      size: String(Math.min(limit, 100)),
     });
-    const data = await this.request<CJProductListResponse>(`/product/list?${params.toString()}`);
 
-    if (data.code !== 200) {
-      throw new Error(`CJ product search error: ${data.message ?? `code=${data.code}`}`);
+    const raw = await this.request<CJListV2Response>(`/product/listV2?${params.toString()}`);
+
+    if (raw.code !== 200) {
+      throw new Error(`CJ search error: ${raw.message ?? `code=${raw.code}`}`);
     }
 
-    return data.data?.list ?? [];
+    const products: CJProduct[] = [];
+    for (const group of raw.data?.content ?? []) {
+      for (const p of group.productList ?? []) {
+        products.push({
+          pid: p.id,
+          productNameEn: p.nameEn,
+          productImage: p.bigImage,
+          sellPrice: parseFloat(p.sellPrice) || 0,
+          categoryName: p.threeCategoryName ?? p.twoCategoryName ?? p.oneCategoryName,
+          categoryId: p.categoryId,
+          productSku: p.sku,
+          listedNum: p.listedNum,
+        });
+      }
+    }
+
+    console.log(`[cj-client] Search "${query}": ${products.length} results (total: ${raw.data?.totalRecords ?? 0})`);
+    return products;
   }
 
   async getProductDetail(pid: string): Promise<CJProduct> {

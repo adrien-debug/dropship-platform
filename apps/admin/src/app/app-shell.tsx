@@ -4,13 +4,14 @@ import { usePathname, useRouter } from 'next/navigation';
 
 const NAV_LINKS = [
   { href: '/', label: 'Dashboard', icon: '📊' },
-  { href: '/discover', label: 'Decouverte', icon: '🔥' },
-  { href: '/sites', label: 'Sites', icon: '🌐' },
-  { href: '/catalogs', label: 'Catalogues', icon: '📦' },
+  { href: '/discover', label: 'Discover', icon: '🔥' },
+  { href: '/sites', label: 'Shops', icon: '🌐' },
+  { href: '/catalogs', label: 'Catalogs', icon: '📦' },
   { href: '/marketing', label: 'Marketing', icon: '📣' },
-  { href: '/agents', label: 'Agent IA', icon: '🤖' },
+  { href: '/agents', label: 'AI Agent', icon: '🤖' },
+  { href: '/launcher', label: 'Launcher', icon: '🚀' },
   { href: '/gpu', label: 'GPU Status', icon: '🖥️' },
-  { href: '/settings', label: 'Parametres', icon: '⚙️' },
+  { href: '/settings', label: 'Settings', icon: '⚙️' },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -63,7 +64,7 @@ function Sidebar({ pathname }: { pathname: string }) {
           onClick={logout}
           className="w-full rounded-lg px-3 py-2 text-left text-sm text-gray-500 transition hover:bg-gray-100 hover:text-gray-700"
         >
-          Deconnexion
+          Logout
         </button>
       </div>
     </aside>

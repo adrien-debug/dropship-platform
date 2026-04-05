@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { AgentOrchestrator } from '../agent/orchestrator.js';
+import { runFastPipeline } from '../agent/fast-pipeline.js';
 
 export const agentPipelineRouter = Router();
 
@@ -10,6 +11,7 @@ const pipelineSchema = z.object({
   positioning: z.enum(['budget', 'mid', 'premium']).default('mid'),
   design_system: z.string().optional(),
   budget_eur: z.number().positive().optional(),
+  mode: z.enum(['fast', 'agent']).default('fast'),
 });
 
 agentPipelineRouter.post('/pipeline', async (req: Request, res: Response) => {
@@ -20,7 +22,8 @@ agentPipelineRouter.post('/pipeline', async (req: Request, res: Response) => {
   }
 
   const input = parsed.data;
-  console.log(`[agent-pipeline] Starting pipeline for: ${input.keywords.join(', ')}`);
+  const mode = input.mode;
+  console.log(`[agent-pipeline] Starting ${mode} pipeline for: ${input.keywords.join(', ')}`);
 
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
@@ -33,14 +36,15 @@ agentPipelineRouter.post('/pipeline', async (req: Request, res: Response) => {
     res.write(`data: ${JSON.stringify(data)}\n\n`);
   };
 
-  const orchestrator = new AgentOrchestrator();
-
   try {
-    const result = await orchestrator.runPipeline(input, (event) => {
-      sendEvent(event);
-    });
-
-    sendEvent({ step: 'result', status: 'done', detail: result, progress: 100, timestamp: Date.now() });
+    if (mode === 'agent') {
+      const orchestrator = new AgentOrchestrator();
+      const result = await orchestrator.runPipeline(input, sendEvent);
+      sendEvent({ step: 'result', status: 'done', detail: result, progress: 100, timestamp: Date.now() });
+    } else {
+      const result = await runFastPipeline(input, sendEvent);
+      sendEvent({ step: 'result', status: 'done', detail: result, progress: 100, timestamp: Date.now() });
+    }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[agent-pipeline] Fatal error:', msg);
