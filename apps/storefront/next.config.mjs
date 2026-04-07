@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
   transpilePackages: ['@dropship/core', '@dropship/design-systems', '@dropship/ui', '@dropship/suppliers'],
   typescript: {
     ignoreBuildErrors: true,
