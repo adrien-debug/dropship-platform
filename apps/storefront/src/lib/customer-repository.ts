@@ -8,6 +8,7 @@ import type { ShopAddress, ShopCustomer, ShopOrder, ShopOrdersSummary } from '@/
 
 interface CustomerRow {
   id: string;
+  site_id: string | null;
   email: string;
   name: string | null;
   phone: string | null;
@@ -148,13 +149,17 @@ export async function loadCustomerDetail(
 export async function findCustomerByEmail(
   db: SupabaseClient,
   email: string,
+  siteId?: string | null,
 ): Promise<CustomerRow | null> {
   const normalized = email.trim().toLowerCase();
-  const { data, error } = await db
+  let query = db
     .from('clawd_crm_customers')
     .select('*')
-    .ilike('email', normalized)
-    .maybeSingle();
+    .ilike('email', normalized);
+  if (siteId) {
+    query = query.eq('site_id', siteId);
+  }
+  const { data, error } = await query.maybeSingle();
   if (error) {
     if (isMissingTableError(error)) return null;
     throw new Error(error.message);

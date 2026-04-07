@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/utils/supabase/admin';
+import { getSiteId } from '@/lib/site-config';
 
 export async function POST(req: Request) {
   try {
@@ -8,11 +9,24 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Email invalide' }, { status: 400 });
     }
 
+    const siteId = await getSiteId();
     const sb = createAdminClient();
-    const { error } = await sb.from('newsletter_subscribers').upsert(
-      { email: email.toLowerCase().trim() },
-      { onConflict: 'email' },
-    );
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const existing = await sb.from('newsletter_subscribers')
+      .select('id')
+      .eq('email', normalizedEmail)
+      .eq('site_id', siteId ?? '')
+      .maybeSingle();
+
+    if (existing.data) {
+      return NextResponse.json({ ok: true });
+    }
+
+    const { error } = await sb.from('newsletter_subscribers').insert({
+      email: normalizedEmail,
+      ...(siteId ? { site_id: siteId } : {}),
+    });
 
     if (error) {
       console.error('[api/newsletter] Supabase upsert failed:', error.message);

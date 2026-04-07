@@ -6,6 +6,7 @@ export interface SessionTokenPayload {
   sub: string;
   email: string;
   name: string;
+  siteId?: string;
 }
 
 export async function signOnepeaceSessionToken(payload: SessionTokenPayload): Promise<string> {
@@ -17,6 +18,7 @@ export async function signOnepeaceSessionToken(payload: SessionTokenPayload): Pr
   return new SignJWT({
     email: payload.email,
     name: payload.name,
+    ...(payload.siteId ? { site_id: payload.siteId } : {}),
   })
     .setProtectedHeader({ alg: ALG })
     .setSubject(payload.sub)
@@ -35,8 +37,9 @@ export async function verifyOnepeaceSessionToken(token: string): Promise<Session
     const sub = typeof payload.sub === 'string' ? payload.sub : '';
     const email = typeof payload.email === 'string' ? payload.email : '';
     const name = typeof payload.name === 'string' ? payload.name : '';
+    const siteId = typeof payload.site_id === 'string' ? payload.site_id : undefined;
     if (!sub || !email) return null;
-    return { sub, email, name };
+    return { sub, email, name, siteId };
   } catch {
     return null;
   }

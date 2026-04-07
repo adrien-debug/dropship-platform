@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
+import { verifyOnepeaceSessionToken } from '@/lib/session-jwt';
+import { getSiteId } from '@/lib/site-config';
 
 const STRIPE_SECRET = process.env['STRIPE_SECRET_KEY'] ?? '';
 const SITE_URL = process.env['NEXT_PUBLIC_SITE_URL'] ?? 'http://localhost:3100';
@@ -70,12 +72,25 @@ export async function POST(req: NextRequest) {
           0,
         ) + (body.shippingCents > 0 ? body.shippingCents / 100 : 0);
 
+        const siteId = await getSiteId();
+
+        let customerId: string | null = null;
+        const authHeader = req.headers.get('authorization');
+        const bearer = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim()
+          : req.cookies.get('shop_token')?.value ?? '';
+        if (bearer) {
+          const payload = await verifyOnepeaceSessionToken(bearer);
+          if (payload) customerId = payload.sub;
+        }
+
         await supabase.from('clawd_crm_orders').insert({
           amount_total: amountTotal,
           currency: 'EUR',
           status: 'pending',
           external_ref: session.id,
           placed_at: new Date().toISOString(),
+          ...(customerId ? { customer_id: customerId } : {}),
+          ...(siteId ? { site_id: siteId } : {}),
         });
       } catch (orderErr) {
         console.error('[checkout] Order record creation failed:', orderErr instanceof Error ? orderErr.message : orderErr);

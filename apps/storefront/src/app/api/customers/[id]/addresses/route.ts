@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthorizedCustomerId } from '@/lib/api-auth';
 import { loadCustomerDetail, isMissingTableError } from '@/lib/customer-repository';
+import { getSiteId } from '@/lib/site-config';
 
 const supabase = createClient(
   process.env['NEXT_PUBLIC_SUPABASE_URL'] ?? '',
@@ -46,6 +47,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         .eq('customer_id', auth.customerId);
     }
 
+    const siteId = await getSiteId();
     const { data, error } = await supabase
       .from('clawd_crm_addresses')
       .insert({
@@ -57,6 +59,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         postal_code: body.postal_code ?? null,
         country: body.country ?? null,
         is_default: body.is_default ?? false,
+        ...(siteId ? { site_id: siteId } : {}),
       })
       .select('*')
       .single();

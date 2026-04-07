@@ -43,6 +43,11 @@ export function getSiteContent(config: Record<string, unknown>): SiteContent {
   return (cfg?.site_content ?? {}) as SiteContent;
 }
 
+export async function getSiteId(): Promise<string | null> {
+  const config = await getSiteConfig();
+  return (config?.id as string) ?? null;
+}
+
 export async function getSiteConfig() {
   if (cachedConfig) return cachedConfig;
 

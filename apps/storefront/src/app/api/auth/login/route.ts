@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { loginSchema } from '@/lib/auth-schemas';
 import { signOnepeaceSessionToken } from '@/lib/session-jwt';
 import { findCustomerByEmail, isMissingTableError } from '@/lib/customer-repository';
+import { getSiteId } from '@/lib/site-config';
 
 const supabase = createClient(
   process.env['NEXT_PUBLIC_SUPABASE_URL'] ?? '',
@@ -22,10 +23,11 @@ export async function POST(req: NextRequest) {
     }
 
     const { email, password } = parsed.data;
+    const siteId = await getSiteId();
 
     let customer: Record<string, unknown> | null;
     try {
-      customer = await findCustomerByEmail(supabase, email) as Record<string, unknown> | null;
+      customer = await findCustomerByEmail(supabase, email, siteId) as Record<string, unknown> | null;
     } catch (err) {
       if (err instanceof Error && isMissingTableError({ message: err.message })) {
         return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });
@@ -46,6 +48,7 @@ export async function POST(req: NextRequest) {
       sub: customer.id as string,
       email: customer.email as string,
       name: (customer.name as string) ?? '',
+      siteId: siteId ?? undefined,
     });
 
     const res = NextResponse.json({

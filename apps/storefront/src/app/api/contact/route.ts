@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/utils/supabase/admin';
+import { getSiteId } from '@/lib/site-config';
 
 export async function POST(req: Request) {
   try {
@@ -8,12 +9,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
     }
 
+    const siteId = await getSiteId();
     const sb = createAdminClient();
     const { error } = await sb.from('contact_messages').insert({
       name,
       email,
       subject: subject ?? null,
       message,
+      ...(siteId ? { site_id: siteId } : {}),
     });
 
     if (error) {
