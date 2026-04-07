@@ -26,7 +26,9 @@ GPU1 (100.88.191.49)
 └── ComfyUI                    :8188
 
 Supabase (managed)
-└── products, sites, catalogs, campaigns, sync_logs
+├── sites, catalogs, campaigns, sync_logs
+├── clawd_crm_customers, clawd_crm_orders, clawd_crm_addresses
+└── contact_messages, newsletter_subscribers
 ```
 
 ## Monorepo
@@ -56,16 +58,23 @@ scripts/
   sync-products-to-medusa.ts    Sync Supabase → Medusa
 ```
 
-## Public URLs (Cloudflare Tunnel)
+## Public URLs
 
-| Service | URL publique |
-|---------|-------------|
-| Admin Dashboard | https://logic-recognised-vcr-jill.trycloudflare.com |
-| Storefront | https://piece-occupational-mother-highlight.trycloudflare.com |
-| Medusa API | https://wheels-limits-industries-screen.trycloudflare.com |
-| OpenClaw Dropship | https://territories-treasure-emphasis-merchants.trycloudflare.com |
+> **Statut actuel** : Quick tunnels temporaires (URLs changent au redémarrage). Named tunnels configurés mais nécessitent `cloudflared login` sur GPU2.
 
-> Quick tunnels — URLs temporaires, changent au redémarrage. Migrer vers un named tunnel + domaine custom pour la prod.
+### Named Tunnels — ACTIFS (stables, HTTPS, auto-restart)
+
+Tunnel : `dropship-prod` (`a635771b-c3ac-4945-bbf2-113d59fe0b90`)
+Service systemd : `cloudflared.service` (enabled, démarrage automatique)
+
+| Service | URL permanente | Port local | Status |
+|---------|---------------|-----------|--------|
+| API OpenClaw | https://api.hearst.app | 3849 | ✅ LIVE |
+| Admin Dashboard | https://admin.hearst.app | 3200 | ✅ LIVE |
+| Medusa API | https://medusa.hearst.app | 9000 | ✅ LIVE |
+| Storefront OnePeace | https://shop.hearst.app | 3100 | ✅ LIVE |
+
+> Si le tunnel tombe : `ssh comput3@100.110.74.114 "sudo systemctl restart cloudflared"`
 
 ## Services
 
@@ -91,7 +100,6 @@ Express backend sur GPU2:3849.
 |----------|-------------|
 | `GET /health` | Health check (medusa, cj, supabase) |
 | `GET /products/search?q=...&supplier=cj\|medusa\|all` | Recherche produits fournisseurs |
-| `POST /shop/create` | Pipeline création boutique |
 | `POST /shop/execute` | Exécuter pipeline complet (sales channel + produits + deploy) |
 | `POST /agent/pipeline` | **Pipeline A-Z** (SSE) — mots-clés → site live + marketing |
 | `GET /agent/status` | Status agent + tools disponibles |
@@ -210,6 +218,27 @@ npm run build
 npm run type-check
 ```
 
+## Latest Changes (2026-04-07)
+
+**Sécurité & Config (Blocs 1-2) :**
+
+1. **Secrets externalisés** : suppression de tous les credentials hardcodés (`Hearst0334`, `pk_98b14ce`, `reg_01KNCT`, `admin`/`Admin`, `adrien@hearstcorporation.io`) — désormais 100% env vars.
+2. **Auth admin** : `ADMIN_AUTH_USER` / `ADMIN_AUTH_PASS` requis au démarrage (503 si absent).
+3. **CJ endpoint** : `packages/suppliers/src/cj.ts` migré de `/product/list` → `/product/listV2`.
+4. **Docker image** : `scripts/deploy-storefront.sh` → `onepeace-storefront:v5`, vars injectées via env.
+5. **Logger structuré** : `apps/openclaw-dropship/src/logger.ts` — logs JSON avec `ts`, `level`, `ctx`, `msg`. Configurable via `LOG_LEVEL` env var.
+6. **Guard startup** : OpenClaw avertit au démarrage si `SUPABASE_URL`, `MEDUSA_ADMIN_*`, ou `OPENCLAW_API_KEY` sont absents.
+7. **ADMIN_URL** corrigé : `http://localhost:3200` (port réel admin).
+8. **Auth admin renforcée** : cookie `dp_session` → token HMAC-SHA256 signé (`NEXTAUTH_SECRET`), expiration 7j, `timingSafeEqual`, `secure` en prod.
+9. **Cloudflare named tunnels** : `scripts/setup-cloudflare-tunnels.sh` — un script pour configurer 4 routes stables (api/admin/medusa/shop) avec systemd auto-restart.
+
+**Env vars ajoutées dans `.env.local` :**
+- `MEDUSA_ADMIN_EMAIL`, `MEDUSA_ADMIN_PASSWORD`, `MEDUSA_REGION_ID`
+- `NEXT_PUBLIC_MEDUSA_URL`, `NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY`, `NEXT_PUBLIC_MEDUSA_REGION_ID`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `ADMIN_AUTH_USER`, `ADMIN_AUTH_PASS`
+- `ADMIN_URL`
+
 ## Latest Changes (2026-04-05)
 
 **AliExpress Catalog + Stripe Checkout :**
@@ -316,20 +345,32 @@ Next.js site generator with live logs and GPU2 deploy.
 - [x] Theme selection applied in generated storefront CSS/layout
 
 **Still to improve:**
-- [ ] Product relevance for trademark-heavy niches is heuristic and still needs a smarter supplier-ranking layer
+- [ ] Product relevance for trademark-heavy niches — smarter supplier-ranking layer
 - [ ] `/api/launcher/stream` and `test-step` should share more code
-- [ ] `apps/storefront` old template path still diverges from launcher-generated storefronts
-- [x] Stripe checkout flow in storefront — live, testé end-to-end
-- [ ] Marketing package (`packages/marketing/`) has Google Ads + Meta Ads clients — need API keys + real test
-
-**NICE TO HAVE:**
-- [ ] Named Cloudflare Tunnel (current quick tunnels change on restart)
-- [ ] Supabase RLS policies on `sites`, `catalogs`, `campaigns` tables
+- [ ] Marketing package (`packages/marketing/`) — need API keys + real test
 - [ ] CI/CD pipeline (GitHub Actions for build + type-check)
-- [ ] Product page (`/product/[handle]`) in generated sites
-- [ ] Cart + checkout flow in generated sites
-- [ ] SEO audit agent integration with launcher
-- [ ] Marketing agent auto-creates campaigns after deploy
+
+**Done (April 7 remediation):**
+- [x] Stripe checkout → order records in Supabase (`clawd_crm_orders`)
+- [x] Stripe webhook endpoint (`/api/webhooks/stripe`) — signature verification + order status update
+- [x] Customer auth (login/register) with bcrypt + JWT + httpOnly cookies
+- [x] Account pages API routes (customer detail, orders, addresses)
+- [x] Products route → Medusa first, static catalog fallback
+- [x] Admin Products CRUD → Medusa Admin API (POST/DELETE)
+- [x] Trending/Discover → CJ real search with static fallback
+- [x] Trigger jobs persist results (product-sync, ai-enrich, order-fulfill)
+- [x] CJ order fulfillment implemented (`createOrder`)
+- [x] Supabase RLS policies on all 9 tables
+- [x] CRM tables migration (customers, orders, addresses)
+- [x] Contact form + newsletter backend (Supabase)
+- [x] Promo codes validation route
+- [x] Catalog sync route
+- [x] OpenAI cloud fallback when vLLM unreachable
+- [x] Named Cloudflare Tunnels (stable HTTPS)
+- [x] All secrets externalized (deploy scripts use env vars)
+- [x] Auth middleware protects launcher/agents endpoints
+- [x] Structured logging standardized across openclaw-dropship
+- [x] Dead code cleaned (6 files removed)
 
 ## Env Vars
 
@@ -337,13 +378,18 @@ Required in `.env` / `.env.local`:
 - `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
 - `CJ_DROPSHIPPING_API_KEY`
 - `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
-- `MEDUSA_PUBLISHABLE_KEY`, `MEDUSA_ADMIN_EMAIL`, `MEDUSA_ADMIN_PASSWORD`
+- `MEDUSA_PUBLISHABLE_KEY`, `MEDUSA_ADMIN_EMAIL`, `MEDUSA_ADMIN_PASSWORD`, `MEDUSA_URL` (admin server: POST/DELETE `/api/products` → Medusa Admin API, JWT cached 1h; GET still proxies storefront)
+- Admin `/api/trending`: CJ `product/list` when `CJ_DROPSHIPPING_API_KEY` works, else static `generateTrendProducts` fallback
 - `OPENCLAW_API_KEY` (auth middleware — si absent, routes ouvertes)
 - `ADMIN_URL` (default: `http://{GPU2_HOST}:3200`)
 - `VLLM_GPU1_URL` (default: `http://100.88.191.49:8000/v1`)
 - `VLLM_API_KEY` (default: `vllm-local-key`)
+- `OPENAI_API_KEY` (optional — fallback cloud quand vLLM est injoignable)
+- `LLM_FALLBACK_MODEL` (default: `gpt-4o-mini`)
+- `STRIPE_WEBHOOK_SECRET` (webhook endpoint: `/api/webhooks/stripe`)
+- `ONEPEACE_JWT_SECRET` (customer auth JWT signing, min 16 chars)
 - `COOLIFY_URL`, `COOLIFY_TOKEN`
-- `ALIEXPRESS_APP_KEY`, `ALIEXPRESS_APP_SECRET` (AliExpress Open Platform — OAuth token requis pour DS API)
+- `ALIEXPRESS_APP_KEY`, `ALIEXPRESS_APP_SECRET`
 - `GOOGLE_ADS_*`, `META_ACCESS_TOKEN` (for marketing)
 
 ## Notes

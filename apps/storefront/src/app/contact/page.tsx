@@ -5,10 +5,28 @@ import { useState } from 'react';
 
 export default function ContactPage() {
   const [sent, setSent] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setSent(true);
+    setError(null);
+    setSubmitting(true);
+    const form = e.currentTarget;
+    const data = Object.fromEntries(new FormData(form));
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error('Erreur serveur');
+      setSent(true);
+    } catch {
+      setError('Une erreur est survenue. Veuillez réessayer.');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -86,11 +104,16 @@ export default function ContactPage() {
             />
           </div>
 
+          {error && (
+            <p className="text-sm font-medium text-red-600">{error}</p>
+          )}
+
           <button
             type="submit"
-            className="w-full rounded-full bg-[#D9312B] px-6 py-3 font-bold tracking-wider text-white hover:bg-[#c62828] transition-colors"
+            disabled={submitting}
+            className="w-full rounded-full bg-[#D9312B] px-6 py-3 font-bold tracking-wider text-white hover:bg-[#c62828] transition-colors disabled:opacity-50"
           >
-            ENVOYER
+            {submitting ? 'ENVOI…' : 'ENVOYER'}
           </button>
         </form>
       )}

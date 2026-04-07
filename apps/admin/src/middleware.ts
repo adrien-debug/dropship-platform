@@ -1,6 +1,13 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { verifyAdminToken } from './app/api/auth/route';
 
-const PUBLIC_PATHS = ['/login', '/api/auth', '/api/launcher/test-step', '/api/launcher/stream', '/api/agents', '/favicon.svg', '/_next'];
+const PUBLIC_PATHS = [
+  '/login',
+  '/api/auth',
+  '/api/health',
+  '/favicon.svg',
+  '/_next',
+];
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -9,8 +16,8 @@ export function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const session = req.cookies.get('dp_session');
-  if (session?.value === 'authenticated') {
+  const token = req.cookies.get('dp_session')?.value;
+  if (verifyAdminToken(token)) {
     return NextResponse.next();
   }
 

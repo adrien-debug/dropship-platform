@@ -1,11 +1,10 @@
-import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import type { PipelineEvent, PipelineInput, PipelineResult } from './types.js';
 import { createToolRegistry, getToolSpecs, getToolHandler } from './tools.js';
-import { withRetry, extractJSON } from './content-writer.js';
+import { withRetry, extractJSON, createLLMClient, isVllmUnreachableError, type LLMClientBundle } from './content-writer.js';
+import { logger } from '../logger.js';
 
 const VLLM_URL = process.env['VLLM_AGENT_URL'] ?? process.env['VLLM_GPU1_URL'] ?? 'http://100.88.191.49:8000/v1';
-const VLLM_API_KEY = process.env['VLLM_API_KEY'] ?? 'not-needed';
 const VLLM_MODEL = process.env['VLLM_MODEL'] ?? 'Qwen/Qwen2.5-Coder-32B-Instruct-AWQ';
 const MAX_ITERATIONS = 25;
 const TIMEOUT_MS = 10 * 60 * 1000;
@@ -53,12 +52,12 @@ const TOOL_STAGES: string[][] = [
 const MAX_MESSAGES = 24; // keep context bounded (~12 exchange pairs)
 
 export class AgentOrchestrator {
-  private client: OpenAI;
+  private llmBundle: LLMClientBundle;
   private registry = createToolRegistry();
   private events: PipelineEvent[] = [];
 
   constructor() {
-    this.client = new OpenAI({ baseURL: VLLM_URL, apiKey: VLLM_API_KEY });
+    this.llmBundle = createLLMClient({ vllmBaseUrl: VLLM_URL });
   }
 
   private getRelevantTools(calledTools: Set<string>): ReturnType<typeof getToolSpecs> {
@@ -94,7 +93,7 @@ export class AgentOrchestrator {
   private emit(event: PipelineEvent, onEvent?: (e: PipelineEvent) => void): void {
     this.events.push(event);
     onEvent?.(event);
-    console.log(`[opencore:orchestrator] ${event.step}: ${event.status}`, event.detail ? JSON.stringify(event.detail).slice(0, 200) : '');
+    logger.info('orchestrator', `${event.step}: ${event.status}`, event.detail);
   }
 
   private parseInlineToolCalls(content: string): Array<{
@@ -194,18 +193,36 @@ export class AgentOrchestrator {
       const relevantTools = this.getRelevantTools(calledTools);
       const prunedMessages = this.pruneHistory(messages);
 
-      console.log(`[opencore:orchestrator] iter=${iteration} tools=[${relevantTools.map(t => t.function.name).join(',')}] msgs=${prunedMessages.length}`);
+      logger.info('orchestrator', `iter=${iteration} tools=[${relevantTools.map(t => t.function.name).join(',')}] msgs=${prunedMessages.length}`);
 
       try {
+        const completionParams = {
+          model: VLLM_MODEL,
+          messages: prunedMessages,
+          tools: relevantTools,
+          tool_choice: 'auto' as const,
+          max_tokens: 4096,
+          temperature: 0.3,
+        };
+
         const response = await withRetry(
-          () => this.client.chat.completions.create({
-            model: VLLM_MODEL,
-            messages: prunedMessages,
-            tools: relevantTools,
-            tool_choice: 'auto',
-            max_tokens: 4096,
-            temperature: 0.3,
-          }),
+          async () => {
+            try {
+              return await this.llmBundle.vllm.chat.completions.create(completionParams);
+            } catch (err) {
+              if (this.llmBundle.openaiFallback && isVllmUnreachableError(err)) {
+                logger.warn(
+                  'orchestrator',
+                  `vLLM unreachable, using OpenAI fallback (${this.llmBundle.fallbackModel})`,
+                );
+                return await this.llmBundle.openaiFallback.chat.completions.create({
+                  ...completionParams,
+                  model: this.llmBundle.fallbackModel,
+                });
+              }
+              throw err;
+            }
+          },
           { attempts: 2, delayMs: 2000, label: `orchestrator:iteration_${iteration}` },
         );
 
@@ -291,7 +308,7 @@ export class AgentOrchestrator {
                 }, onEvent);
               } catch (err) {
                 const errMsg = err instanceof Error ? err.message : String(err);
-                console.error(`[opencore:orchestrator] Tool ${toolName} failed:`, errMsg);
+                logger.error('orchestrator', `Tool ${toolName} failed: ${errMsg}`);
                 result = { error: errMsg };
 
                 this.emit({
@@ -329,7 +346,7 @@ export class AgentOrchestrator {
       } catch (err) {
         consecutiveErrors++;
         const errMsg = err instanceof Error ? err.message : String(err);
-        console.error(`[opencore:orchestrator] Iteration ${iteration} error (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS}):`, errMsg);
+        logger.error('orchestrator', `Iteration ${iteration} error (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS}): ${errMsg}`);
 
         this.emit({
           step: `iteration_${iteration}_error`,
@@ -339,7 +356,7 @@ export class AgentOrchestrator {
         }, onEvent);
 
         if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
-          console.error(`[opencore:orchestrator] ${MAX_CONSECUTIVE_ERRORS} consecutive errors — aborting`);
+          logger.error('orchestrator', `${MAX_CONSECUTIVE_ERRORS} consecutive errors — aborting`);
           break;
         }
         await new Promise(r => setTimeout(r, 2000 * consecutiveErrors));
@@ -347,7 +364,7 @@ export class AgentOrchestrator {
     }
 
     const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
-    console.log(`[opencore:orchestrator] Pipeline finished in ${elapsed}s — success=${!!shopResult}`);
+    logger.info('orchestrator', `Pipeline finished in ${elapsed}s — success=${!!shopResult}`);
 
     return {
       success: !!shopResult,

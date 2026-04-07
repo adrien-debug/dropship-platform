@@ -1,12 +1,17 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { ALIEXPRESS_CATALOG } from '@/data/aliexpress-catalog';
+import {
+  getProducts as getMedusaProducts,
+  getCategories as getMedusaCategories,
+  type MedusaProduct,
+} from '@/lib/medusa';
 
-const CATEGORIES = [
+const STATIC_CATEGORIES = [
   'Figurines', 'Figurines Luffy Gear 5', 'Figurines Shanks', 'Figurines Ace',
   'Figurines Sanji', 'Figurines Nami Robin Hancock', 'Figurines Law', 'Figurines Chopper',
   'T-Shirts', 'Hoodies', 'Vestes Bombers', 'Sneakers', 'Cosplay', 'Chaussettes', 'Casquettes',
   'Mugs', 'Gourdes', 'Coques iPhone', 'Coques AirPods',
-  'Porte-cl\u00e9s', 'Posters', 'Sacs', 'Peluches', 'Bijoux',
+  'Porte-clés', 'Posters', 'Sacs', 'Peluches', 'Bijoux',
   'Lampes LED', 'Portefeuilles', 'Stickers', 'Tapis de souris',
   'Couvertures', 'Puzzles', 'Mini Figures', 'Building Blocks',
   'Fruits du Demon', 'Maquettes Bateaux', 'Montres', 'Drapeaux',
@@ -25,34 +30,66 @@ interface ProductDto {
   updatedAt: string;
 }
 
-interface CachedProducts {
-  items: ProductDto[];
-  timestamp: number;
+function mapMedusaProduct(p: MedusaProduct): ProductDto {
+  const now = new Date().toISOString();
+  return {
+    id: p.id,
+    name: p.title,
+    description: p.description ?? '',
+    priceCents: p.variants?.[0]?.calculated_price?.calculated_amount ?? 0,
+    category: p.categories?.[0]?.name ?? 'Uncategorized',
+    inStock: true,
+    imageUrls: [p.thumbnail, ...(p.images ?? []).map(i => i.url)].filter(Boolean) as string[],
+    createdAt: now,
+    updatedAt: now,
+  };
 }
 
+interface CachedProducts { items: ProductDto[]; categories: string[]; timestamp: number }
 let productsCache: CachedProducts | null = null;
-const CACHE_TTL = 3600000;
+const CACHE_TTL = 300_000; // 5 min for Medusa data
 
-function getProducts(): ProductDto[] {
+function getStaticProducts(): { items: ProductDto[]; categories: string[] } {
+  return {
+    items: ALIEXPRESS_CATALOG.map((p) => ({
+      id: p.id,
+      name: p.name,
+      description: p.description,
+      priceCents: p.priceCents,
+      category: p.category,
+      inStock: p.inStock,
+      imageUrls: p.imageUrls,
+      createdAt: p.createdAt,
+      updatedAt: p.updatedAt,
+    })),
+    categories: STATIC_CATEGORIES,
+  };
+}
+
+async function loadProducts(): Promise<{ items: ProductDto[]; categories: string[] }> {
   const now = Date.now();
   if (productsCache && (now - productsCache.timestamp) < CACHE_TTL) {
-    return productsCache.items;
+    return { items: productsCache.items, categories: productsCache.categories };
   }
 
-  const items: ProductDto[] = ALIEXPRESS_CATALOG.map((p) => ({
-    id: p.id,
-    name: p.name,
-    description: p.description,
-    priceCents: p.priceCents,
-    category: p.category,
-    inStock: p.inStock,
-    imageUrls: p.imageUrls,
-    createdAt: p.createdAt,
-    updatedAt: p.updatedAt,
-  }));
+  try {
+    const [medusaRes, medusaCats] = await Promise.all([
+      getMedusaProducts({ limit: 1000 }),
+      getMedusaCategories(),
+    ]);
 
-  productsCache = { items, timestamp: now };
-  return items;
+    if (!medusaRes.products.length) throw new Error('No products in Medusa');
+
+    const items = medusaRes.products.map(mapMedusaProduct);
+    const categories = medusaCats.map(c => c.name);
+    productsCache = { items, categories, timestamp: now };
+    return { items, categories };
+  } catch (err) {
+    console.error('[products] Medusa unavailable, using static catalog:', (err as Error).message);
+    const fallback = getStaticProducts();
+    productsCache = { ...fallback, timestamp: now };
+    return fallback;
+  }
 }
 
 export async function GET(req: NextRequest) {
@@ -67,7 +104,8 @@ export async function GET(req: NextRequest) {
   const q = sp.get('q')?.trim() ?? '';
 
   try {
-    let items = [...getProducts()];
+    const { items: allItems, categories } = await loadProducts();
+    let items = [...allItems];
 
     if (category) {
       items = items.filter(p => p.category === category);
@@ -112,10 +150,10 @@ export async function GET(req: NextRequest) {
       total,
       page,
       limit,
-      categories: CATEGORIES,
+      categories,
     });
   } catch (error) {
-    console.error('Products API error:', error);
+    console.error('[products] API error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch products' },
       { status: 500 }

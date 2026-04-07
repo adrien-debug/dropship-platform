@@ -1,11 +1,65 @@
 import OpenAI from 'openai';
 import type { BrandIdentity, SiteContent, EnrichedProduct } from './types.js';
+import { logger } from '../logger.js';
 
 const VLLM_URL = process.env['VLLM_GPU1_URL'] ?? 'http://100.88.191.49:8000/v1';
 const VLLM_FAST_URL = process.env['VLLM_GPU1_FAST_URL'] ?? 'http://100.88.191.49:8001/v1';
 const VLLM_API_KEY = process.env['VLLM_API_KEY'] ?? 'not-needed';
 const VLLM_MODEL = process.env['VLLM_MODEL'] ?? 'Qwen/Qwen2.5-Coder-32B-Instruct-AWQ';
 const VLLM_FAST_MODEL = process.env['VLLM_FAST_MODEL'] ?? 'Qwen/Qwen2.5-Coder-7B-Instruct-AWQ';
+const FALLBACK_MODEL = process.env['LLM_FALLBACK_MODEL']?.trim() || 'gpt-4o-mini';
+
+export type LLMClientBundle = {
+  vllm: OpenAI;
+  vllmFast: OpenAI;
+  openaiFallback?: OpenAI;
+  fallbackModel: string;
+};
+
+let llmClientBundle: LLMClientBundle | undefined;
+
+/** Primary vLLM clients + optional OpenAI cloud fallback when OPENAI_API_KEY is set. */
+export function createLLMClient(config?: { vllmBaseUrl?: string; vllmFastBaseUrl?: string }): LLMClientBundle {
+  const main = config?.vllmBaseUrl ?? VLLM_URL;
+  const fast =
+    config?.vllmFastBaseUrl ?? (config?.vllmBaseUrl ? config.vllmBaseUrl : VLLM_FAST_URL);
+  const key = process.env['OPENAI_API_KEY']?.trim();
+  const openaiFallback = key ? new OpenAI({ apiKey: key }) : undefined;
+  return {
+    vllm: new OpenAI({ baseURL: main, apiKey: VLLM_API_KEY }),
+    vllmFast: new OpenAI({ baseURL: fast, apiKey: VLLM_API_KEY }),
+    openaiFallback,
+    fallbackModel: FALLBACK_MODEL,
+  };
+}
+
+function getLLMClientBundle(): LLMClientBundle {
+  if (!llmClientBundle) llmClientBundle = createLLMClient();
+  return llmClientBundle;
+}
+
+/** True when the error looks like vLLM/network unavailability (retry with cloud if configured). */
+export function isVllmUnreachableError(err: unknown): boolean {
+  if (err == null) return false;
+  const e = err as Error & { cause?: { code?: string }; code?: string; status?: number };
+  const code = e.cause?.code ?? e.code;
+  const transportCodes = ['ECONNREFUSED', 'ETIMEDOUT', 'ECONNRESET', 'ENOTFOUND', 'EAI_AGAIN', 'UND_ERR_CONNECT_TIMEOUT'];
+  if (code && transportCodes.includes(String(code))) return true;
+  const status = e.status;
+  if (status === 502 || status === 503 || status === 504) return true;
+  const msg = String(e.message ?? err).toLowerCase();
+  if (
+    msg.includes('econnrefused') ||
+    msg.includes('etimedout') ||
+    msg.includes('fetch failed') ||
+    msg.includes('connect timeout') ||
+    msg.includes('socket hang up') ||
+    msg.includes('network error')
+  ) {
+    return true;
+  }
+  return false;
+}
 
 const PRICE_MULTIPLIER = 2.5;
 const BATCH_SIZE = 5;
@@ -27,7 +81,7 @@ export async function withRetry<T>(
       lastError = err instanceof Error ? err : new Error(String(err));
       if (i < attempts - 1) {
         const wait = delayMs * Math.pow(2, i);
-        console.warn(`[opencore:retry] ${label} attempt ${i + 1}/${attempts} failed, retry in ${wait}ms: ${lastError.message}`);
+        logger.warn('retry', `${label} attempt ${i + 1}/${attempts} failed, retry in ${wait}ms: ${lastError.message}`);
         await new Promise(r => setTimeout(r, wait));
       }
     }
@@ -56,56 +110,81 @@ export function extractJSON<T>(raw: string): T | null {
 
 // ─── LLM clients ───
 
-function llm(fast = false): OpenAI {
-  return new OpenAI({
-    baseURL: fast ? VLLM_FAST_URL : VLLM_URL,
-    apiKey: VLLM_API_KEY,
-  });
-}
-
 async function jsonCompletion<T>(prompt: string, userMsg: string, fast = false, maxTokens = 512): Promise<T> {
+  const bundle = getLLMClientBundle();
   return withRetry(async () => {
-    const client = llm(fast);
-    const res = await client.chat.completions.create({
-      model: fast ? VLLM_FAST_MODEL : VLLM_MODEL,
-      messages: [
-        { role: 'system', content: prompt },
-        { role: 'user', content: userMsg },
-      ],
-      max_tokens: maxTokens,
-      temperature: 0.7,
-      response_format: { type: 'json_object' },
-    });
+    const run = async (cloud: boolean) => {
+      const client = cloud
+        ? bundle.openaiFallback!
+        : fast
+          ? bundle.vllmFast
+          : bundle.vllm;
+      const model = cloud ? bundle.fallbackModel : fast ? VLLM_FAST_MODEL : VLLM_MODEL;
+      const res = await client.chat.completions.create({
+        model,
+        messages: [
+          { role: 'system', content: prompt },
+          { role: 'user', content: userMsg },
+        ],
+        max_tokens: maxTokens,
+        temperature: 0.7,
+        response_format: { type: 'json_object' },
+      });
 
-    const raw = res.choices[0]?.message?.content ?? '';
-    const parsed = extractJSON<T>(raw);
+      const raw = res.choices[0]?.message?.content ?? '';
+      const parsed = extractJSON<T>(raw);
 
-    if (!parsed || (typeof parsed === 'object' && Object.keys(parsed as object).length === 0)) {
-      throw new Error(`LLM returned empty/unparseable JSON: ${raw.slice(0, 300)}`);
+      if (!parsed || (typeof parsed === 'object' && Object.keys(parsed as object).length === 0)) {
+        throw new Error(`LLM returned empty/unparseable JSON: ${raw.slice(0, 300)}`);
+      }
+
+      return parsed;
+    };
+
+    try {
+      return await run(false);
+    } catch (err) {
+      if (bundle.openaiFallback && isVllmUnreachableError(err)) {
+        logger.warn('llm', `vLLM unreachable, using OpenAI fallback (${bundle.fallbackModel})`);
+        return await run(true);
+      }
+      throw err;
     }
-
-    return parsed;
   }, { attempts: 3, delayMs: 1500, label: `json:${prompt.slice(0, 40)}` });
 }
 
 async function textCompletion(prompt: string, userMsg: string, maxTokens = 1024): Promise<string> {
+  const bundle = getLLMClientBundle();
   return withRetry(async () => {
-    const client = llm();
-    const res = await client.chat.completions.create({
-      model: VLLM_MODEL,
-      messages: [
-        { role: 'system', content: prompt },
-        { role: 'user', content: userMsg },
-      ],
-      max_tokens: maxTokens,
-      temperature: 0.7,
-    });
+    const run = async (cloud: boolean) => {
+      const client = cloud ? bundle.openaiFallback! : bundle.vllm;
+      const model = cloud ? bundle.fallbackModel : VLLM_MODEL;
+      const res = await client.chat.completions.create({
+        model,
+        messages: [
+          { role: 'system', content: prompt },
+          { role: 'user', content: userMsg },
+        ],
+        max_tokens: maxTokens,
+        temperature: 0.7,
+      });
 
-    const content = res.choices[0]?.message?.content ?? '';
-    if (!content.trim()) {
-      throw new Error('LLM returned empty text');
+      const content = res.choices[0]?.message?.content ?? '';
+      if (!content.trim()) {
+        throw new Error('LLM returned empty text');
+      }
+      return content;
+    };
+
+    try {
+      return await run(false);
+    } catch (err) {
+      if (bundle.openaiFallback && isVllmUnreachableError(err)) {
+        logger.warn('llm', `vLLM unreachable, using OpenAI fallback (${bundle.fallbackModel})`);
+        return await run(true);
+      }
+      throw err;
     }
-    return content;
   }, { attempts: 2, delayMs: 1000, label: 'textCompletion' });
 }
 
@@ -130,7 +209,7 @@ export async function generateSiteContent(input: {
   topProducts: string[];
 }): Promise<SiteContent> {
   const t0 = Date.now();
-  console.log(`[opencore:content] Generating site content for niche: ${input.niche}`);
+  logger.info('content', `Generating site content for niche: ${input.niche}`);
 
   // Call 1 (fast model): brand + hero + policies + SEO in a single JSON call
   const combined = await jsonCompletion<SiteContentJSON>(
@@ -146,7 +225,7 @@ Return JSON with exactly these keys:
     900,
   );
 
-  console.log(`[opencore:content] Brand: ${combined.brand.name} — ${combined.brand.tagline} (${Date.now() - t0}ms)`);
+  logger.info('content', `Brand: ${combined.brand.name} — ${combined.brand.tagline} (${Date.now() - t0}ms)`);
 
   // Call 2 (32B): about page — quality long-form text
   const aboutHtml = await textCompletion(
@@ -155,7 +234,7 @@ Return JSON with exactly these keys:
     600,
   );
 
-  console.log(`[opencore:content] Site content complete in ${Date.now() - t0}ms`);
+  logger.info('content', `Site content complete in ${Date.now() - t0}ms`);
 
   return {
     brand: combined.brand,
@@ -215,7 +294,7 @@ async function enrichSingleProduct(
       external_id: product.externalId ?? '',
     };
   } catch (err) {
-    console.error(`[opencore:content] Enrich fallback for "${product.name}": ${err instanceof Error ? err.message : err}`);
+    logger.error('content', `Enrich fallback for "${product.name}": ${err instanceof Error ? err.message : err}`);
     return {
       title: product.name,
       description: '',
@@ -243,7 +322,7 @@ export async function generateProductDescriptions(
   niche: string,
 ): Promise<EnrichedProduct[]> {
   const t0 = Date.now();
-  console.log(`[opencore:content] Enriching ${products.length} products for "${brandName}" (batch size: ${BATCH_SIZE})`);
+  logger.info('content', `Enriching ${products.length} products for "${brandName}" (batch size: ${BATCH_SIZE})`);
 
   const enriched: EnrichedProduct[] = [];
   let fallbackCount = 0;
@@ -262,6 +341,6 @@ export async function generateProductDescriptions(
     }
   }
 
-  console.log(`[opencore:content] Enriched ${products.length} products in ${((Date.now() - t0) / 1000).toFixed(1)}s (${fallbackCount} fallbacks)`);
+  logger.info('content', `Enriched ${products.length} products in ${((Date.now() - t0) / 1000).toFixed(1)}s (${fallbackCount} fallbacks)`);
   return enriched;
 }

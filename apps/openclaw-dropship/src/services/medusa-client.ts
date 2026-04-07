@@ -3,6 +3,10 @@ const MEDUSA_PUBLISHABLE_KEY = process.env['MEDUSA_PUBLISHABLE_KEY'] ?? '';
 const MEDUSA_ADMIN_EMAIL = process.env['MEDUSA_ADMIN_EMAIL'] ?? '';
 const MEDUSA_ADMIN_PASSWORD = process.env['MEDUSA_ADMIN_PASSWORD'] ?? '';
 
+if (!MEDUSA_ADMIN_EMAIL || !MEDUSA_ADMIN_PASSWORD) {
+  console.warn('[medusa-client] MEDUSA_ADMIN_EMAIL or MEDUSA_ADMIN_PASSWORD not set — admin operations will fail');
+}
+
 interface MedusaProduct {
   id: string;
   title: string;

@@ -4,6 +4,7 @@ import { MedusaClient } from '../services/medusa-client.js';
 import { createClient } from '@supabase/supabase-js';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { logger } from '../logger.js';
 
 const execAsync = promisify(exec);
 
@@ -12,7 +13,7 @@ export const shopExecutorRouter = Router();
 const GPU2_HOST = process.env['GPU2_HOST'] ?? '100.110.74.114';
 const SSH_USER = process.env['GPU_SSH_USER'] ?? 'comput3';
 const STOREFRONT_IMAGE = 'onepeace-storefront:v5';
-const MEDUSA_REGION_ID = process.env['MEDUSA_REGION_ID'] ?? 'reg_01KNCT3QEHAN10H1R98PM3XT2B';
+const MEDUSA_REGION_ID = process.env['MEDUSA_REGION_ID'] ?? '';
 const SUPABASE_URL = process.env['SUPABASE_URL'] ?? '';
 const SUPABASE_ANON_KEY = process.env['SUPABASE_ANON_KEY'] ?? '';
 const SUPABASE_SERVICE_KEY = process.env['SUPABASE_SERVICE_ROLE_KEY'] ?? SUPABASE_ANON_KEY;
@@ -73,11 +74,11 @@ shopExecutorRouter.post('/execute', async (req: Request, res: Response) => {
   try {
     salesChannelId = await medusa.createSalesChannel(name);
     results.push({ step: 1, action: 'create_sales_channel', status: 'done', detail: salesChannelId });
-    console.log(`[shop-executor] Sales channel created: ${salesChannelId}`);
+    logger.info('shop-executor', `Sales channel created: ${salesChannelId}`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     results.push({ step: 1, action: 'create_sales_channel', status: 'failed', error: msg });
-    console.error(`[shop-executor] Sales channel failed: ${msg}`);
+    logger.error('shop-executor', `Sales channel failed: ${msg}`);
     res.status(500).json({ success: false, results });
     return;
   }
@@ -87,11 +88,11 @@ shopExecutorRouter.post('/execute', async (req: Request, res: Response) => {
     const key = await medusa.createPublishableKey(`Storefront: ${name}`, salesChannelId);
     pubKeyToken = key.token;
     results.push({ step: 2, action: 'create_publishable_key', status: 'done', detail: key.id });
-    console.log(`[shop-executor] Publishable key created: ${key.id}`);
+    logger.info('shop-executor', `Publishable key created: ${key.id}`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     results.push({ step: 2, action: 'create_publishable_key', status: 'failed', error: msg });
-    console.error(`[shop-executor] Publishable key failed: ${msg}`);
+    logger.error('shop-executor', `Publishable key failed: ${msg}`);
     res.status(500).json({ success: false, results });
     return;
   }
@@ -121,7 +122,7 @@ shopExecutorRouter.post('/execute', async (req: Request, res: Response) => {
       });
       productsCreated++;
     } catch (err) {
-      console.error(`[shop-executor] Product "${product.title}" failed:`, err instanceof Error ? err.message : err);
+      logger.error('shop-executor', `Product "${product.title}" failed: ${err instanceof Error ? err.message : err}`);
     }
   }
   results.push({ step: 3, action: 'import_products', status: productsCreated > 0 ? 'done' : 'failed', detail: `${productsCreated}/${products.length}` });
@@ -145,18 +146,18 @@ shopExecutorRouter.post('/execute', async (req: Request, res: Response) => {
     if (error) throw new Error(error.message);
     siteId = data.id;
     results.push({ step: 4, action: 'create_site_record', status: 'done', detail: siteId });
-    console.log(`[shop-executor] Site record created: ${siteId}`);
+    logger.info('shop-executor', `Site record created: ${siteId}`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     results.push({ step: 4, action: 'create_site_record', status: 'failed', error: msg });
-    console.error(`[shop-executor] Supabase insert failed: ${msg}`);
+    logger.error('shop-executor', `Supabase insert failed: ${msg}`);
   }
 
   // Step 5: Deploy storefront (local docker — OpenClaw runs on GPU2)
   let containerId = '';
   try {
     const containerName = `storefront-${slug}`;
-    const medusaUrl = `http://${GPU2_HOST}:9000`;
+    const medusaUrl = process.env['MEDUSA_URL'] ?? `http://${GPU2_HOST}:9000`;
 
     await execAsync(`docker rm -f ${containerName} 2>/dev/null`, { timeout: 10_000 }).catch(() => {});
 
@@ -183,11 +184,11 @@ shopExecutorRouter.post('/execute', async (req: Request, res: Response) => {
     const { stdout } = await execAsync(runCmd, { timeout: 60_000 });
     containerId = stdout.trim().slice(0, 12);
     results.push({ step: 5, action: 'deploy_storefront', status: 'done', detail: containerId });
-    console.log(`[shop-executor] Deployed: ${containerName} on :${port}`);
+    logger.info('shop-executor', `Deployed: ${containerName} on :${port}`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     results.push({ step: 5, action: 'deploy_storefront', status: 'failed', error: msg });
-    console.error(`[shop-executor] Deploy failed: ${msg}`);
+    logger.error('shop-executor', `Deploy failed: ${msg}`);
   }
 
   // Step 6: Health check + update site status
@@ -214,7 +215,7 @@ shopExecutorRouter.post('/execute', async (req: Request, res: Response) => {
         },
       }).eq('id', siteId);
     } catch (err) {
-      console.error(`[shop-executor] Status update failed:`, err instanceof Error ? err.message : err);
+      logger.error('shop-executor', `Status update failed: ${err instanceof Error ? err.message : err}`);
     }
   }
 
@@ -235,9 +236,9 @@ shopExecutorRouter.post('/execute', async (req: Request, res: Response) => {
         last_sync_at: new Date().toISOString(),
       });
       results.push({ step: 7, action: 'create_catalog', status: 'done', detail: `${productsCreated} products` });
-      console.log(`[shop-executor] Catalog created for site ${siteId}`);
+      logger.info('shop-executor', `Catalog created for site ${siteId}`);
     } catch (err) {
-      console.error(`[shop-executor] Catalog creation failed:`, err instanceof Error ? err.message : err);
+      logger.error('shop-executor', `Catalog creation failed: ${err instanceof Error ? err.message : err}`);
     }
   }
 

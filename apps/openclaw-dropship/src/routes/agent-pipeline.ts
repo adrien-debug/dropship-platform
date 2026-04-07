@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { AgentOrchestrator } from '../agent/orchestrator.js';
 import { runFastPipeline } from '../agent/fast-pipeline.js';
+import { logger } from '../logger.js';
 
 export const agentPipelineRouter = Router();
 
@@ -23,7 +24,7 @@ agentPipelineRouter.post('/pipeline', async (req: Request, res: Response) => {
 
   const input = parsed.data;
   const mode = input.mode;
-  console.log(`[agent-pipeline] Starting ${mode} pipeline for: ${input.keywords.join(', ')}`);
+  logger.info('agent-pipeline', `Starting ${mode} pipeline`, { mode, keywords: input.keywords, market: input.market });
 
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
@@ -47,7 +48,7 @@ agentPipelineRouter.post('/pipeline', async (req: Request, res: Response) => {
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error('[agent-pipeline] Fatal error:', msg);
+    logger.error('agent-pipeline', 'Fatal error', { error: msg });
     sendEvent({ step: 'fatal_error', status: 'error', detail: msg, timestamp: Date.now() });
   } finally {
     res.write('data: [DONE]\n\n');
@@ -64,8 +65,8 @@ agentPipelineRouter.get('/status', (_req: Request, res: Response) => {
       'create_google_ads_campaign', 'create_meta_ads_campaign', 'run_seo_audit',
     ],
     models: {
-      agent: process.env['VLLM_AGENT_URL'] ?? process.env['VLLM_GPU1_URL'] ?? 'http://100.88.191.49:8000/v1',
-      fast: process.env['VLLM_GPU1_FAST_URL'] ?? 'http://100.88.191.49:8001/v1',
+      agent: { connected: !!(process.env['VLLM_AGENT_URL'] ?? process.env['VLLM_GPU1_URL']) },
+      fast: { connected: !!process.env['VLLM_GPU1_FAST_URL'] },
     },
   });
 });

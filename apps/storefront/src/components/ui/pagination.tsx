@@ -35,7 +35,7 @@ function buildPageList(current: number, total: number, sibling: number): PageEnt
   const sorted = [...pages].sort((a, b) => a - b);
   const out: PageEntry[] = [];
   for (let i = 0; i < sorted.length; i += 1) {
-    const n = sorted[i];
+    const n = sorted[i]!;
     const prev = sorted[i - 1];
     if (i > 0 && prev !== undefined && n - prev > 1) {
       out.push('ellipsis');

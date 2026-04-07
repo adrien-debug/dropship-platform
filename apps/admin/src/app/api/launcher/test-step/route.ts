@@ -417,9 +417,12 @@ async function testIntegrations(config: TestConfig): Promise<StepResult> {
   const medusaPath = join(dir, 'src', 'lib', 'medusa.ts');
   if (!existsSync(medusaPath)) {
     mkdirSync(join(dir, 'src', 'lib'), { recursive: true });
-    writeFileSync(medusaPath, `const MEDUSA_URL = process.env.NEXT_PUBLIC_MEDUSA_URL || 'http://100.110.74.114:9000';
-const PUB_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || 'REDACTED_MEDUSA_PK';
-const REGION_ID = process.env.NEXT_PUBLIC_MEDUSA_REGION_ID || 'reg_01KNCT3QEHAN10H1R98PM3XT2B';
+    const medusaUrl = process.env['NEXT_PUBLIC_MEDUSA_URL'] ?? process.env['MEDUSA_URL'] ?? '';
+    const medusaPubKey = process.env['NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY'] ?? '';
+    const medusaRegionId = process.env['NEXT_PUBLIC_MEDUSA_REGION_ID'] ?? '';
+    writeFileSync(medusaPath, `const MEDUSA_URL = process.env.NEXT_PUBLIC_MEDUSA_URL || '${medusaUrl}';
+const PUB_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || '${medusaPubKey}';
+const REGION_ID = process.env.NEXT_PUBLIC_MEDUSA_REGION_ID || '${medusaRegionId}';
 
 type Json = Record<string, unknown>;
 
@@ -470,9 +473,9 @@ export async function getProductByHandle(handle: string): Promise<MedusaProduct 
   const envPath = join(dir, '.env.local');
   if (!existsSync(envPath)) {
     writeFileSync(envPath, `# Medusa
-NEXT_PUBLIC_MEDUSA_URL=http://100.110.74.114:9000
-NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=REDACTED_MEDUSA_PK
-NEXT_PUBLIC_MEDUSA_REGION_ID=reg_01KNCT3QEHAN10H1R98PM3XT2B
+NEXT_PUBLIC_MEDUSA_URL=${medusaUrl}
+NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=${medusaPubKey}
+NEXT_PUBLIC_MEDUSA_REGION_ID=${medusaRegionId}
 
 # Stripe (optional)
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=

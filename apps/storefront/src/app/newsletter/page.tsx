@@ -8,7 +8,9 @@ export default function NewsletterPage() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
 
@@ -18,8 +20,24 @@ export default function NewsletterPage() {
       return;
     }
 
-    setSubmitted(true);
-    setEmail('');
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/newsletter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: trimmed }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? 'Erreur serveur');
+      }
+      setSubmitted(true);
+      setEmail('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -162,7 +180,8 @@ export default function NewsletterPage() {
 
             <button
               type="submit"
-              className="w-full max-w-md rounded-full px-6 py-3.5 text-sm font-bold tracking-widest text-white transition-colors duration-200"
+              disabled={submitting}
+              className="w-full max-w-md rounded-full px-6 py-3.5 text-sm font-bold tracking-widest text-white transition-colors duration-200 disabled:opacity-50"
               style={{ background: '#D9312B' }}
               onMouseEnter={(e) => {
                 (e.currentTarget as HTMLButtonElement).style.background = '#c62828';
@@ -171,7 +190,7 @@ export default function NewsletterPage() {
                 (e.currentTarget as HTMLButtonElement).style.background = '#D9312B';
               }}
             >
-              S&apos;INSCRIRE
+              {submitting ? 'INSCRIPTION…' : "S'INSCRIRE"}
             </button>
           </form>
         )}

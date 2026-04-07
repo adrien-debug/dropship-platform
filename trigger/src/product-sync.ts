@@ -42,6 +42,28 @@ export const productSync = task({
 
         for (const product of products) {
           const priceCents = Math.round(product.costCents * (1 + catalog.margin / 100));
+
+          const { error } = await supabase.from('products').upsert({
+            catalog_id: catalogId,
+            external_id: product.externalId,
+            supplier: 'cjdropshipping',
+            name: product.name,
+            description: product.description,
+            category: product.category,
+            cost_cents: product.costCents,
+            price_cents: priceCents,
+            image_urls: product.imageUrls,
+            variants: product.variants,
+            shipping_days_min: product.shippingDays.min,
+            shipping_days_max: product.shippingDays.max,
+            synced_at: new Date().toISOString(),
+          }, { onConflict: 'catalog_id,external_id' });
+
+          if (error) {
+            logger.error('Failed to upsert product', { name: product.name, error: error.message });
+            continue;
+          }
+
           logger.info('Synced product', { name: product.name, cost: product.costCents, price: priceCents });
           productsAdded++;
         }

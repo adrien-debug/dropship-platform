@@ -115,18 +115,21 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const addItem = useCallback((line: Omit<CartLine, 'quantity'> & { quantity?: number }) => {
     const qty = line.quantity ?? 1;
-    console.log('[CartContext] addItem called with:', line, 'qty:', qty);
     setItems(prev => {
       const i = prev.findIndex(p => p.productId === line.productId);
-      console.log('[CartContext] Previous items:', prev, 'Found index:', i);
       if (i === -1) {
-        const newItems = [...prev, { ...line, quantity: qty }];
-        console.log('[CartContext] New items after add:', newItems);
-        return newItems;
+        const newItem: CartLine = {
+          productId: line.productId,
+          name: line.name,
+          imageUrl: line.imageUrl,
+          unitPrice: line.unitPrice,
+          quantity: qty,
+        };
+        return [...prev, newItem];
       }
       const next = [...prev];
-      next[i] = { ...next[i], quantity: next[i].quantity + qty };
-      console.log('[CartContext] Updated items after increment:', next);
+      const existing = next[i]!;
+      next[i] = { ...existing, quantity: existing.quantity + qty };
       return next;
     });
   }, []);

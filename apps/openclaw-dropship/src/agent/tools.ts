@@ -5,6 +5,7 @@ import { MedusaClient } from '../services/medusa-client.js';
 import { AliExpressClient } from '../services/aliexpress-client.js';
 import { generateSiteContent, generateProductDescriptions } from './content-writer.js';
 import { normalizeKeywords, normalizeMarket, normalizePositioning } from './input-normalizer.js';
+import { logger } from '../logger.js';
 
 const GPU2_HOST = process.env['GPU2_HOST'] ?? '100.110.74.114';
 
@@ -22,7 +23,7 @@ const searchProductsHandler = async (args: Record<string, unknown>) => {
   const results: { source: string; products: unknown[] }[] = [];
 
   const normalizedKeywords = normalizeKeywords(rawKeywords);
-  console.log(`[tools:search] Normalized keywords: ${rawKeywords.join(', ')} -> ${normalizedKeywords.join(', ')}`);
+  logger.info('tools:search', `Normalized keywords: ${rawKeywords.join(', ')} -> ${normalizedKeywords.join(', ')}`);
 
   try {
     const cj = new CJClient();
@@ -54,7 +55,7 @@ const searchProductsHandler = async (args: Record<string, unknown>) => {
 
     results.push({ source: 'cj', products: filtered });
   } catch (err) {
-    console.error('[tools:search] CJ failed:', err instanceof Error ? err.message : err);
+    logger.error('tools:search', `CJ failed: ${err instanceof Error ? err.message : err}`);
   }
 
   try {
@@ -71,11 +72,11 @@ const searchProductsHandler = async (args: Record<string, unknown>) => {
           source: 'aliexpress',
         }));
         results.push({ source: 'aliexpress', products: mapped });
-        console.log(`[tools:search] AliExpress: ${mapped.length} results`);
+        logger.info('tools:search', `AliExpress: ${mapped.length} results`);
       }
     }
   } catch (err) {
-    console.error('[tools:search] AliExpress failed:', err instanceof Error ? err.message : err);
+    logger.error('tools:search', `AliExpress failed: ${err instanceof Error ? err.message : err}`);
   }
 
   try {
@@ -85,7 +86,7 @@ const searchProductsHandler = async (args: Record<string, unknown>) => {
       if (mp.length > 0) results.push({ source: 'medusa', products: mp });
     }
   } catch (err) {
-    console.error('[tools:search] Medusa failed:', err instanceof Error ? err.message : err);
+    logger.error('tools:search', `Medusa failed: ${err instanceof Error ? err.message : err}`);
   }
 
   return { total: results.reduce((s, r) => s + r.products.length, 0), results };
@@ -170,10 +171,9 @@ const createShopHandler = async (args: Record<string, unknown>) => {
       if (!res.ok) {
         const errText = await res.text().catch(() => '');
         results[stepId] = { success: false, error: `HTTP ${res.status}: ${errText.slice(0, 200)}` };
-        console.error(`[tools:create_shop] Step ${stepId} HTTP error: ${res.status}`);
-        // Break on critical failures
+        logger.error('tools:create_shop', `Step ${stepId} HTTP error: ${res.status}`);
         if (['scaffold', 'install', 'build-check'].includes(stepId)) {
-          console.error(`[tools:create_shop] Critical step ${stepId} failed — aborting`);
+          logger.error('tools:create_shop', `Critical step ${stepId} failed — aborting`);
           break;
         }
         continue;
@@ -181,20 +181,18 @@ const createShopHandler = async (args: Record<string, unknown>) => {
 
       const stepResult = await res.json() as { success: boolean; output?: string; error?: string };
       results[stepId] = stepResult;
-      console.log(`[tools:create_shop] Step ${stepId}: ${stepResult.success ? 'OK' : 'FAIL'}`);
+      logger.info('tools:create_shop', `Step ${stepId}: ${stepResult.success ? 'OK' : 'FAIL'}`);
 
-      // Break on critical failures
       if (!stepResult.success && ['scaffold', 'install', 'build-check'].includes(stepId)) {
-        console.error(`[tools:create_shop] Critical step ${stepId} failed — aborting`);
+        logger.error('tools:create_shop', `Critical step ${stepId} failed — aborting`);
         break;
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       results[stepId] = { success: false, error: msg };
-      console.error(`[tools:create_shop] Step ${stepId} failed: ${msg}`);
-      // Break on critical failures
+      logger.error('tools:create_shop', `Step ${stepId} failed: ${msg}`);
       if (['scaffold', 'install', 'build-check'].includes(stepId)) {
-        console.error(`[tools:create_shop] Critical step ${stepId} failed — aborting`);
+        logger.error('tools:create_shop', `Critical step ${stepId} failed — aborting`);
         break;
       }
     }

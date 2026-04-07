@@ -2,12 +2,9 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 const MEDUSA_URL = process.env['MEDUSA_URL'] ?? 'http://100.110.74.114:9000';
-const MEDUSA_ADMIN_EMAIL =
-  process.env['MEDUSA_ADMIN_EMAIL'] ?? 'adrien@hearstcorporation.io';
-const MEDUSA_ADMIN_PASSWORD =
-  process.env['MEDUSA_ADMIN_PASSWORD'] ?? 'Hearst0334';
-const MEDUSA_REGION_ID =
-  process.env['MEDUSA_REGION_ID'] ?? 'reg_01KNCT3QEHAN10H1R98PM3XT2B';
+const MEDUSA_ADMIN_EMAIL = process.env['MEDUSA_ADMIN_EMAIL'] ?? '';
+const MEDUSA_ADMIN_PASSWORD = process.env['MEDUSA_ADMIN_PASSWORD'] ?? '';
+const MEDUSA_REGION_ID = process.env['MEDUSA_REGION_ID'] ?? '';
 
 const CJ_BASE_URL = 'https://developers.cjdropshipping.com/api2.0/v1';
 const CJ_API_KEY = process.env['CJ_API_KEY'] ?? process.env['CJ_DROPSHIPPING_API_KEY'] ?? '';

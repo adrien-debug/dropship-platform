@@ -2,11 +2,20 @@ import cors from 'cors';
 import 'dotenv/config';
 import express from 'express';
 import helmet from 'helmet';
+import { logger } from './logger.js';
 import { healthRouter } from './routes/health.js';
 import { productSearchRouter } from './routes/product-search.js';
-import { shopCreatorRouter } from './routes/shop-creator.js';
 import { shopExecutorRouter } from './routes/shop-executor.js';
 import { agentPipelineRouter } from './routes/agent-pipeline.js';
+
+const REQUIRED_VARS = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'MEDUSA_ADMIN_EMAIL', 'MEDUSA_ADMIN_PASSWORD'];
+const missing = REQUIRED_VARS.filter(v => !process.env[v]);
+if (missing.length > 0) {
+  logger.warn('server', 'Missing recommended env vars', { missing });
+}
+if (!process.env['OPENCLAW_API_KEY']) {
+  logger.warn('server', 'OPENCLAW_API_KEY not set — /shop and /agent endpoints are unprotected');
+}
 
 const app = express();
 const PORT = parseInt(process.env['PORT'] ?? '3849', 10);
@@ -25,7 +34,6 @@ app.use(express.json({ limit: '1mb' }));
 
 app.use('/health', healthRouter);
 app.use('/products', productSearchRouter);
-app.use('/shop', apiKeyAuth, shopCreatorRouter);
 app.use('/shop', apiKeyAuth, shopExecutorRouter);
 app.use('/agent', apiKeyAuth, agentPipelineRouter);
 
@@ -34,13 +42,12 @@ app.use((_req, res) => {
 });
 
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error(`[openclaw-dropship] Unhandled error: ${err.message}`, err.stack);
+  logger.error('server', 'Unhandled error', { message: err.message, stack: err.stack });
   res.status(500).json({ error: 'Internal server error' });
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`[openclaw-dropship] Server running on port ${PORT}`);
-  console.log(`[openclaw-dropship] Health: http://localhost:${PORT}/health`);
+  logger.info('server', `Running on port ${PORT}`, { port: PORT, health: `http://localhost:${PORT}/health` });
 });
 
 export { app };

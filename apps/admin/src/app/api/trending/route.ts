@@ -42,7 +42,8 @@ async function searchCJProducts(query: string, category?: string): Promise<CJPro
     if (query) params.productNameEn = query;
     if (category) params.categoryName = category;
 
-    const res = await fetch(`${CJ_BASE_URL}/product/list`, {
+    const qs = new URLSearchParams(params).toString();
+    const res = await fetch(`${CJ_BASE_URL}/product/list?${qs}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -133,13 +134,63 @@ function generateTrendProducts(query: string, category?: string) {
     }));
 }
 
+type TrendItem = {
+  title: string;
+  image: string;
+  price: number;
+  sell_price: number;
+  supplier: string;
+  category: string;
+  trend_score: number;
+  source: string;
+  source_url: string;
+  shipping_days: string;
+};
+
+function mapCJToTrendItems(cj: CJProduct[], category?: string): TrendItem[] {
+  return cj.slice(0, 12).map((p) => {
+    const price =
+      typeof p.sellPrice === 'number'
+        ? p.sellPrice
+        : parseFloat(String(p.sellPrice ?? 0)) || 0;
+    const ship =
+      p.logisticList?.[0]?.aging ||
+      p.logisticList?.[0]?.logisticName ||
+      '5-15j';
+    const trendScore = Math.min(99, 70 + (p.pid?.length ?? 0) % 30);
+    return {
+      title: p.productNameEn,
+      image: p.productImage || '',
+      price,
+      sell_price: +(price * (1 + MARGIN)).toFixed(2),
+      supplier: 'CJ Dropshipping',
+      category: category || p.categoryName || 'general',
+      trend_score: trendScore,
+      source: 'CJ Dropshipping',
+      source_url: `https://cjdropshipping.com/search/${encodeURIComponent(p.productNameEn)}`,
+      shipping_days: ship,
+    };
+  });
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get('q') || '';
   const category = searchParams.get('category') || undefined;
 
   try {
-    const products = generateTrendProducts(query, category);
+    let products: TrendItem[] = [];
+    try {
+      const cjList = await searchCJProducts(query, category);
+      if (cjList.length > 0) {
+        products = mapCJToTrendItems(cjList, category);
+      }
+    } catch (cjErr) {
+      console.error('[trending] CJ search threw, using static fallback:', cjErr);
+    }
+    if (products.length === 0) {
+      products = generateTrendProducts(query, category) as TrendItem[];
+    }
 
     return NextResponse.json({
       products,

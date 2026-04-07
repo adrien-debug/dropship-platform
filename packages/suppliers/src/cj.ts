@@ -72,7 +72,7 @@ export class CJDropshippingClient implements SupplierClient {
 
     for (const keyword of keywords) {
       if (all.length >= limit) break;
-      const data = await this.request('GET', `/product/list?productNameEn=${encodeURIComponent(keyword)}&pageNum=1&pageSize=${Math.min(limit - all.length, 20)}`) as { list?: unknown[] };
+      const data = await this.request('GET', `/product/listV2?productNameEn=${encodeURIComponent(keyword)}&pageNum=1&pageSize=${Math.min(limit - all.length, 20)}`) as { list?: unknown[] };
       if (data?.list) {
         all.push(...data.list.map(p => this.mapProduct(p as Record<string, unknown>)));
       }
@@ -81,6 +81,35 @@ export class CJDropshippingClient implements SupplierClient {
       }
     }
     return all;
+  }
+
+  async createOrder(params: {
+    orderNumber: string;
+    shippingAddress: {
+      name: string;
+      address: string;
+      city: string;
+      country: string;
+      zip: string;
+      phone: string;
+    };
+    products: { vid: string; quantity: number }[];
+  }): Promise<{ orderId: string; orderNumber: string; status: string }> {
+    const data = await this.request('POST', '/shopping/order/createOrder', {
+      orderNumber: params.orderNumber,
+      shippingCustomerName: params.shippingAddress.name,
+      shippingAddress: params.shippingAddress.address,
+      shippingCity: params.shippingAddress.city,
+      shippingCountryCode: params.shippingAddress.country,
+      shippingZip: params.shippingAddress.zip,
+      shippingPhone: params.shippingAddress.phone,
+      products: params.products,
+    }) as { orderId: string; orderNum: string };
+    return {
+      orderId: data.orderId,
+      orderNumber: data.orderNum,
+      status: 'placed',
+    };
   }
 
   async getProduct(externalId: string): Promise<SupplierProduct | null> {

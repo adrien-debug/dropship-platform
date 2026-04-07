@@ -7,8 +7,13 @@
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://tbachsziohjydqisbfio.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const MEDUSA_URL = process.env.MEDUSA_URL || 'http://100.110.74.114:9000';
-const MEDUSA_EMAIL = process.env.MEDUSA_EMAIL || 'adrien@hearstcorporation.io';
-const MEDUSA_PASSWORD = process.env.MEDUSA_PASSWORD || 'Hearst0334';
+const MEDUSA_EMAIL = process.env.MEDUSA_EMAIL || '';
+const MEDUSA_PASSWORD = process.env.MEDUSA_PASSWORD || '';
+
+if (!MEDUSA_EMAIL || !MEDUSA_PASSWORD) {
+  console.error('[sync] MEDUSA_EMAIL and MEDUSA_PASSWORD must be set in environment');
+  process.exit(1);
+}
 const SALES_CHANNEL_ID = process.env.SALES_CHANNEL_ID || 'sc_01KNCS6CB9S8VXD9DZTVW5FN51';
 
 interface SupabaseProduct {

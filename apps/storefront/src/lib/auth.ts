@@ -1,10 +1,16 @@
 import { createHash, timingSafeEqual } from 'crypto';
 import type { NextRequest } from 'next/server';
-import type { NextAuthOptions } from 'next-auth';
+import type { NextAuthOptions, DefaultSession } from 'next-auth';
 import { getToken } from 'next-auth/jwt';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
 import { isAdmin } from './admin-check';
+
+declare module 'next-auth' {
+  interface Session {
+    user: DefaultSession['user'] & { id: string };
+  }
+}
 
 function stableIdFromEmail(email: string): string {
   return createHash('sha256').update(email.toLowerCase()).digest('hex').slice(0, 32);

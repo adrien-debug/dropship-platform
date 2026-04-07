@@ -3,6 +3,7 @@ import { CJClient } from '../services/cj-client.js';
 import { generateSiteContent, generateProductDescriptions, withRetry } from './content-writer.js';
 import { normalizePipelineInput } from './input-normalizer.js';
 import { createClient } from '@supabase/supabase-js';
+import { logger } from '../logger.js';
 
 // ─── OpenCore Config ───
 
@@ -99,7 +100,8 @@ export async function runFastPipeline(
     events.push(ev);
     onEvent?.(ev);
     const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
-    console.log(`[opencore:pipeline] [${elapsed}s] ${step}: ${status}`, detail ? JSON.stringify(detail).slice(0, 200) : '');
+    const logFn = status === 'error' ? logger.error : logger.info;
+    logFn('pipeline', `[${elapsed}s] ${step}: ${status}`, detail ? JSON.stringify(detail).slice(0, 200) : undefined);
     return ev;
   };
 
@@ -145,7 +147,7 @@ export async function runFastPipeline(
         return core.length > 0 ? core.join(' ') : kw;
       });
 
-      console.log(`[opencore:pipeline] CJ search queries: ${queries.join(', ')}`);
+      logger.info('pipeline', 'CJ search queries', { queries });
 
       const results = await Promise.all(
         queries.map(q => cj.searchProducts(q, 1, MAX_PRODUCTS).catch(() => [])),
@@ -205,7 +207,7 @@ export async function runFastPipeline(
       positioning: normalized.positioning,
       topProducts: topProductNames,
     }).catch(err => {
-      console.error(`[opencore:pipeline] Content generation failed after retries, using fallback: ${err instanceof Error ? err.message : err}`);
+      logger.error('pipeline', 'Content generation failed, using fallback', { error: err instanceof Error ? err.message : String(err) });
       return null;
     }),
 
@@ -227,7 +229,7 @@ export async function runFastPipeline(
         emit('enrich_products', 'done', { count: products.length }, 60);
         return products;
       } catch (err) {
-        console.error(`[opencore:pipeline] Product enrichment failed, using raw data: ${err instanceof Error ? err.message : err}`);
+        logger.error('pipeline', 'Product enrichment failed, using raw data', { error: err instanceof Error ? err.message : String(err) });
         emit('enrich_products', 'error', 'Falling back to raw product data', 60);
         return rawProducts.map(p => ({
           title: p.name,
@@ -416,10 +418,10 @@ export async function runFastPipeline(
               creatives: { website_url: shopUrl },
             },
           ]);
-          console.log(`[opencore:pipeline] Saved campaign drafts to Supabase`);
+          logger.info('pipeline', 'Saved campaign drafts to Supabase');
         }
       } catch (err) {
-        console.error(`[opencore:pipeline] Campaign save failed: ${err instanceof Error ? err.message : err}`);
+        logger.error('pipeline', 'Campaign save failed', { error: err instanceof Error ? err.message : String(err) });
       }
     }
 

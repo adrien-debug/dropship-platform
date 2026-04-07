@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { createClient } from '@supabase/supabase-js';
 
 const STRIPE_SECRET = process.env['STRIPE_SECRET_KEY'] ?? '';
 const SITE_URL = process.env['NEXT_PUBLIC_SITE_URL'] ?? 'http://localhost:3100';
+const SUPABASE_URL = process.env['NEXT_PUBLIC_SUPABASE_URL'] ?? '';
+const SUPABASE_KEY = process.env['SUPABASE_SERVICE_ROLE_KEY'] ?? '';
 
 export async function POST(req: NextRequest) {
   if (!STRIPE_SECRET) {
@@ -58,6 +61,26 @@ export async function POST(req: NextRequest) {
       shipping_address_collection: { allowed_countries: ['FR', 'BE', 'CH', 'DE', 'ES', 'IT', 'NL', 'PT', 'GB', 'US'] },
       ...(body.promoCode ? { metadata: { promo_code: body.promoCode } } : {}),
     });
+
+    if (SUPABASE_URL && SUPABASE_KEY) {
+      try {
+        const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+        const amountTotal = body.items.reduce(
+          (sum, item) => sum + item.unitPrice * item.quantity,
+          0,
+        ) + (body.shippingCents > 0 ? body.shippingCents / 100 : 0);
+
+        await supabase.from('clawd_crm_orders').insert({
+          amount_total: amountTotal,
+          currency: 'EUR',
+          status: 'pending',
+          external_ref: session.id,
+          placed_at: new Date().toISOString(),
+        });
+      } catch (orderErr) {
+        console.error('[checkout] Order record creation failed:', orderErr instanceof Error ? orderErr.message : orderErr);
+      }
+    }
 
     return NextResponse.json({ url: session.url });
   } catch (err) {

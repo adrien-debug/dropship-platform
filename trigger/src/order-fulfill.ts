@@ -1,5 +1,11 @@
 import { task, logger } from '@trigger.dev/sdk/v3';
+import { createClient } from '@supabase/supabase-js';
 import { CJDropshippingClient } from '@dropship/suppliers';
+
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+);
 
 export const orderFulfill = task({
   id: 'order-fulfill',
@@ -24,16 +30,29 @@ export const orderFulfill = task({
       const cjKey = process.env.CJ_DROPSHIPPING_API_KEY;
       if (!cjKey) throw new Error('CJ API key not configured');
 
-      logger.info('CJ order fulfillment initiated', {
+      const client = new CJDropshippingClient({ apiKey: cjKey });
+
+      const result = await client.createOrder({
+        orderNumber: payload.orderId,
+        shippingAddress: payload.shippingAddress,
+        products: [{ vid: payload.externalProductId, quantity: payload.quantity }],
+      });
+
+      await supabase.from('orders').update({
+        supplier_order_id: result.orderId,
+        fulfillment_status: result.status,
+        fulfilled_at: new Date().toISOString(),
+      }).eq('id', payload.orderId);
+
+      logger.info('CJ order placed', {
         orderId: payload.orderId,
-        productId: payload.externalProductId,
-        quantity: payload.quantity,
+        supplierOrderId: result.orderId,
       });
 
       return {
-        status: 'pending',
+        status: result.status,
         supplier: 'cjdropshipping',
-        message: 'Order submitted to CJ Dropshipping',
+        supplierOrderId: result.orderId,
       };
     }
 
