@@ -2,9 +2,10 @@
 
 import { useCart } from '@/context/cart-context';
 import { formatEur } from '@/lib/money';
+import { trackBeginCheckout } from '@/lib/analytics';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function CheckoutPage() {
   const { items, subtotal, discountEur, shippingEurFor, totalFor, promoCode, clearCart } = useCart();
@@ -13,6 +14,13 @@ export default function CheckoutPage() {
   const router = useRouter();
 
   const shippingCents = Math.round(shippingEurFor('standard') * 100);
+
+  useEffect(() => {
+    if (items.length > 0) {
+      trackBeginCheckout(totalFor('standard'), 'EUR');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleCheckout() {
     if (items.length === 0) return;

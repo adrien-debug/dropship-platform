@@ -4,6 +4,7 @@ import { generateSiteContent, generateProductDescriptions, withRetry } from './c
 import { normalizePipelineInput } from './input-normalizer.js';
 import { createClient } from '@supabase/supabase-js';
 import { logger } from '../logger.js';
+import { JobTracker } from '@dropship/core';
 
 // ─── OpenCore Config ───
 
@@ -49,10 +50,16 @@ function slugify(text: string): string {
     .slice(0, 40);
 }
 
+function toAdminPositioning(positioning: 'budget' | 'mid' | 'premium'): 'Budget' | 'Milieu de gamme' | 'Premium' {
+  if (positioning === 'budget') return 'Budget';
+  if (positioning === 'premium') return 'Premium';
+  return 'Milieu de gamme';
+}
+
 function fallbackSiteContent(niche: string, market: string): SiteContent {
   const primary = niche.split(',')[0].trim();
   const brandName = primary.charAt(0).toUpperCase() + primary.slice(1) + ' Store';
-  const region = market === 'US' ? 'the US' : market === 'EU' ? 'Europe' : 'France';
+  const region = market === 'US' ? 'the US' : market === 'EU' ? 'Europe' : market === 'WORLD' ? 'worldwide' : 'France';
 
   return {
     brand: {
@@ -95,6 +102,25 @@ export async function runFastPipeline(
   const t0 = Date.now();
   const events: PipelineEvent[] = [];
 
+  // ── Job tracking (optional — skipped if SUPABASE_URL absent) ──
+  let tracker: JobTracker | null = null;
+  if (SUPABASE_URL && SUPABASE_KEY) {
+    try {
+      tracker = new JobTracker(createClient(SUPABASE_URL, SUPABASE_KEY));
+      await tracker.createJob('store_create', 'openclaw', {
+        keywords: input.keywords,
+        market: input.market,
+        positioning: input.positioning,
+      });
+      await tracker.startJob();
+    } catch (err) {
+      logger.error('pipeline', 'JobTracker init failed (continuing without tracking)', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+      tracker = null;
+    }
+  }
+
   const emit = (step: string, status: PipelineEvent['status'], detail?: unknown, progress?: number) => {
     const ev: PipelineEvent = { step, status, detail, progress, timestamp: Date.now() };
     events.push(ev);
@@ -102,17 +128,26 @@ export async function runFastPipeline(
     const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
     const logFn = status === 'error' ? logger.error : logger.info;
     logFn('pipeline', `[${elapsed}s] ${step}: ${status}`, detail ? JSON.stringify(detail).slice(0, 200) : undefined);
+    if (tracker) {
+      const message = typeof detail === 'string' ? detail : undefined;
+      const payload = detail && typeof detail === 'object' ? (detail as Record<string, unknown>) : undefined;
+      tracker.event(step, status, message, payload, progress).catch(() => undefined);
+      if (progress !== undefined) tracker.updateStep(step, progress).catch(() => undefined);
+    }
     return ev;
   };
 
   const fail = (step: string, detail: unknown): PipelineResult => {
     emit(step, 'error', detail);
+    if (tracker) {
+      tracker.failJob(typeof detail === 'string' ? detail : JSON.stringify(detail)).catch(() => undefined);
+    }
     return { success: false, events, duration_ms: Date.now() - t0 };
   };
 
   // ── Step 0: Input validation ──
 
-  let normalized: { keywords: string[]; market: 'FR' | 'EU' | 'US'; positioning: 'budget' | 'mid' | 'premium' };
+  let normalized: { keywords: string[]; market: 'FR' | 'EU' | 'US' | 'WORLD'; positioning: 'budget' | 'mid' | 'premium' };
   try {
     normalized = normalizePipelineInput({
       keywords: input.keywords,
@@ -153,16 +188,13 @@ export async function runFastPipeline(
         queries.map(q => cj.searchProducts(q, 1, MAX_PRODUCTS).catch(() => [])),
       );
 
-      const flat = results.flat().map(p => {
-        const raw = p as unknown as Record<string, unknown>;
-        return {
-          id: String(raw.pid ?? ''),
-          name: String(raw.productNameEn ?? ''),
-          image: String(raw.productImage ?? ''),
-          price_usd: Number(raw.sellPrice ?? 0),
-          category: String(raw.categoryName ?? 'General'),
-        };
-      }).filter(p => p.name && p.price_usd > 0);
+      const flat = results.flat().map(p => ({
+        id: p.externalId,
+        name: p.name,
+        image: p.imageUrls[0] ?? '',
+        price_usd: p.costCents / 100,
+        category: p.category ?? 'General',
+      })).filter(p => p.name && p.price_usd > 0);
 
       if (flat.length === 0) throw new Error('No products returned from CJ');
 
@@ -252,7 +284,7 @@ export async function runFastPipeline(
 
   emit('generate_content', 'done', { brand: siteContent.brand.name, source: contentSource }, 65);
 
-  // ── Step 3: Create shop via launcher ──
+  // ── Step 3: Create shop via full admin pipeline ──
 
   emit('create_shop', 'running', undefined, 70);
 
@@ -261,19 +293,64 @@ export async function runFastPipeline(
   const port = 3101 + Math.floor(Math.random() * 90);
 
   try {
-    const launcherBody = {
-      projectName: shopName,
-      niche,
-      outputDir: `~/sites/${shopSlug}`,
-      designSystem,
-      siteContent,
-      products: enrichedProducts,
+    const setupRes = await fetch(`${ADMIN_URL}/api/shops/setup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: shopName,
+        slug: shopSlug,
+        port,
+        niche,
+        market: normalized.market,
+        positioning: toAdminPositioning(normalized.positioning),
+        designSystem,
+        productCount: enrichedProducts.length,
+        products: enrichedProducts,
+      }),
+      signal: AbortSignal.timeout(120_000),
+    });
+
+    if (!setupRes.ok) {
+      const errBody = await setupRes.text().catch(() => '');
+      return fail('create_shop', `Setup HTTP ${setupRes.status}: ${errBody.slice(0, 200)}`);
+    }
+
+    const setupData = await setupRes.json() as {
+      siteId?: string;
+      salesChannelId?: string;
+      publishableKey?: string;
+      regionId?: string;
+      importedProducts?: Array<{
+        id: string;
+        title: string;
+        handle: string;
+        image: string;
+        category: string;
+        price: number;
+      }>;
     };
+    const siteId = setupData.siteId ?? '';
 
     const res = await fetch(`${ADMIN_URL}/api/launcher/stream`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(launcherBody),
+      body: JSON.stringify({
+        config: {
+          projectName: shopName,
+          niche,
+          outputDir: `~/sites/${shopSlug}`,
+          designSystem,
+          port,
+          market: normalized.market,
+          positioning: toAdminPositioning(normalized.positioning),
+          siteId: setupData.siteId,
+          salesChannelId: setupData.salesChannelId,
+          publishableKey: setupData.publishableKey,
+          regionId: setupData.regionId,
+          importedProducts: setupData.importedProducts ?? [],
+          tagline: siteContent.brand.tagline,
+        },
+      }),
       signal: AbortSignal.timeout(SHOP_TIMEOUT_MS),
     });
 
@@ -285,7 +362,7 @@ export async function runFastPipeline(
     const reader = res.body?.getReader();
     const decoder = new TextDecoder();
     let siteUrl = '';
-    let siteId = '';
+    let pipelineError = '';
 
     if (reader) {
       let buffer = '';
@@ -301,15 +378,20 @@ export async function runFastPipeline(
           if (!line.startsWith('data: ')) continue;
           try {
             const data = JSON.parse(line.slice(6));
-            if (data.step === 'launch' && data.status === 'done') {
-              siteUrl = data.detail?.url || `http://${GPU2_HOST}:${port}`;
+            if (typeof data.detail === 'string') {
+              const match = data.detail.match(/https?:\/\/[^\s]+/);
+              if (match) siteUrl = match[0];
             }
-            if (data.step === 'complete' && data.status === 'done') {
-              siteId = data.detail?.site_id || '';
+            if (data.step === 'pipeline' && data.status === 'error') {
+              pipelineError = String(data.detail ?? 'Launcher pipeline failed');
             }
           } catch {}
         }
       }
+    }
+
+    if (pipelineError) {
+      return fail('create_shop', pipelineError);
     }
 
     const shopUrl = siteUrl || `http://${GPU2_HOST}:${port}`;
@@ -427,26 +509,34 @@ export async function runFastPipeline(
 
     // ── Complete ──
 
-    emit('pipeline_complete', 'done', {
+    const completeDetail = {
       shop: shopName,
       url: shopUrl,
       products: enrichedProducts.length,
       design: designSystem,
       content_source: contentSource,
       healthy,
-    }, 100);
+    };
+
+    emit('pipeline_complete', 'done', completeDetail, 100);
+
+    const shopData = {
+      name: shopName,
+      slug: shopSlug,
+      url: shopUrl,
+      site_id: setupData.siteId ?? '',
+      sales_channel_id: setupData.salesChannelId ?? '',
+      products_created: enrichedProducts.length,
+      design_system: designSystem,
+    };
+
+    if (tracker) {
+      await tracker.completeJob({ ...completeDetail, shop_data: shopData }).catch(() => undefined);
+    }
 
     return {
       success: true,
-      shop: {
-        name: shopName,
-        slug: shopSlug,
-        url: shopUrl,
-        site_id: siteId,
-        sales_channel_id: '',
-        products_created: enrichedProducts.length,
-        design_system: designSystem,
-      },
+      shop: shopData,
       marketing: marketingResult,
       events,
       duration_ms: Date.now() - t0,

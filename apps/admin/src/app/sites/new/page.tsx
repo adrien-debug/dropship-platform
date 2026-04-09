@@ -104,7 +104,7 @@ export default function NewSiteWizard() {
   }, [step, data]);
 
   const startDeploy = async () => {
-    setStep(4);
+    setStep(5);
     setDeployError('');
     setDeployLogs([]);
     const statuses: Record<string, 'pending' | 'running' | 'done' | 'error'> =
@@ -183,7 +183,16 @@ export default function NewSiteWizard() {
         pipeline: 'deploy',
       };
 
+      const CLIENT_TIMEOUT_MS = 20 * 60 * 1000;
+      const clientDeadline = Date.now() + CLIENT_TIMEOUT_MS;
+
       while (true) {
+        if (Date.now() > clientDeadline) {
+          reader.cancel().catch(() => undefined);
+          setDeployError('Déploiement trop long (>20 min), vérifiez les logs');
+          addLog('TIMEOUT: Déploiement trop long (>20 min), vérifiez les logs serveur');
+          break;
+        }
         const { done, value } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
@@ -211,7 +220,10 @@ export default function NewSiteWizard() {
 
             if (evt.step === 'pipeline' && evt.status === 'done') {
               DEPLOY_STEPS.forEach(s => updateStep(s.id, 'done'));
-              setDeployedUrl(`http://100.110.74.114:${data.port}`);
+              const match = typeof evt.detail === 'string'
+                ? evt.detail.match(/https?:\/\/[^\s]+/)
+                : null;
+              setDeployedUrl(match?.[0] ?? `http://100.110.74.114:${data.port}`);
             }
             if (evt.step === 'pipeline' && evt.status === 'error') {
               setDeployError(String(evt.detail || 'Pipeline failed'));
@@ -975,12 +987,22 @@ function StepDeploy({
 
       {logs.length > 0 && (
         <div>
-          <button
-            onClick={() => setShowLogs(v => !v)}
-            className="text-xs text-gray-500 hover:text-gray-700"
-          >
-            {showLogs ? '▼ Masquer les logs' : '▶ Voir les logs'}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowLogs(v => !v)}
+              className="text-xs text-gray-500 hover:text-gray-700"
+            >
+              {showLogs ? '▼ Masquer les logs' : '▶ Voir les logs'}
+            </button>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(logs.join('\n')).catch(() => undefined);
+              }}
+              className="text-xs text-gray-500 hover:text-gray-700 underline"
+            >
+              Copier les logs
+            </button>
+          </div>
           {showLogs && (
             <pre className="mt-2 max-h-48 overflow-y-auto rounded-lg bg-gray-900 p-3 text-xs text-green-400">
               {logs.join('\n')}

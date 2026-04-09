@@ -2,6 +2,28 @@
 
 Multi-site dropshipping platform — Turborepo monorepo.
 
+---
+
+## 🎯 AUDIT GLOBAL (8 avril 2026)
+
+**5 agents en parallèle, 45 minutes, tests runtime réels**
+
+**SCORE GLOBAL: 7.2/10**
+
+| Composant | Score | Bugs P0 | Documentation |
+|-----------|-------|---------|---------------|
+| Launcher/Templates | 10/10 | 0 | `packages/launcher/INDEX.md` |
+| Admin API | 7/10 | 5 | `AUDIT-API-REPORT.md` |
+| Database | 7/10 | 5 | `database-audit-report.md` |
+| Suppliers | 6/10 | 2 | `SUPPLIER_AUDIT_INDEX.md` |
+| Infrastructure | 6/10 | 5 | `AUDIT-INFRASTRUCTURE.md` |
+
+**RAPPORT COMPLET:** `AUDIT-GLOBAL-FINAL.md`
+
+**14 bugs critiques identifiés, plan d'action détaillé fourni.**
+
+---
+
 ## Architecture
 
 ```
@@ -28,7 +50,9 @@ GPU1 (100.88.191.49)
 Supabase (managed)
 ├── sites, catalogs, campaigns, sync_logs
 ├── clawd_crm_customers, clawd_crm_orders, clawd_crm_addresses
-└── contact_messages, newsletter_subscribers
+├── contact_messages, newsletter_subscribers
+├── products, build_queue, jobs, campaign_reports
+└── [Audit: database-audit-report.md]
 ```
 
 ## Monorepo
@@ -43,8 +67,9 @@ apps/
 packages/
   core/               Shared types & DTOs
   ui/                 Shared React components
-  suppliers/          CJ Dropshipping, Shopify, AliExpress
+  suppliers/          CJ Dropshipping, Shopify, AliExpress [Audit: SUPPLIER_AUDIT_REPORT.md]
   ai/                 vLLM + ComfyUI
+  launcher/           Codegen, 6 templates, LLM parallelization [Audit: AUDIT-FINAL.md]
   design-systems/     10 design systems
   marketing/          Google Ads & Meta
   deploy/             Deploy utilities
@@ -56,6 +81,8 @@ prompts/
 scripts/
   deploy-storefront.sh          Deploy storefront on GPU2
   sync-products-to-medusa.ts    Sync Supabase → Medusa
+  setup-golden-template.sh      Pre-install golden template on GPU2
+  prewarm-slots.sh              Pre-warm N deploy slots on GPU2
 ```
 
 ## Public URLs
@@ -98,7 +125,7 @@ Express backend sur GPU2:3849.
 
 | Endpoint | Description |
 |----------|-------------|
-| `GET /health` | Health check (medusa, cj, supabase) |
+| `GET /health` | Health check (medusa, cj, aliexpress, supabase) |
 | `GET /products/search?q=...&supplier=cj\|medusa\|all` | Recherche produits fournisseurs |
 | `POST /shop/execute` | Exécuter pipeline complet (sales channel + produits + deploy) |
 | `POST /agent/pipeline` | **Pipeline A-Z** (SSE) — mots-clés → site live + marketing |
@@ -117,6 +144,7 @@ La pipeline accepte maintenant des inputs utilisateur flexibles :
 - `"france"`, `"fr"`, `"français"` → `FR`
 - `"europe"`, `"eu"` → `EU`
 - `"usa"`, `"us"`, `"america"` → `US`
+- `"mondial"`, `"world"`, `"global"`, `"international"` → `WORLD`
 
 **Positioning :**
 - `"pas cher"`, `"cheap"`, `"budget"` → `budget`
@@ -350,6 +378,65 @@ Next.js site generator with live logs and GPU2 deploy.
 - [ ] Marketing package (`packages/marketing/`) — need API keys + real test
 - [ ] CI/CD pipeline (GitHub Actions for build + type-check)
 
+**Done (April 8 — Full runtime audit + Railway + GPU2 deploy + Launcher audit):**
+- [x] All TypeScript packages compile clean (admin, launcher, suppliers)
+- [x] All 20 API routes tested runtime (200/correct JSON)
+- [x] All 6 templates tested (suggestTemplate, generateFromTemplate, generateFromTemplateFast)
+- [x] Catalog sync tested live (20 CJ products imported)
+- [x] Site clone tested live (new site ID returned)
+- [x] Product import tested live (Supabase upsert confirmed)
+- [x] Auth flow tested (Supabase JWT, dp_session cookie)
+- [x] Build queue graceful fallback when migration pending
+- [x] TS fix: `coreWords[0]?.length` in shops/setup
+- [x] TS fix: build_queue queue/process PGRST205 guard
+- [x] `build_queue` migration applied via `supabase db push` — table live, queue POST/GET confirmed working
+- [x] Railway CLI connected (`railway whoami` OK)
+- [x] Railway project linked (`dropship-backend-backup`)
+- [x] `.railwayignore` created (node_modules, .next, .turbo excluded)
+- [x] `railway.json` created (Turborepo build config)
+- [x] Railway deployment initiated (build cd8d2156 in progress)
+- [x] Admin GPU2 deployed (build + rsync + restart)
+- [x] Admin GPU2 live at https://admin.hearst.app (Cloudflare Tunnel)
+- [x] `/api/health` returns 9 services UP (Medusa, vLLM, ComfyUI, Supabase, Coolify)
+- [x] `/api/sites` returns `{"sites":[]}` with valid auth cookie
+- [x] **Launcher audit complet** — 6 templates validés, benchmarks 3 modes, vLLM testé (voir `packages/launcher/AUDIT-FINAL.md`)
+- [x] Template + LLM mode: 100% succès, 3s génération, recommandé production
+- [x] Full LLM mode: 50% timeout (8min), non recommandé
+- [x] 24 pages test générées (`packages/launcher/test-output/`)
+- [ ] Railway deployment BLOCKED — build stuck >10min (using GPU2 as primary)
+
+**Done (April 7 — Revolution Admin Platform):**
+- [x] Command Palette (Cmd+K) — global search, navigation, product search, quick actions
+- [x] Product Import page (`/products/import`) — from Discover → Supabase + Medusa with margin slider
+- [x] Parallel Medusa product import (concurrency=5) in shops/setup
+- [x] Real-time Dashboard — 6 live stats, revenue estimates, last syncs, quick-create input
+- [x] LLM parallelized — 4 pages generated concurrently after brand brief (was sequential)
+- [x] 6 pre-compiled templates (anime, luxury, streetwear, beauty, tech, general) — 1 LLM call instead of 9
+- [x] Golden build cache — GPU2 pre-installed template, incremental deploy
+- [x] Site cloning — duplicate button on sites page (clones site + products + catalogs)
+- [x] Multi-supplier — AliExpress integrated into trending search + catalog sync (parallel with CJ)
+- [x] Build queue — `build_queue` table, queue API, process worker, concurrent builds (max 3)
+- [x] Batch site creator (`/sites/batch`) — CSV upload, auto-generator, preset niches
+- [x] Pre-warm deploy slots — scripts + API for GPU2 slot management
+
+**Done (April 7 — agent audit fixes):**
+- [x] DB migration: `products` table extended (site_id, catalog_id, external_id, supplier, cost_cents, variants, shipping_days_min/max, synced_at) + unique index `(catalog_id, external_id)`
+- [x] Catalog sync (`/api/catalogs/[id]/sync`) now upserts products to Supabase (was count-only)
+- [x] Fixed `last_synced` → `last_sync_at` column name mismatch in catalog sync
+- [x] Fixed `OPENCLAW_URL` default from hardcoded GPU2 IP → `localhost:3849`
+- [x] Added `WORLD` market support (input-normalizer, pipeline, agents UI)
+- [x] Consolidated CJ client: openclaw now wraps `@dropship/suppliers.CJDropshippingClient` (single implementation)
+- [x] Fixed 3 TS errors in `launcher/test-step` (medusaUrl/medusaPubKey/medusaRegionId scoping)
+- [x] sync_logs table extended (site_id, product_count columns)
+- [x] CJ client v2 response parsing fixed (`content[].productList[]`, price ranges `"0.26 -- 0.52"`, v2 field names `nameEn/bigImage/id`)
+- [x] Unique constraint `(catalog_id, external_id)` for product upserts (replaces broken partial index)
+- [x] Admin Products page now reads from Supabase (was proxying to storefront API)
+- [x] Admin Products page shows supplier, cost, margin, shipping, sync date
+- [x] Admin Catalogs page: sync button with feedback (loading, result count, errors)
+- [x] Trending route migrated to shared `CJDropshippingClient` (was using broken `/api/2.0/product/list`)
+- [x] Shops/setup route: fixed price parsing for CJ string ranges
+- [x] Trigger product-sync: accepts both `cj` and `cjdropshipping` supplier values
+
 **Done (April 7 remediation):**
 - [x] Stripe checkout → order records in Supabase (`clawd_crm_orders`)
 - [x] Stripe webhook endpoint (`/api/webhooks/stripe`) — signature verification + order status update
@@ -371,12 +458,95 @@ Next.js site generator with live logs and GPU2 deploy.
 - [x] Auth middleware protects launcher/agents endpoints
 - [x] Structured logging standardized across openclaw-dropship
 - [x] Dead code cleaned (6 files removed)
+- [x] OpenClaw create-shop now uses the full admin pipeline (`/api/shops/setup` → `/api/launcher/stream`) instead of launcher test steps
+- [x] `shops/setup` accepts provided OpenClaw products for Medusa import, avoiding a second CJ-only sourcing pass
+
+## Pipeline Health Dashboard
+
+Page admin : **`/pipeline`** — diagnostique tous les services avant lancement.
+
+13 services monitorés avec LEDs temps réel :
+
+| Catégorie | Services |
+|-----------|----------|
+| Commerce | Medusa, Supabase |
+| AI / LLM | vLLM GPU1, vLLM GPU1 Fast, ComfyUI, OpenClaw API |
+| Infra | GPU1 Backend, Redis, PostgreSQL |
+| Deploy | Medusa Admin UI, GPU2 SSH |
+| Suppliers | CJ Dropshipping, AliExpress |
+
+Accessible aussi via **Cmd+K → "Pipeline Health"**.
+
+## Database Audit
+
+**Rapport complet:** `database-audit-report.md`
+
+### Résumé
+- **Supabase:** 19 tables, 10 migrations appliquées, RLS activé
+- **Medusa:** 132 tables, 4 produits, 20 variants
+- **Tests CRUD:** ✅ Tous passés (INSERT, UPDATE, DELETE)
+- **⚠️ Issues:** 5 migrations manquantes, 0 produits synchronisés, 1 index manquant
+
+### Actions prioritaires
+1. Créer migrations pour `customers`, `orders`, `discount_codes`, `mining_layouts`
+2. Ajouter index sur `products.site_id`
+3. Synchroniser produits Medusa → Supabase
+
+## Supplier API Reference
+
+### CJ Dropshipping
+
+**Auth** : 2 étapes — d'abord `getAccessToken` avec la clé API, ensuite utiliser le `accessToken` retourné.
+
+```bash
+# 1. Obtenir un access token (valable ~14 jours)
+curl -X POST https://developers.cjdropshipping.com/api2.0/v1/authentication/getAccessToken \
+  -H "Content-Type: application/json" \
+  -d '{"apiKey":"$CJ_DROPSHIPPING_API_KEY"}'
+
+# 2. Appeler l'API avec le token
+curl https://developers.cjdropshipping.com/api2.0/v1/product/listV2?productNameEn=bag&pageNum=1&pageSize=5 \
+  -H "CJ-Access-Token: $ACCESS_TOKEN"
+```
+
+**Env var** : `CJ_DROPSHIPPING_API_KEY` (format `CJxxxxxxx@api@xxxxx`)
+**Code** : `packages/suppliers/src/cj.ts` → `CJDropshippingClient`
+**Ne jamais** envoyer `CJ_DROPSHIPPING_API_KEY` directement comme `CJ-Access-Token` — c'est la clé d'auth, pas le token.
+
+### AliExpress
+
+**Auth** : HMAC-SHA256 signature sur chaque requête.
+
+```bash
+# Le client signe automatiquement — pas de token séparé
+# Utiliser le client TypeScript :
+import { getAliExpressClient } from '@dropship/suppliers';
+const client = getAliExpressClient(); // lit ALIEXPRESS_APP_KEY + ALIEXPRESS_APP_SECRET
+await client.searchProducts(['anime figurine'], { limit: 10 });
+```
+
+**Env vars** : `ALIEXPRESS_APP_KEY`, `ALIEXPRESS_APP_SECRET`
+**Code** : `packages/suppliers/src/aliexpress.ts` → `AliExpressClient`
+**API** : `https://api-sg.aliexpress.com/sync` (affiliate API)
+
+### Env synchronisation
+
+La bonne clé doit être dans **tous** les `.env` qui en ont besoin :
+
+| Env var | Fichiers |
+|---------|----------|
+| `CJ_DROPSHIPPING_API_KEY` | `.env.local` (root), `apps/admin/.env.local` |
+| `CJ_API_KEY` | `apps/openclaw-dropship/.env` |
+| `ALIEXPRESS_APP_KEY` | `.env.local` (root), `apps/openclaw-dropship/.env` |
+| `ALIEXPRESS_APP_SECRET` | `.env.local` (root), `apps/openclaw-dropship/.env` |
+
+`CJ_API_KEY` et `CJ_DROPSHIPPING_API_KEY` sont la même valeur — le client OpenClaw lit les deux (`CJ_API_KEY ?? CJ_DROPSHIPPING_API_KEY`).
 
 ## Env Vars
 
 Required in `.env` / `.env.local`:
 - `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
-- `CJ_DROPSHIPPING_API_KEY`
+- `CJ_DROPSHIPPING_API_KEY` (voir section Supplier API Reference)
 - `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
 - `MEDUSA_PUBLISHABLE_KEY`, `MEDUSA_ADMIN_EMAIL`, `MEDUSA_ADMIN_PASSWORD`, `MEDUSA_URL` (admin server: POST/DELETE `/api/products` → Medusa Admin API, JWT cached 1h; GET still proxies storefront)
 - Admin `/api/trending`: CJ `product/list` when `CJ_DROPSHIPPING_API_KEY` works, else static `generateTrendProducts` fallback
@@ -385,12 +555,28 @@ Required in `.env` / `.env.local`:
 - `VLLM_GPU1_URL` (default: `http://100.88.191.49:8000/v1`)
 - `VLLM_API_KEY` (default: `vllm-local-key`)
 - `OPENAI_API_KEY` (optional — fallback cloud quand vLLM est injoignable)
+- `LLM_MODE` (default: not set — `local` bypasses LLM calls with deterministic mock content)
 - `LLM_FALLBACK_MODEL` (default: `gpt-4o-mini`)
 - `STRIPE_WEBHOOK_SECRET` (webhook endpoint: `/api/webhooks/stripe`)
 - `ONEPEACE_JWT_SECRET` (customer auth JWT signing, min 16 chars)
 - `COOLIFY_URL`, `COOLIFY_TOKEN`
-- `ALIEXPRESS_APP_KEY`, `ALIEXPRESS_APP_SECRET`
+- `ALIEXPRESS_APP_KEY`, `ALIEXPRESS_APP_SECRET` (voir section Supplier API Reference)
 - `GOOGLE_ADS_*`, `META_ACCESS_TOKEN` (for marketing)
+
+## Product Scout Agent
+
+`GET /products/scout?niche=...&market=FR&limit=20&minMargin=1.5` (OpenClaw — port 3849)
+
+Sources de données :
+- **Trend Seed DB 2026** — 25+ produits tendance curés (wellness, home decor, kitchen, fitness, pet, car) avec scoring `hot`/`rising`/`stable`
+- **CJ Dropshipping** — recherche via `product/list` (v1, keyword filtering OK)
+- **AliExpress** — affiliate API
+- **PPSPY** — Shopify bestsellers (si `PPSPY_API_KEY` configuré)
+- **Exa Search** — trend signals web en temps réel (si `EXA_API_KEY` configuré)
+
+Scoring (0-100) : margin (30) + price sweet spot (25) + images (15) + shipping speed (15) + trend match (25) + proven seller bonus (15 PPSPY)
+
+Env vars optionnelles : `PPSPY_API_KEY`, `EXA_API_KEY`
 
 ## Notes
 

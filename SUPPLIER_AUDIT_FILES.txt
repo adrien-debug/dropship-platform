@@ -1,0 +1,31 @@
+# Fichiers générés par l'audit des fournisseurs (8 avril 2026)
+
+## Documentation (à commit)
+SUPPLIER_AUDIT_INDEX.md           - Index principal
+SUPPLIER_EXECUTIVE_SUMMARY.md     - Résumé exécutif (5 min)
+SUPPLIER_AUDIT_REPORT.md          - Rapport complet (20 min)
+SUPPLIER_BUGS_AND_FIXES.md        - Bugs et correctifs détaillés
+HOW_TO_TEST_SUPPLIERS.md          - Guide de test en runtime
+
+## Données de test (à commit pour référence)
+supplier-audit-report.json        - Résultats de test JSON
+cj-product-phone-case.json        - Exemple produit CJ
+cj-product-wireless-earbuds.json  - Exemple produit CJ
+cj-product-smart-watch.json       - Exemple produit CJ
+cj-product-detail.json            - Détails complets produit CJ
+router-products.json              - 20 produits du SupplierRouter
+
+## Fichiers modifiés
+packages/suppliers/src/aliexpress.ts  - Fix signature + error handling
+README.md                             - Ajout référence audit
+
+## Fichiers temporaires (ne pas commit)
+test-suppliers.ts                 - Script de test (peut être gardé)
+test-*.ts                         - Scripts de debug (supprimés)
+
+## Total
+- 5 fichiers de documentation (45K)
+- 6 fichiers de données de test (30K)
+- 2 fichiers de code modifiés
+- 1 fichier temporaire optionnel
+

@@ -15,7 +15,7 @@ interface PipelineEvent {
   timestamp: number;
 }
 
-const OPENCLAW_URL = process.env.NEXT_PUBLIC_OPENCLAW_URL || 'http://100.110.74.114:3849';
+const OPENCLAW_URL = process.env.NEXT_PUBLIC_OPENCLAW_URL || 'http://localhost:3849';
 
 const PRESETS = [
   { label: 'Idées produits', prompt: 'Suggère des catégories de produits tendance pour une nouvelle boutique dropshipping' },
@@ -56,7 +56,7 @@ function getStepLabel(step: string): string {
 
 function PipelinePanel() {
   const [keywords, setKeywords] = useState(['', '']);
-  const [market, setMarket] = useState<'FR' | 'EU' | 'US'>('US');
+  const [market, setMarket] = useState<'FR' | 'EU' | 'US' | 'WORLD'>('US');
   const [positioning, setPositioning] = useState<'budget' | 'mid' | 'premium'>('mid');
   const [running, setRunning] = useState(false);
   const [events, setEvents] = useState<PipelineEvent[]>([]);
@@ -163,6 +163,7 @@ function PipelinePanel() {
             <option value="US">USA</option>
             <option value="EU">Europe</option>
             <option value="FR">France</option>
+            <option value="WORLD">Mondial</option>
           </select>
           <select value={positioning} onChange={e => setPositioning(e.target.value as typeof positioning)}
             className="rounded-lg border px-3 py-2 text-sm" disabled={running}>

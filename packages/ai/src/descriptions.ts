@@ -57,16 +57,22 @@ export async function generateSEOMeta(product: {
   }
 }
 
+const BATCH_SIZE = 5;
+const BATCH_DELAY_MS = 200;
+
 export async function generateBatchDescriptions(products: {
   name: string;
   category: string;
   costCents: number;
 }[]): Promise<string[]> {
   const results: string[] = [];
-  for (const product of products) {
-    const desc = await generateProductDescription(product);
-    results.push(desc);
-    await new Promise(r => setTimeout(r, 200));
+  for (let i = 0; i < products.length; i += BATCH_SIZE) {
+    const batch = products.slice(i, i + BATCH_SIZE);
+    const batchResults = await Promise.all(batch.map(p => generateProductDescription(p)));
+    results.push(...batchResults);
+    if (i + BATCH_SIZE < products.length) {
+      await new Promise(r => setTimeout(r, BATCH_DELAY_MS));
+    }
   }
   return results;
 }

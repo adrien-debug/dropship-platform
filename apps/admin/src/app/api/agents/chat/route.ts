@@ -49,9 +49,13 @@ export async function POST(req: NextRequest) {
       ? (process.env.VLLM_FAST_MODEL ?? 'Qwen/Qwen2.5-Coder-7B-Instruct-AWQ')
       : (process.env.VLLM_MODEL ?? 'Qwen/Qwen2.5-Coder-32B-Instruct-AWQ');
 
+    // Keep last 10 messages to cap context size (avoid O(n²) token growth)
+    const MAX_HISTORY = 10;
+    const trimmedMessages = messages.slice(-MAX_HISTORY);
+
     const fullMessages: ChatMessage[] = [
       { role: 'system', content: SYSTEM_PROMPT },
-      ...messages,
+      ...trimmedMessages,
     ];
 
     const vllmRes = await fetch(`${baseUrl}/chat/completions`, {

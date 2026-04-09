@@ -1,0 +1,23 @@
+{
+  "externalId": "2604070852581613200",
+  "name": "Wireless Remote-Controlled Male Telescopic Prostate Massager",
+  "description": "Wireless Remote-Controlled Male Telescopic Prostate Massager",
+  "costCents": 1227,
+  "category": "Adult Wellness",
+  "imageUrls": [
+    "https://oss-cf.cjdropshipping.com/product/2026/04/07/08/aabfbe8b-5174-4011-9757-3e502d6583b6.jpg"
+  ],
+  "variants": [
+    {
+      "sku": "CJYD2822294",
+      "name": "Wireless Remote-Controlled Male Telescopic Prostate Massager",
+      "costCents": 1227,
+      "stock": 999,
+      "attributes": {}
+    }
+  ],
+  "shippingDays": {
+    "min": 15,
+    "max": 30
+  }
+}

@@ -1,4 +1,5 @@
 import { llmComplete } from './llm';
+import { suggestTemplate, generateFromTemplate, getTemplate, type TemplateVars } from './templates';
 
 export interface EcommercePageConfig {
   pageName: string;
@@ -70,10 +71,12 @@ export async function generateEcommerceCopy(
   page: EcommercePageConfig,
   brandBrief: string,
 ): Promise<string> {
+  // Limit brand brief tokens injected per page (avoid repeating full ~300-word brief × 4 pages)
+  const briefSnippet = brandBrief.slice(0, 600);
   const prompt = `You are a copywriter for premium e-commerce. Write content for the "${page.pageName}" page.
 
 Brand brief:
-${brandBrief}
+${briefSnippet}
 
 Brand: ${config.brandName} (${config.niche})
 Page sections: ${page.sections.join(', ')}
@@ -138,7 +141,7 @@ Requirements:
 Output ONLY the TSX code. No markdown fences. No explanations.
 The code should be 100-300 lines, clean and functional.`;
 
-  let code = await llmComplete(prompt, 12000);
+  let code = await llmComplete(prompt, 4000);
 
   code = code.trim();
   if (code.startsWith('```')) {
@@ -159,24 +162,80 @@ export async function generateFullSite(
   const pages = config.pages.length > 0 ? config.pages : getDefaultEcommercePages();
   const files = new Map<string, string>();
 
+  // Step 1: single LLM call for brand brief
   onProgress?.('context', 'Generating brand brief...');
   const brandBrief = await generateEcommerceContext(config);
   onProgress?.('context', `Brief: ${brandBrief.slice(0, 100)}...`);
 
-  for (const page of pages) {
-    onProgress?.('copy', `Writing copy for ${page.pageName}...`);
-    const copy = await generateEcommerceCopy(config, page, brandBrief);
+  // Step 2: all pages in parallel (copy → code per page, all pages concurrent)
+  onProgress?.('codegen', `Generating ${pages.length} pages in parallel...`);
+  const results = await Promise.allSettled(
+    pages.map(async (page) => {
+      onProgress?.('copy', `Writing copy for ${page.pageName}...`);
+      const copy = await generateEcommerceCopy(config, page, brandBrief);
 
-    onProgress?.('codegen', `Generating ${page.pageName} page code...`);
-    const tsx = await generateEcommercePageTsx(config, page, copy);
+      onProgress?.('codegen', `Generating ${page.pageName} page code...`);
+      const tsx = await generateEcommercePageTsx(config, page, copy);
 
-    const filePath = page.route === '/'
-      ? 'src/app/page.tsx'
-      : `src/app${page.route}/page.tsx`;
+      const filePath = page.route === '/'
+        ? 'src/app/page.tsx'
+        : `src/app${page.route}/page.tsx`;
 
-    files.set(filePath, tsx);
-    onProgress?.('codegen', `${page.pageName}: ${tsx.length} chars`);
+      return { filePath, tsx, pageName: page.pageName };
+    }),
+  );
+
+  for (const result of results) {
+    if (result.status === 'fulfilled') {
+      files.set(result.value.filePath, result.value.tsx);
+      onProgress?.('codegen', `${result.value.pageName}: ${result.value.tsx.length} chars`);
+    } else {
+      onProgress?.('error', `Page generation failed: ${result.reason}`);
+    }
   }
+
+  return files;
+}
+
+/**
+ * Fast site generation using pre-compiled templates.
+ * Only 1 LLM call (brand brief personalization) instead of 9.
+ * Falls back to full LLM generation if no matching template.
+ */
+export async function generateFromTemplateFast(
+  config: EcommerceSiteConfig,
+  templateId?: string,
+  onProgress?: (step: string, detail: string) => void,
+): Promise<Map<string, string>> {
+  const template = templateId ? getTemplate(templateId) : suggestTemplate(config.niche);
+
+  if (!template) {
+    onProgress?.('template', 'No matching template, falling back to LLM generation...');
+    return generateFullSite(config, onProgress);
+  }
+
+  onProgress?.('template', `Using template: ${template.name} (${template.id})`);
+
+  const vars: TemplateVars = {
+    brandName: config.brandName,
+    tagline: config.tagline,
+    niche: config.niche,
+    products: config.products,
+  };
+
+  // Only 1 LLM call: personalize tagline if needed
+  if (!config.tagline || config.tagline.length < 10) {
+    onProgress?.('llm', 'Generating brand tagline...');
+    const tagline = await llmComplete(
+      `Generate a short, punchy tagline (max 10 words) for an e-commerce brand called "${config.brandName}" in the ${config.niche} niche. Output ONLY the tagline, nothing else.`,
+      100,
+    );
+    vars.tagline = tagline.trim().replace(/^["']|["']$/g, '');
+    onProgress?.('llm', `Tagline: ${vars.tagline}`);
+  }
+
+  const files = generateFromTemplate(template, vars);
+  onProgress?.('template', `Generated ${files.size} pages from template "${template.name}"`);
 
   return files;
 }

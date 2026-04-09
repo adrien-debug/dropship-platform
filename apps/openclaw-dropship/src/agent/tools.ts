@@ -37,16 +37,13 @@ const searchProductsHandler = async (args: Record<string, unknown>) => {
       .filter(w => !stopWords.has(w))
       .map(w => w.replace(/(?:es|s|ing)$/, ''));
 
-    const mapped = flat.map(p => {
-      const raw = p as unknown as Record<string, unknown>;
-      return {
-        id: raw.pid,
-        name: String(raw.productNameEn ?? ''),
-        image: raw.productImage,
-        price_usd: raw.sellPrice,
-        category: raw.categoryName ?? 'General',
-      };
-    });
+    const mapped = flat.map(p => ({
+      id: p.externalId,
+      name: p.name,
+      image: p.imageUrls[0] ?? '',
+      price_usd: p.costCents / 100,
+      category: p.category ?? 'General',
+    }));
 
     const filtered = mapped.filter(p => {
       const nameLower = p.name.toLowerCase();
@@ -61,7 +58,7 @@ const searchProductsHandler = async (args: Record<string, unknown>) => {
   try {
     const ae = AliExpressClient.create();
     if (ae) {
-      const aeProducts = await ae.searchProducts(normalizedKeywords, limit);
+      const aeProducts = await ae.searchProducts(normalizedKeywords, { limit });
       if (aeProducts.length > 0) {
         const mapped = aeProducts.map(p => ({
           id: p.externalId,
@@ -145,6 +142,19 @@ const generateSiteContentHandler = async (args: Record<string, unknown>) => {
 // ---------- Tool: create_shop (via launcher codegen) ----------
 const ADMIN_URL = process.env['ADMIN_URL'] ?? `http://${GPU2_HOST}:3200`;
 
+function inferPositioningFromProducts(products: EnrichedProduct[]): 'Budget' | 'Milieu de gamme' | 'Premium' {
+  if (products.length === 0) return 'Milieu de gamme';
+  const ratios = products
+    .map(product => product.cost_cents > 0 ? (product.price * 100) / product.cost_cents : 0)
+    .filter(ratio => Number.isFinite(ratio) && ratio > 0);
+  if (ratios.length === 0) return 'Milieu de gamme';
+
+  const avgRatio = ratios.reduce((sum, ratio) => sum + ratio, 0) / ratios.length;
+  if (avgRatio >= 3) return 'Premium';
+  if (avgRatio <= 2.2) return 'Budget';
+  return 'Milieu de gamme';
+}
+
 const createShopHandler = async (args: Record<string, unknown>) => {
   const name = args['name'] as string;
   const slug = args['slug'] as string;
@@ -152,68 +162,152 @@ const createShopHandler = async (args: Record<string, unknown>) => {
   const products = args['products'] as EnrichedProduct[];
   const site_content = args['site_content'] as SiteContent | undefined;
   const niche = (args['niche'] as string) ?? name;
-
-  // Removed 'debug-fix' from critical path — fail fast on build errors
-  const steps = ['scaffold', 'codegen', 'integrations', 'assets', 'install', 'build-check', 'launch', 'deploy'];
+  const port = (args['port'] as number) ?? (3101 + Math.floor(Math.random() * 90));
   const outputDir = `~/sites/${slug}`;
-  const config = { projectName: name, niche, outputDir };
-  const results: Record<string, { success: boolean; output?: string; error?: string }> = {};
+  const positioning = inferPositioningFromProducts(products);
 
-  for (const stepId of steps) {
-    try {
-      const res = await fetch(`${ADMIN_URL}/api/launcher/test-step`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stepId, config }),
-        signal: AbortSignal.timeout(600_000),
-      });
+  const setupRes = await fetch(`${ADMIN_URL}/api/shops/setup`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name,
+      slug,
+      port,
+      niche,
+      positioning,
+      designSystem: design_system,
+      productCount: products?.length ?? 0,
+      products,
+    }),
+    signal: AbortSignal.timeout(120_000),
+  });
 
-      if (!res.ok) {
-        const errText = await res.text().catch(() => '');
-        results[stepId] = { success: false, error: `HTTP ${res.status}: ${errText.slice(0, 200)}` };
-        logger.error('tools:create_shop', `Step ${stepId} HTTP error: ${res.status}`);
-        if (['scaffold', 'install', 'build-check'].includes(stepId)) {
-          logger.error('tools:create_shop', `Critical step ${stepId} failed — aborting`);
-          break;
+  if (!setupRes.ok) {
+    const errText = await setupRes.text().catch(() => '');
+    logger.error('tools:create_shop', `Setup failed: ${setupRes.status}`);
+    return {
+      success: false,
+      name,
+      slug,
+      design_system,
+      url: '',
+      products_count: products?.length ?? 0,
+      failed_at: 'shops_setup',
+      error: `HTTP ${setupRes.status}: ${errText.slice(0, 200)}`,
+    };
+  }
+
+  const setupData = await setupRes.json() as {
+    siteId?: string;
+    salesChannelId?: string;
+    publishableKey?: string;
+    regionId?: string;
+    importedProducts?: Array<{
+      id: string;
+      title: string;
+      handle: string;
+      image: string;
+      category: string;
+      price: number;
+    }>;
+  };
+
+  const streamRes = await fetch(`${ADMIN_URL}/api/launcher/stream`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      config: {
+        projectName: name,
+        niche,
+        outputDir,
+        port,
+        designSystem: design_system,
+        siteId: setupData.siteId,
+        salesChannelId: setupData.salesChannelId,
+        publishableKey: setupData.publishableKey,
+        regionId: setupData.regionId,
+        importedProducts: setupData.importedProducts ?? [],
+        tagline: site_content?.brand?.tagline,
+      },
+    }),
+    signal: AbortSignal.timeout(600_000),
+  });
+
+  if (!streamRes.ok) {
+    const errText = await streamRes.text().catch(() => '');
+    logger.error('tools:create_shop', `Launcher stream failed: ${streamRes.status}`);
+    return {
+      success: false,
+      name,
+      slug,
+      design_system,
+      url: '',
+      products_count: products?.length ?? 0,
+      failed_at: 'launcher_stream',
+      error: `HTTP ${streamRes.status}: ${errText.slice(0, 200)}`,
+    };
+  }
+
+  let url = `http://${GPU2_HOST}:${port}`;
+  let pipelineError = '';
+  const reader = streamRes.body?.getReader();
+
+  if (reader) {
+    const decoder = new TextDecoder();
+    let buffer = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() ?? '';
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        try {
+          const event = JSON.parse(line.slice(6)) as { step?: string; status?: string; detail?: unknown };
+          if (typeof event.detail === 'string') {
+            const match = event.detail.match(/https?:\/\/[^\s]+/);
+            if (match) url = match[0];
+          }
+          if (event.step === 'pipeline' && event.status === 'error') {
+            pipelineError = String(event.detail ?? 'Launcher pipeline failed');
+          }
+        } catch {
+          // Ignore malformed SSE chunks.
         }
-        continue;
-      }
-
-      const stepResult = await res.json() as { success: boolean; output?: string; error?: string };
-      results[stepId] = stepResult;
-      logger.info('tools:create_shop', `Step ${stepId}: ${stepResult.success ? 'OK' : 'FAIL'}`);
-
-      if (!stepResult.success && ['scaffold', 'install', 'build-check'].includes(stepId)) {
-        logger.error('tools:create_shop', `Critical step ${stepId} failed — aborting`);
-        break;
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      results[stepId] = { success: false, error: msg };
-      logger.error('tools:create_shop', `Step ${stepId} failed: ${msg}`);
-      if (['scaffold', 'install', 'build-check'].includes(stepId)) {
-        logger.error('tools:create_shop', `Critical step ${stepId} failed — aborting`);
-        break;
       }
     }
   }
 
-  const allPassed = Object.values(results).every(r => r.success);
-  const deployOutput = results['deploy']?.output ?? '';
-  const urlMatch = deployOutput.match(/URL:\s*(http[^\s]+)/);
-  
-  // Identify first failed step for clear error reporting
-  const firstFailure = steps.find(s => results[s] && !results[s].success);
+  if (pipelineError) {
+    logger.error('tools:create_shop', pipelineError);
+    return {
+      success: false,
+      name,
+      slug,
+      design_system,
+      url: '',
+      products_count: products?.length ?? 0,
+      failed_at: 'launcher_pipeline',
+      error: pipelineError,
+    };
+  }
 
   return {
-    success: allPassed,
+    success: true,
     name,
     slug,
     design_system,
-    url: allPassed ? (urlMatch?.[1] ?? '') : '', // No fake URL on failure
+    url,
+    site_id: setupData.siteId ?? '',
+    sales_channel_id: setupData.salesChannelId ?? '',
     products_count: products?.length ?? 0,
-    steps: Object.fromEntries(Object.entries(results).map(([k, v]) => [k, v.success ? 'pass' : 'fail'])),
-    ...(firstFailure && { failed_at: firstFailure, error: results[firstFailure]?.error }),
+    steps: {
+      shops_setup: 'pass',
+      launcher_stream: 'pass',
+    },
   };
 };
 
@@ -228,6 +322,22 @@ const checkHealthHandler = async (args: Record<string, unknown>) => {
   }
 };
 
+// ---------- helpers shared by ads handlers ----------
+async function tryLaunchCampaign(campaignId: string): Promise<{ launched: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${ADMIN_URL}/api/campaigns/${campaignId}/launch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(15_000),
+    });
+    const json = (await res.json()) as { success: boolean; error?: string };
+    return { launched: json.success, error: json.error };
+  } catch (err) {
+    logger.warn('tools:ads', '[ads] launch call failed, skipping', err);
+    return { launched: false, error: 'network_error' };
+  }
+}
+
 // ---------- Tool: create_google_ads ----------
 const createGoogleAdsHandler = async (args: Record<string, unknown>) => {
   const shopUrl = args['shop_url'] as string;
@@ -236,16 +346,43 @@ const createGoogleAdsHandler = async (args: Record<string, unknown>) => {
   const headlines = args['headlines'] as string[];
   const descriptions = args['descriptions'] as string[];
 
+  const plan = {
+    type: 'SEARCH',
+    daily_budget_eur: budget,
+    keywords,
+    ad: { headlines: headlines?.slice(0, 15), descriptions: descriptions?.slice(0, 4) },
+    landing_page: shopUrl,
+  };
+
+  let launchResult: { launched: boolean; error?: string } | undefined;
+
+  try {
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabaseUrl = process.env['SUPABASE_URL'] ?? '';
+    const supabaseKey = process.env['SUPABASE_SERVICE_ROLE_KEY'] ?? process.env['SUPABASE_ANON_KEY'] ?? '';
+    if (supabaseUrl && supabaseKey) {
+      const supabase = createClient(supabaseUrl, supabaseKey);
+      const { data } = await supabase.from('campaigns').insert({
+        platform: 'google',
+        name: `Google Search - ${shopUrl}`,
+        daily_budget: budget * 100,
+        status: 'draft',
+        targeting: { keywords },
+        creatives: { landing_page: shopUrl, headlines, descriptions },
+      }).select('id').single();
+      if (data?.id) {
+        launchResult = await tryLaunchCampaign(data.id as string);
+        logger.info('tools:google_ads', `[google_ads] launch attempt: campaignId=${data.id} launched=${launchResult.launched}`);
+      }
+    }
+  } catch (err) {
+    logger.warn('tools:google_ads', '[google_ads] supabase save failed, skipping', err);
+  }
+
   return {
-    status: 'plan_ready',
-    campaign: {
-      type: 'SEARCH',
-      daily_budget_eur: budget,
-      keywords,
-      ad: { headlines: headlines?.slice(0, 15), descriptions: descriptions?.slice(0, 4) },
-      landing_page: shopUrl,
-      note: 'Requires Google Ads API credentials or Adspirer connection to execute',
-    },
+    status: launchResult?.launched ? 'launched' : 'plan_ready',
+    campaign: plan,
+    launch: launchResult ?? null,
   };
 };
 
@@ -256,15 +393,42 @@ const createMetaAdsHandler = async (args: Record<string, unknown>) => {
   const audiences = args['target_interests'] as string[];
   const adCopy = args['ad_copy'] as string;
 
+  const plan = {
+    objective: 'CONVERSIONS',
+    daily_budget_eur: budget,
+    targeting: { interests: audiences, countries: ['FR'], age_min: 18, age_max: 65 },
+    ad: { primary_text: adCopy, website_url: shopUrl },
+  };
+
+  let launchResult: { launched: boolean; error?: string } | undefined;
+
+  try {
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabaseUrl = process.env['SUPABASE_URL'] ?? '';
+    const supabaseKey = process.env['SUPABASE_SERVICE_ROLE_KEY'] ?? process.env['SUPABASE_ANON_KEY'] ?? '';
+    if (supabaseUrl && supabaseKey) {
+      const supabase = createClient(supabaseUrl, supabaseKey);
+      const { data } = await supabase.from('campaigns').insert({
+        platform: 'meta',
+        name: `Meta Conversions - ${shopUrl}`,
+        daily_budget: budget * 100,
+        status: 'draft',
+        targeting: { interests: audiences, countries: ['FR'] },
+        creatives: { primary_text: adCopy, website_url: shopUrl },
+      }).select('id').single();
+      if (data?.id) {
+        launchResult = await tryLaunchCampaign(data.id as string);
+        logger.info('tools:meta_ads', `[meta_ads] launch attempt: campaignId=${data.id} launched=${launchResult.launched}`);
+      }
+    }
+  } catch (err) {
+    logger.warn('tools:meta_ads', '[meta_ads] supabase save failed, skipping', err);
+  }
+
   return {
-    status: 'plan_ready',
-    campaign: {
-      objective: 'CONVERSIONS',
-      daily_budget_eur: budget,
-      targeting: { interests: audiences, countries: ['FR'], age_min: 18, age_max: 65 },
-      ad: { primary_text: adCopy, website_url: shopUrl },
-      note: 'Requires Meta Ads API access or Adspirer connection to execute',
-    },
+    status: launchResult?.launched ? 'launched' : 'plan_ready',
+    campaign: plan,
+    launch: launchResult ?? null,
   };
 };
 
@@ -349,7 +513,7 @@ export function createToolRegistry(): ToolDefinition[] {
       spec: toolSpec('generate_site_content', 'Generate complete site content: brand identity, hero section, about page, policies', {
         properties: {
           niche: { type: 'string', description: 'E.g. "montres luxe homme"' },
-          market: { type: 'string', enum: ['FR', 'EU', 'US'], description: 'Target market' },
+          market: { type: 'string', enum: ['FR', 'EU', 'US', 'WORLD'], description: 'Target market' },
           positioning: { type: 'string', enum: ['budget', 'mid', 'premium'] },
           top_product_names: { type: 'array', items: { type: 'string' }, description: 'Names of top products for hero context' },
         },

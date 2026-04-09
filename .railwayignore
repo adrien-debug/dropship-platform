@@ -1,0 +1,14 @@
+node_modules
+.next
+.turbo
+dist
+build
+*.log
+.git
+.DS_Store
+coverage
+.env*
+!.env.example
+*.tsbuildinfo
+apps/storefront
+packages/design-systems/.turbo

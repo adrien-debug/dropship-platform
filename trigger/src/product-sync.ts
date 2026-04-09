@@ -32,7 +32,7 @@ export const productSync = task({
     });
 
     try {
-      if (catalog.supplier === 'cjdropshipping') {
+      if (catalog.supplier === 'cjdropshipping' || catalog.supplier === 'cj') {
         const cjKey = process.env.CJ_DROPSHIPPING_API_KEY;
         if (!cjKey) throw new Error('CJ API key not configured');
 

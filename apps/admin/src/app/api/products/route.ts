@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase-server';
 
-const STOREFRONT_URL = process.env.STOREFRONT_URL || 'http://100.110.74.114:3100';
 const MEDUSA_URL = (process.env.MEDUSA_URL || 'http://100.110.74.114:9000').replace(/\/$/, '');
 
 const TOKEN_TTL_MS = 3_600_000; // 1h
@@ -67,16 +67,37 @@ async function medusaAdminFetch(path: string, init: RequestInit): Promise<Respon
   });
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const res = await fetch(`${STOREFRONT_URL}/api/products?limit=1000`, {
-      next: { revalidate: 0 },
-    });
-    const data = await res.json();
-    return NextResponse.json(data);
+    const supabase = createClient();
+    const { searchParams } = req.nextUrl;
+    const supplier = searchParams.get('supplier');
+    const catalogId = searchParams.get('catalog_id');
+    const search = searchParams.get('q');
+    const limit = Math.min(Number(searchParams.get('limit') ?? 500), 1000);
+    const offset = Number(searchParams.get('offset') ?? 0);
+
+    let query = supabase
+      .from('products')
+      .select('*', { count: 'exact' })
+      .order('synced_at', { ascending: false, nullsFirst: false })
+      .range(offset, offset + limit - 1);
+
+    if (supplier) query = query.eq('supplier', supplier);
+    if (catalogId) query = query.eq('catalog_id', catalogId);
+    if (search) query = query.ilike('name', `%${search}%`);
+
+    const { data, count, error } = await query;
+
+    if (error) {
+      console.error('[admin:products] Supabase error:', error.message);
+      return NextResponse.json({ items: [], total: 0, error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ items: data ?? [], total: count ?? 0 });
   } catch (err) {
     console.error('[admin:products] Fetch error:', err instanceof Error ? err.message : err);
-    return NextResponse.json({ items: [], total: 0 }, { status: 502 });
+    return NextResponse.json({ items: [], total: 0 }, { status: 500 });
   }
 }
 

@@ -8,16 +8,10 @@ interface AliExpressConfig {
 
 const API_URL = 'https://api-sg.aliexpress.com/sync';
 
-function sign(params: Record<string, string>, secret: string, apiPath: string): string {
+function sign(params: Record<string, string>, secret: string): string {
   const sorted = Object.keys(params).sort();
-  const baseString = apiPath + sorted.map(k => k + params[k]).join('');
+  const baseString = sorted.map(k => k + params[k]).join('');
   return createHmac('sha256', secret).update(baseString).digest('hex').toUpperCase();
-}
-
-function timestamp(): string {
-  const d = new Date();
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
 export class AliExpressClient implements SupplierClient {
@@ -33,16 +27,15 @@ export class AliExpressClient implements SupplierClient {
     const baseParams: Record<string, string> = {
       method,
       app_key: this.appKey,
-      sign_method: 'hmac-sha256',
-      timestamp: timestamp(),
+      sign_method: 'sha256',
+      timestamp: String(Date.now()),
       v: '2.0',
       format: 'json',
       simplify: 'true',
       ...params,
     };
 
-    const apiPath = '/' + method.replace(/\./g, '/');
-    baseParams.sign = sign(baseParams, this.appSecret, apiPath);
+    baseParams.sign = sign(baseParams, this.appSecret);
 
     const qs = new URLSearchParams(baseParams).toString();
     const res = await fetch(`${API_URL}?${qs}`, {
@@ -55,7 +48,15 @@ export class AliExpressClient implements SupplierClient {
       throw new Error(`AliExpress API ${res.status}: ${text.slice(0, 300)}`);
     }
 
-    return res.json();
+    const json = await res.json() as Record<string, unknown>;
+    
+    // Check for error_response
+    if (json['error_response']) {
+      const err = json['error_response'] as Record<string, unknown>;
+      throw new Error(`AliExpress API error: ${err['code']} - ${err['msg']}`);
+    }
+
+    return json;
   }
 
   async testConnection(): Promise<boolean> {
@@ -129,7 +130,7 @@ export class AliExpressClient implements SupplierClient {
       const products = resultData?.['products'] as Record<string, unknown> | undefined;
       const list = (products?.['product'] ?? []) as Array<Record<string, unknown>>;
 
-      if (list.length === 0) return null;
+      if (list.length === 0 || !list[0]) return null;
       return this.mapProduct(list[0]);
     } catch {
       return null;

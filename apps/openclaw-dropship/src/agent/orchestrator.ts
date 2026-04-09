@@ -3,9 +3,13 @@ import type { PipelineEvent, PipelineInput, PipelineResult } from './types.js';
 import { createToolRegistry, getToolSpecs, getToolHandler } from './tools.js';
 import { withRetry, extractJSON, createLLMClient, isVllmUnreachableError, type LLMClientBundle } from './content-writer.js';
 import { logger } from '../logger.js';
+import { createClient } from '@supabase/supabase-js';
+import { JobTracker } from '@dropship/core';
 
 const VLLM_URL = process.env['VLLM_AGENT_URL'] ?? process.env['VLLM_GPU1_URL'] ?? 'http://100.88.191.49:8000/v1';
 const VLLM_MODEL = process.env['VLLM_MODEL'] ?? 'Qwen/Qwen2.5-Coder-32B-Instruct-AWQ';
+const SUPABASE_URL = process.env['SUPABASE_URL'] ?? '';
+const SUPABASE_KEY = process.env['SUPABASE_SERVICE_ROLE_KEY'] ?? process.env['SUPABASE_ANON_KEY'] ?? '';
 const MAX_ITERATIONS = 25;
 const TIMEOUT_MS = 10 * 60 * 1000;
 const MAX_CONSECUTIVE_ERRORS = 3;
@@ -55,6 +59,7 @@ export class AgentOrchestrator {
   private llmBundle: LLMClientBundle;
   private registry = createToolRegistry();
   private events: PipelineEvent[] = [];
+  private tracker: JobTracker | null = null;
 
   constructor() {
     this.llmBundle = createLLMClient({ vllmBaseUrl: VLLM_URL });
@@ -94,6 +99,16 @@ export class AgentOrchestrator {
     this.events.push(event);
     onEvent?.(event);
     logger.info('orchestrator', `${event.step}: ${event.status}`, event.detail);
+    if (this.tracker) {
+      const message = typeof event.detail === 'string' ? event.detail : undefined;
+      const payload = event.detail && typeof event.detail === 'object'
+        ? (event.detail as Record<string, unknown>)
+        : undefined;
+      this.tracker.event(event.step, event.status, message, payload, event.progress).catch(() => undefined);
+      if (event.progress !== undefined) {
+        this.tracker.updateStep(event.step, event.progress).catch(() => undefined);
+      }
+    }
   }
 
   private parseInlineToolCalls(content: string): Array<{
@@ -151,6 +166,25 @@ export class AgentOrchestrator {
   ): Promise<PipelineResult> {
     const t0 = Date.now();
     const deadline = t0 + TIMEOUT_MS;
+
+    // ── Job tracking (optional) ──
+    this.tracker = null;
+    if (SUPABASE_URL && SUPABASE_KEY) {
+      try {
+        this.tracker = new JobTracker(createClient(SUPABASE_URL, SUPABASE_KEY));
+        await this.tracker.createJob('store_create', 'openclaw_agent', {
+          keywords: input.keywords,
+          market: input.market,
+          positioning: input.positioning,
+        });
+        await this.tracker.startJob();
+      } catch (err) {
+        logger.error('orchestrator', 'JobTracker init failed (continuing without tracking)', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+        this.tracker = null;
+      }
+    }
 
     this.emit({
       step: 'pipeline_start',
@@ -365,6 +399,14 @@ export class AgentOrchestrator {
 
     const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
     logger.info('orchestrator', `Pipeline finished in ${elapsed}s — success=${!!shopResult}`);
+
+    if (this.tracker) {
+      if (shopResult) {
+        await this.tracker.completeJob({ shop: shopResult, marketing: marketingResult ?? {} }).catch(() => undefined);
+      } else {
+        await this.tracker.failJob('Pipeline ended without creating a shop').catch(() => undefined);
+      }
+    }
 
     return {
       success: !!shopResult,

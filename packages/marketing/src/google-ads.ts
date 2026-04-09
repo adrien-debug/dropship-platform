@@ -1,3 +1,21 @@
+export interface CampaignStats {
+  impressions: number;
+  clicks: number;
+  conversions: number;
+  spend_cents: number;
+  ctr: number;
+  roas: number;
+}
+
+const EMPTY_STATS: CampaignStats = {
+  impressions: 0,
+  clicks: 0,
+  conversions: 0,
+  spend_cents: 0,
+  ctr: 0,
+  roas: 0,
+};
+
 export class GoogleAdsClient {
   private developerToken: string;
   private clientId: string;
@@ -29,6 +47,70 @@ export class GoogleAdsClient {
     this.accessToken = json.access_token;
     this.tokenExpiry = Date.now() + (json.expires_in - 60) * 1000;
     return this.accessToken!;
+  }
+
+  async getCampaignStats(campaignId: string): Promise<CampaignStats> {
+    if (!this.developerToken || !this.clientId || !this.clientSecret || !this.refreshToken) {
+      return EMPTY_STATS;
+    }
+    try {
+      const token = await this.getAccessToken();
+      const customerId = process.env.GOOGLE_ADS_CUSTOMER_ID ?? '';
+      if (!customerId) return EMPTY_STATS;
+      const query = `
+        SELECT
+          campaign.id,
+          metrics.impressions,
+          metrics.clicks,
+          metrics.conversions,
+          metrics.cost_micros,
+          metrics.all_conversions_value
+        FROM campaign
+        WHERE campaign.id = ${campaignId}
+        AND segments.date DURING LAST_30_DAYS
+      `.trim();
+      const res = await fetch(
+        `https://googleads.googleapis.com/v16/customers/${customerId}/googleAds:search`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'developer-token': this.developerToken,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ query }),
+        },
+      );
+      if (!res.ok) return EMPTY_STATS;
+      const json = (await res.json()) as {
+        results?: Array<{
+          metrics: {
+            impressions: string;
+            clicks: string;
+            conversions: string;
+            costMicros: string;
+            allConversionsValue: string;
+          };
+        }>;
+      };
+      const row = json.results?.[0]?.metrics;
+      if (!row) return EMPTY_STATS;
+      const impressions = Number(row.impressions);
+      const clicks = Number(row.clicks);
+      const spend_cents = Math.round(Number(row.costMicros) / 10_000);
+      const conversions = Math.round(Number(row.conversions));
+      const revenue_cents = Math.round(Number(row.allConversionsValue) * 100);
+      return {
+        impressions,
+        clicks,
+        conversions,
+        spend_cents,
+        ctr: impressions > 0 ? clicks / impressions : 0,
+        roas: spend_cents > 0 ? revenue_cents / spend_cents : 0,
+      };
+    } catch {
+      return EMPTY_STATS;
+    }
   }
 
   async createShoppingCampaign(customerId: string, opts: {

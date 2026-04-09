@@ -5,7 +5,7 @@ import { homedir } from 'os';
 import { dirname, join } from 'path';
 import { createClient } from '@supabase/supabase-js';
 import { getDesignSystem, toCssVariables, toGoogleFontsUrl } from '@dropship/design-systems';
-import { generateFullSite, type EcommerceSiteConfig, getDefaultEcommercePages } from '@dropship/launcher';
+import { generateFullSite, generateFromTemplateFast, type EcommerceSiteConfig, getDefaultEcommercePages, suggestTemplate } from '@dropship/launcher';
 
 const EXEC_OPTS: ExecSyncOptionsWithBufferEncoding = {
   timeout: 300_000,
@@ -58,6 +58,22 @@ interface StreamConfig {
   };
   referenceUrls?: string[];
   pages?: string[];
+  products?: ImportedProduct[];
+}
+
+function resolveSelectedPages(pageIds?: string[]) {
+  const defaults = getDefaultEcommercePages();
+  if (!pageIds || pageIds.length === 0) return defaults;
+
+  const routeToPageId: Record<string, string> = {
+    '/': 'home',
+    '/shop': 'shop',
+    '/about': 'about',
+    '/contact': 'contact',
+  };
+
+  const selected = defaults.filter(page => pageIds.includes(routeToPageId[page.route] ?? ''));
+  return selected.length > 0 ? selected : defaults;
 }
 
 function resolveDir(raw: string): string {
@@ -93,11 +109,86 @@ function execCmd(
 function emit(
   controller: ReadableStreamDefaultController,
   step: string,
-  status: 'running' | 'done' | 'error',
+  status: 'running' | 'done' | 'error' | 'warning',
   detail: string,
 ) {
   const data = JSON.stringify({ step, status, detail, ts: Date.now() });
   controller.enqueue(new TextEncoder().encode(`data: ${data}\n\n`));
+}
+
+// ---------------------------------------------------------------------------
+// Resilience helpers
+// ---------------------------------------------------------------------------
+
+async function retryable(
+  fn: () => void,
+  maxRetries = 3,
+  delayMs = 2000,
+): Promise<void> {
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      fn();
+      return;
+    } catch (err) {
+      lastErr = err;
+      const msg = err instanceof Error ? err.message : String(err);
+      const isRetryable = /rsync|ssh/i.test(msg);
+      console.error(`[retry] attempt ${attempt}/${maxRetries} failed: ${msg}`);
+      if (!isRetryable || attempt === maxRetries) break;
+      await new Promise(r => setTimeout(r, delayMs));
+    }
+  }
+  throw lastErr;
+}
+
+async function isPortAvailable(port: number, host: string): Promise<boolean> {
+  try {
+    const res = await fetch(`http://${host}:${port}`, {
+      signal: AbortSignal.timeout(2000),
+    });
+    // If we got a response, port is occupied
+    void res;
+    return false;
+  } catch {
+    // ECONNREFUSED or timeout means port is free
+    return true;
+  }
+}
+
+async function findFreePort(
+  startPort: number,
+  host: string,
+  maxTries = 5,
+): Promise<number> {
+  for (let i = 0; i < maxTries; i++) {
+    const port = startPort + i;
+    if (await isPortAvailable(port, host)) return port;
+  }
+  return startPort + maxTries;
+}
+
+async function pollHealthCheck(
+  url: string,
+  intervalMs = 5000,
+  maxMs = 90_000,
+): Promise<boolean> {
+  const deadline = Date.now() + maxMs;
+  let attempt = 0;
+  while (Date.now() < deadline) {
+    attempt++;
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
+      if (res.ok || res.status < 500) {
+        console.log(`[health-check] OK after ${attempt} attempt(s)`);
+        return true;
+      }
+    } catch {
+      console.log(`[health-check] attempt ${attempt} not ready yet, retrying in ${intervalMs}ms...`);
+    }
+    await new Promise(r => setTimeout(r, intervalMs));
+  }
+  return false;
 }
 
 function listFiles(dir: string, prefix = ''): string[] {
@@ -204,6 +295,7 @@ function writeBaseFiles(dir: string, config: StreamConfig) {
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  output: 'standalone',
 };
 
 export default nextConfig;
@@ -211,6 +303,145 @@ export default nextConfig;
   );
 
   writeFileSync(join(dir, 'postcss.config.mjs'), `export default { plugins: { '@tailwindcss/postcss': {} } };\n`);
+}
+
+function writeAnalyticsFiles(dir: string) {
+  mkdirSync(join(dir, 'src', 'components', 'analytics'), { recursive: true });
+
+  writeFileSync(
+    join(dir, 'src', 'lib', 'analytics.ts'),
+    `// Client-side analytics helper — GA4 + Meta Pixel
+// All functions are no-ops if keys are not configured
+
+declare global {
+  interface Window {
+    gtag?: (...args: unknown[]) => void;
+    fbq?: (...args: unknown[]) => void;
+    dataLayer?: unknown[];
+  }
+}
+
+function hasGtag(): boolean {
+  return typeof window !== 'undefined' && typeof window.gtag === 'function';
+}
+
+function hasFbq(): boolean {
+  return typeof window !== 'undefined' && typeof window.fbq === 'function';
+}
+
+export function trackEvent(name: string, params?: Record<string, unknown>): void {
+  if (typeof window === 'undefined') return;
+  if (hasGtag()) window.gtag!('event', name, params ?? {});
+  if (hasFbq()) window.fbq!('trackCustom', name, params ?? {});
+}
+
+export function trackPageView(url: string): void {
+  if (typeof window === 'undefined') return;
+  if (hasGtag()) window.gtag!('event', 'page_view', { page_location: url });
+  if (hasFbq()) window.fbq!('track', 'PageView');
+}
+
+export function trackPurchase(
+  orderId: string,
+  value: number,
+  currency: string,
+  items: Array<{ id: string; name: string; quantity: number; price: number }>,
+): void {
+  if (typeof window === 'undefined') return;
+  if (hasGtag()) {
+    window.gtag!('event', 'purchase', {
+      transaction_id: orderId,
+      value,
+      currency,
+      items: items.map(i => ({ item_id: i.id, item_name: i.name, quantity: i.quantity, price: i.price })),
+    });
+  }
+  if (hasFbq()) window.fbq!('track', 'Purchase', { value, currency });
+}
+
+export function trackAddToCart(productId: string, productName: string, value: number, currency = 'EUR'): void {
+  if (typeof window === 'undefined') return;
+  if (hasGtag()) {
+    window.gtag!('event', 'add_to_cart', {
+      currency,
+      value,
+      items: [{ item_id: productId, item_name: productName, price: value, quantity: 1 }],
+    });
+  }
+  if (hasFbq()) window.fbq!('track', 'AddToCart', { content_ids: [productId], content_name: productName, value, currency });
+}
+
+export function trackViewProduct(productId: string, productName: string, value: number, currency = 'EUR'): void {
+  if (typeof window === 'undefined') return;
+  if (hasGtag()) {
+    window.gtag!('event', 'view_item', {
+      currency,
+      value,
+      items: [{ item_id: productId, item_name: productName, price: value, quantity: 1 }],
+    });
+  }
+  if (hasFbq()) window.fbq!('track', 'ViewContent', { content_ids: [productId], content_name: productName, value, currency });
+}
+
+export function trackBeginCheckout(value: number, currency = 'EUR'): void {
+  if (typeof window === 'undefined') return;
+  if (hasGtag()) window.gtag!('event', 'begin_checkout', { value, currency });
+  if (hasFbq()) window.fbq!('track', 'InitiateCheckout', { value, currency });
+}
+`,
+  );
+
+  writeFileSync(
+    join(dir, 'src', 'components', 'analytics', 'Analytics.tsx'),
+    `'use client';
+
+import Script from 'next/script';
+
+interface AnalyticsProps {
+  gaId?: string;
+  metaPixelId?: string;
+}
+
+export function Analytics({ gaId, metaPixelId }: AnalyticsProps) {
+  return (
+    <>
+      {gaId && (
+        <>
+          <Script
+            src={\`https://www.googletagmanager.com/gtag/js?id=\${gaId}\`}
+            strategy="afterInteractive"
+          />
+          <Script id="ga4-init" strategy="afterInteractive">
+            {\`
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', '\${gaId}', { send_page_view: true });
+            \`}
+          </Script>
+        </>
+      )}
+      {metaPixelId && (
+        <Script id="meta-pixel-init" strategy="afterInteractive">
+          {\`
+            !function(f,b,e,v,n,t,s)
+            {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+            n.queue=[];t=b.createElement(e);t.async=!0;
+            t.src=v;s=b.getElementsByTagName(e)[0];
+            s.parentNode.insertBefore(t,s)}(window, document,'script',
+            'https://connect.facebook.net/en_US/fbevents.js');
+            fbq('init', '\${metaPixelId}');
+            fbq('track', 'PageView');
+          \`}
+        </Script>
+      )}
+    </>
+  );
+}
+`,
+  );
 }
 
 function writeThemeFiles(dir: string, config: StreamConfig) {
@@ -262,6 +493,10 @@ import Link from 'next/link';
 import './globals.css';
 import { Providers } from '@/components/providers';
 import { CartCount } from '@/components/cart-count';
+import { Analytics } from '@/components/analytics/Analytics';
+
+const GA_ID = process.env['NEXT_PUBLIC_GA_MEASUREMENT_ID'];
+const META_PIXEL_ID = process.env['NEXT_PUBLIC_META_PIXEL_ID'];
 
 export const metadata: Metadata = {
   title: ${JSON.stringify(`${brand} — ${config.niche}`)},
@@ -284,6 +519,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link href="${fontsUrl}" rel="stylesheet" />` : ''}
       </head>
       <body className="min-h-screen" style={{ background: 'var(--ds-bg)', color: 'var(--ds-text)' }}>
+        <Analytics gaId={GA_ID} metaPixelId={META_PIXEL_ID} />
         <Providers>
           <header className="sticky top-0 z-50 border-b backdrop-blur-md" style={{ borderColor: 'var(--ds-border)', background: 'color-mix(in srgb, var(--ds-bg) 88%, transparent)' }}>
             <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
@@ -325,6 +561,8 @@ NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=${config.publishableKey ?? ''}
 NEXT_PUBLIC_MEDUSA_REGION_ID=${config.regionId ?? ''}
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${STRIPE_PK}
 NEXT_PUBLIC_SITE_ID=${config.siteId ?? ''}
+NEXT_PUBLIC_GA_MEASUREMENT_ID=
+NEXT_PUBLIC_META_PIXEL_ID=
 `,
   );
 
@@ -1284,31 +1522,93 @@ export default function CheckoutPage() {
   ]);
 }
 
+const GOLDEN_TEMPLATE_PATH = `/home/${GPU2_USER}/golden-template`;
+const SLOTS_DIR = `/home/${GPU2_USER}/slots`;
+
 async function deployToGpu2(dir: string, config: StreamConfig) {
-  const remoteDir = `/home/${GPU2_USER}/sites/${config.projectName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
-  execSync(`ssh ${GPU2_USER}@${GPU2_HOST} "mkdir -p ${remoteDir}"`, EXEC_OPTS);
-  execSync(
-    `rsync -az --delete --exclude='node_modules' --exclude='.next/cache' "${dir}/" ${GPU2_USER}@${GPU2_HOST}:${remoteDir}/`,
-    EXEC_OPTS,
+  const slug = config.projectName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  let remoteDir = `/home/${GPU2_USER}/sites/${slug}`;
+
+  // Try pre-warmed slot first (fastest path)
+  const slotCheck = execCmd(
+    `ssh ${GPU2_USER}@${GPU2_HOST} 'for d in ${SLOTS_DIR}/slot-*; do [ -f "$d/.status" ] && STATUS=$(cat "$d/.status") && [ "$STATUS" = "available" ] && PORT=$(cat "$d/.port") && echo "$d|$PORT" && break; done'`,
+    dir,
   );
-  execSync(
-    `ssh ${GPU2_USER}@${GPU2_HOST} 'export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" && cd ${remoteDir} && npm install --omit=dev >/tmp/${config.projectName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-npm.log 2>&1 && fuser -k ${config.port}/tcp 2>/dev/null; sleep 1 && NEXT_PUBLIC_MEDUSA_URL=${MEDUSA_URL} NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=${config.publishableKey} NEXT_PUBLIC_MEDUSA_REGION_ID=${config.regionId} NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${STRIPE_PK} PORT=${config.port} nohup npx next start -p ${config.port} > /tmp/${config.projectName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.log 2>&1 & sleep 4 && curl -s -o /dev/null -w "%{http_code}" http://localhost:${config.port}'`,
+  const slotMatch = slotCheck.ok && slotCheck.stdout.trim();
+  if (slotMatch) {
+    const parts = slotMatch.split('|');
+    const slotDir = parts[0] ?? '';
+    const slotPort = parts[1] ?? '3200';
+    config.port = config.port ?? parseInt(slotPort);
+    remoteDir = slotDir;
+    await retryable(() => execSync(`ssh ${GPU2_USER}@${GPU2_HOST} "echo in-use > ${slotDir}/.status"`, EXEC_OPTS));
+    await retryable(() => execSync(
+      `rsync -az --exclude='node_modules' --exclude='.next/cache' --exclude='.port' --exclude='.status' "${dir}/" ${GPU2_USER}@${GPU2_HOST}:${remoteDir}/`,
+      EXEC_OPTS,
+    ));
+  } else {
+    const useGolden = execCmd(
+      `ssh ${GPU2_USER}@${GPU2_HOST} "test -d ${GOLDEN_TEMPLATE_PATH}/node_modules && echo yes || echo no"`,
+      dir,
+    );
+    const hasGolden = useGolden.ok && useGolden.stdout.trim() === 'yes';
+
+    if (hasGolden) {
+      await retryable(() => execSync(`ssh ${GPU2_USER}@${GPU2_HOST} "cp -rT ${GOLDEN_TEMPLATE_PATH} ${remoteDir}"`, EXEC_OPTS));
+      await retryable(() => execSync(
+        `rsync -az --exclude='node_modules' --exclude='.next/cache' "${dir}/" ${GPU2_USER}@${GPU2_HOST}:${remoteDir}/`,
+        EXEC_OPTS,
+      ));
+    } else {
+      await retryable(() => execSync(`ssh ${GPU2_USER}@${GPU2_HOST} "mkdir -p ${remoteDir}"`, EXEC_OPTS));
+      await retryable(() => execSync(
+        `rsync -az --delete --exclude='node_modules' --exclude='.next/cache' "${dir}/" ${GPU2_USER}@${GPU2_HOST}:${remoteDir}/`,
+        EXEC_OPTS,
+      ));
+      await retryable(() => execSync(
+        `ssh ${GPU2_USER}@${GPU2_HOST} 'export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" && cd ${remoteDir} && npm install --omit=dev >/tmp/${slug}-npm.log 2>&1'`,
+        EXEC_OPTS,
+      ));
+    }
+  }
+
+  await retryable(() => execSync(
+    `ssh ${GPU2_USER}@${GPU2_HOST} 'export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" && cd ${remoteDir} && fuser -k ${config.port}/tcp 2>/dev/null; sleep 1 && NEXT_PUBLIC_MEDUSA_URL=${MEDUSA_URL} NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=${config.publishableKey} NEXT_PUBLIC_MEDUSA_REGION_ID=${config.regionId} NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${STRIPE_PK} PORT=${config.port} nohup npx next start -p ${config.port} > /tmp/${slug}.log 2>&1 & sleep 4 && curl -s -o /dev/null -w "%{http_code}" http://localhost:${config.port}'`,
     EXEC_OPTS,
-  );
+  ));
+
+  return {
+    port: config.port ?? 3102,
+    remoteDir,
+  };
 }
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
   const config = (body.config ?? body) as StreamConfig;
   const dir = resolveDir(config.outputDir);
-  const products = config.importedProducts ?? [];
+  const products = config.importedProducts ?? config.products ?? [];
+
+  const PIPELINE_TIMEOUT_MS = 20 * 60 * 1000; // 20 minutes
 
   const stream = new ReadableStream({
     async start(controller) {
+      const timeoutId = setTimeout(async () => {
+        if (config.siteId) {
+          await getSupabase()
+            ?.from('sites')
+            .update({ status: 'failed', error_message: 'Pipeline timeout (20min)' })
+            .eq('id', config.siteId);
+        }
+        emit(controller, 'pipeline', 'error', 'Pipeline timeout (20min) — vérifiez les logs serveur');
+        controller.close();
+      }, PIPELINE_TIMEOUT_MS);
+
       try {
         emit(controller, 'scaffold', 'running', 'Creating generated storefront project...');
         writeBaseFiles(dir, config);
         writeThemeFiles(dir, config);
+        writeAnalyticsFiles(dir);
         const files = listFiles(dir);
         emit(controller, 'scaffold', 'done', `${files.length} files created at ${dir}`);
 
@@ -1360,9 +1660,8 @@ export async function POST(req: NextRequest) {
             : 'Logo ready, hero will use theme colors',
         );
 
-        emit(controller, 'codegen', 'running', 'Generating themed storefront pages via AI...');
+        emit(controller, 'codegen', 'running', 'Generating themed storefront pages...');
         
-        // Use AI codegen from launcher package
         const siteConfig: EcommerceSiteConfig = {
           brandName: config.projectName,
           tagline: config.tagline || `Premium ${config.niche} collection`,
@@ -1371,17 +1670,26 @@ export async function POST(req: NextRequest) {
           palette: 'dark',
           typography: 'modern',
           products: products.map(p => ({ name: p.title, price: p.price, image: p.image })),
-          pages: getDefaultEcommercePages(),
+          pages: resolveSelectedPages(config.pages),
         };
 
-        // Add reference URLs context if provided
         if (config.referenceUrls && config.referenceUrls.length > 0) {
           emit(controller, 'codegen', 'running', `Analyzing ${config.referenceUrls.length} reference site(s)...`);
         }
 
-        const generated = await generateFullSite(siteConfig, (step, detail) => {
-          emit(controller, 'codegen', 'running', `${step}: ${detail}`);
-        });
+        // Try template-first for speed (1 LLM call instead of 9), fall back to full generation
+        const matchedTemplate = suggestTemplate(config.niche);
+        let generated: Map<string, string>;
+        if (matchedTemplate) {
+          emit(controller, 'codegen', 'running', `Template match: ${matchedTemplate.name} — using fast path`);
+          generated = await generateFromTemplateFast(siteConfig, matchedTemplate.id, (step, detail) => {
+            emit(controller, 'codegen', 'running', `${step}: ${detail}`);
+          });
+        } else {
+          generated = await generateFullSite(siteConfig, (step, detail) => {
+            emit(controller, 'codegen', 'running', `${step}: ${detail}`);
+          });
+        }
 
         for (const [filePath, contents] of generated.entries()) {
           const target = join(dir, filePath);
@@ -1414,31 +1722,63 @@ export async function POST(req: NextRequest) {
         }
         emit(controller, 'build', 'done', build.stdout.split('\n').slice(-18).join('\n'));
 
+        // B. Port availability check
+        const requestedPort = config.port ?? 3102;
+        const freePort = await findFreePort(requestedPort, GPU2_HOST);
+        if (freePort !== requestedPort) {
+          emit(controller, 'port_check', 'running', `Port ${requestedPort} occupé, utilisation du port ${freePort}`);
+        }
+        emit(controller, 'port_check', 'done', `Port retenu: ${freePort}`);
+        config.port = freePort;
+
         emit(controller, 'deploy', 'running', `Deploying site to GPU2 on port ${config.port}...`);
-        deployToGpu2(dir, {
+        const deployed = await deployToGpu2(dir, {
           ...config,
-          port: config.port ?? 3102,
+          port: config.port,
         });
+
+        // E. Health-check retry (non-fatal)
+        const siteUrl = `http://${GPU2_HOST}:${deployed.port}`;
+        emit(controller, 'health_check', 'running', `Vérification santé sur ${siteUrl}...`);
+        const healthy = await pollHealthCheck(siteUrl);
+        if (!healthy) {
+          emit(controller, 'health_check', 'warning', 'Site pas encore prêt après 90s — il peut prendre quelques instants de plus');
+        } else {
+          emit(controller, 'health_check', 'done', 'Site répond correctement');
+        }
+
         if (config.siteId) {
           await getSupabase()
             ?.from('sites')
             .update({
               status: 'live',
               config: {
-                port: config.port,
+                port: deployed.port,
                 publishable_key: config.publishableKey,
-                remote_path: `/home/${GPU2_USER}/sites/${config.projectName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+                niche: config.niche,
+                market: config.market,
+                positioning: config.positioning,
+                imported_products: products.slice(0, 8),
+                pages: config.pages,
+                remote_path: deployed.remoteDir,
               },
             })
             .eq('id', config.siteId);
         }
-        emit(controller, 'deploy', 'done', `Live at http://${GPU2_HOST}:${config.port}`);
-        emit(controller, 'pipeline', 'done', `Site live at http://${GPU2_HOST}:${config.port}`);
+        clearTimeout(timeoutId);
+        emit(controller, 'deploy', 'done', `Live at ${siteUrl}`);
+        emit(controller, 'pipeline', 'done', `Site live at ${siteUrl}`);
       } catch (err) {
+        clearTimeout(timeoutId);
         const message = err instanceof Error ? err.message : String(err);
+        // C. Cleanup Supabase status on crash
         if (config.siteId) {
-          await getSupabase()?.from('sites').update({ status: 'error' }).eq('id', config.siteId);
+          await getSupabase()
+            ?.from('sites')
+            .update({ status: 'failed', error_message: message.slice(0, 500) })
+            .eq('id', config.siteId);
         }
+        console.error('[launcher] pipeline error:', message);
         emit(controller, 'pipeline', 'error', message);
       }
 

@@ -20,3 +20,26 @@ export interface SupplierClient {
   searchProducts(keywords: string[], options?: { limit?: number }): Promise<SupplierProduct[]>;
   getProduct(externalId: string): Promise<SupplierProduct | null>;
 }
+
+/** Normalized product shape for cross-supplier use */
+export interface RouterProduct {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  cost: number;
+  image: string;
+  images: string[];
+  supplier: 'cjdropshipping' | 'aliexpress';
+  supplierProductId: string;
+  category: string;
+  variants?: Array<{ name: string; values: string[] }>;
+}
+
+export interface SupplierSearchParams {
+  keywords: string;
+  limit?: number;
+  minPrice?: number;
+  maxPrice?: number;
+  preferredSuppliers?: Array<'cjdropshipping' | 'aliexpress'>;
+}

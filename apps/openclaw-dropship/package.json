@@ -10,7 +10,10 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@dropship/core": "^0.1.0",
+    "@dropship/suppliers": "*",
     "@supabase/supabase-js": "^2.101.1",
+    "ae_sdk": "^0.6.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",

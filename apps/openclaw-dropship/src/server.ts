@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import { logger } from './logger.js';
 import { healthRouter } from './routes/health.js';
 import { productSearchRouter } from './routes/product-search.js';
+import { productScoutRouter } from './routes/product-scout.js';
 import { shopExecutorRouter } from './routes/shop-executor.js';
 import { agentPipelineRouter } from './routes/agent-pipeline.js';
 
@@ -34,6 +35,7 @@ app.use(express.json({ limit: '1mb' }));
 
 app.use('/health', healthRouter);
 app.use('/products', productSearchRouter);
+app.use('/products', productScoutRouter);
 app.use('/shop', apiKeyAuth, shopExecutorRouter);
 app.use('/agent', apiKeyAuth, agentPipelineRouter);
 

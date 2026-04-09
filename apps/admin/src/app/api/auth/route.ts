@@ -1,54 +1,38 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
-import { createHmac, timingSafeEqual } from 'crypto';
+import { createClient } from '@supabase/supabase-js';
+import { verifyAdminToken } from '@/lib/auth';
 
-const VALID_USER = process.env['ADMIN_AUTH_USER'] ?? '';
-const VALID_PASS = process.env['ADMIN_AUTH_PASS'] ?? '';
-const SESSION_SECRET = process.env['NEXTAUTH_SECRET'] ?? process.env['ONEPEACE_JWT_SECRET'] ?? '';
+const SUPABASE_URL = process.env['SUPABASE_URL'] ?? '';
+const SUPABASE_ANON_KEY = process.env['SUPABASE_ANON_KEY'] ?? '';
 const COOKIE_NAME = 'dp_session';
-const TOKEN_TTL_S = 60 * 60 * 24 * 7; // 7 days
+const TOKEN_TTL_S = 60 * 60 * 24 * 7;
 
-function signToken(user: string): string {
-  const expires = Math.floor(Date.now() / 1000) + TOKEN_TTL_S;
-  const payload = `${user}:${expires}`;
-  const sig = createHmac('sha256', SESSION_SECRET).update(payload).digest('hex');
-  return `${payload}:${sig}`;
-}
-
-export function verifyAdminToken(token: string | undefined): boolean {
-  if (!token || !SESSION_SECRET) return false;
-  const parts = token.split(':');
-  if (parts.length !== 3) return false;
-  const [user, expiresStr, sig] = parts;
-  const expires = parseInt(expiresStr ?? '0', 10);
-  if (Date.now() / 1000 > expires) return false;
-  const payload = `${user}:${expiresStr}`;
-  const expected = createHmac('sha256', SESSION_SECRET).update(payload).digest('hex');
-  try {
-    return timingSafeEqual(Buffer.from(sig ?? '', 'hex'), Buffer.from(expected, 'hex'));
-  } catch {
-    return false;
-  }
+function getAnonClient() {
+  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json() as { username?: string; password?: string };
-  const { username, password } = body;
+  const body = await req.json() as { email?: string; username?: string; password?: string };
+  const email = body.email ?? body.username ?? '';
+  const password = body.password ?? '';
 
-  if (!VALID_USER || !VALID_PASS) {
-    console.error('[auth] ADMIN_AUTH_USER or ADMIN_AUTH_PASS not set');
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    console.error('[auth] SUPABASE_URL or SUPABASE_ANON_KEY not set');
     return NextResponse.json({ error: 'Auth not configured' }, { status: 503 });
   }
 
-  if (!SESSION_SECRET) {
-    console.error('[auth] NEXTAUTH_SECRET not set — session signing disabled');
-    return NextResponse.json({ error: 'Session secret not configured' }, { status: 503 });
-  }
+  try {
+    const supabase = getAnonClient();
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-  if (username === VALID_USER && password === VALID_PASS) {
-    const token = signToken(VALID_USER);
-    const res = NextResponse.json({ ok: true });
-    res.cookies.set(COOKIE_NAME, token, {
+    if (error || !data.session) {
+      console.error('[auth] Login failed:', error?.message ?? 'no session');
+      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+    }
+
+    const res = NextResponse.json({ ok: true, user: data.user.email });
+    res.cookies.set(COOKIE_NAME, data.session.access_token, {
       httpOnly: true,
       sameSite: 'lax',
       secure: process.env['NODE_ENV'] === 'production',
@@ -56,9 +40,10 @@ export async function POST(req: NextRequest) {
       maxAge: TOKEN_TTL_S,
     });
     return res;
+  } catch (err) {
+    console.error('[auth] Unexpected error:', err instanceof Error ? err.message : err);
+    return NextResponse.json({ error: 'Auth service error' }, { status: 500 });
   }
-
-  return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
 }
 
 export async function DELETE() {
@@ -70,5 +55,6 @@ export async function DELETE() {
 export async function GET() {
   const store = await cookies();
   const token = store.get(COOKIE_NAME)?.value;
-  return NextResponse.json({ authenticated: verifyAdminToken(token) });
+  const authenticated = await verifyAdminToken(token);
+  return NextResponse.json({ authenticated });
 }

@@ -24,7 +24,7 @@ export const aiEnrich = task({
       costCents: payload.costCents,
     });
 
-    const seo = await generateSEOMeta({
+    const seoMeta = await generateSEOMeta({
       name: payload.name,
       category: payload.category,
       description,
@@ -32,8 +32,8 @@ export const aiEnrich = task({
 
     const { error } = await supabase.from('products').update({
       ai_description: description,
-      seo_title: seo.title,
-      seo_description: seo.description,
+      seo_title: seoMeta.title,
+      seo_description: seoMeta.description,
       enriched_at: new Date().toISOString(),
     }).eq('id', payload.productId);
 
@@ -45,9 +45,9 @@ export const aiEnrich = task({
     logger.info('AI enrichment saved', {
       productId: payload.productId,
       descLength: description.length,
-      seoTitle: seo.title,
+      seoTitle: seoMeta.title,
     });
 
-    return { description, seo };
+    return { description, seo: { title: seoMeta.title, description: seoMeta.description } };
   },
 });

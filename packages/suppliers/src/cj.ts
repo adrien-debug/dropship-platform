@@ -72,10 +72,21 @@ export class CJDropshippingClient implements SupplierClient {
 
     for (const keyword of keywords) {
       if (all.length >= limit) break;
-      const data = await this.request('GET', `/product/listV2?productNameEn=${encodeURIComponent(keyword)}&pageNum=1&pageSize=${Math.min(limit - all.length, 20)}`) as { list?: unknown[] };
+      const pageSize = Math.min(limit - all.length, 20);
+
+      // product/list (v1) actually filters by keyword; listV2 ignores it
+      const data = await this.request(
+        'GET',
+        `/product/list?productNameEn=${encodeURIComponent(keyword)}&pageNum=1&pageSize=${pageSize}`,
+      ) as {
+        list?: unknown[];
+        total?: number;
+      };
+
       if (data?.list) {
         all.push(...data.list.map(p => this.mapProduct(p as Record<string, unknown>)));
       }
+
       if (keywords.indexOf(keyword) < keywords.length - 1) {
         await new Promise(r => setTimeout(r, 1200));
       }
@@ -121,30 +132,49 @@ export class CJDropshippingClient implements SupplierClient {
     }
   }
 
+  private parseSellPrice(val: unknown): number {
+    if (typeof val === 'number') return val;
+    if (typeof val === 'string') {
+      // CJ v2 returns ranges like "0.26 -- 0.52" — take the higher value
+      const parts = val.split('--').map(s => parseFloat(s.trim()));
+      const valid = parts.filter(n => !isNaN(n));
+      return valid.length > 0 ? Math.max(...valid) : 0;
+    }
+    return 0;
+  }
+
   private mapProduct(raw: Record<string, unknown>): SupplierProduct {
+    const sellPrice = this.parseSellPrice(raw.sellPrice);
     const variants = Array.isArray(raw.variants)
       ? (raw.variants as Record<string, unknown>[]).map(v => ({
-          sku: String(v.variantSku ?? ''),
-          name: String(v.variantNameEn ?? ''),
-          costCents: Math.round(Number(v.variantSellPrice ?? raw.sellPrice ?? 0) * 100),
+          sku: String(v.variantSku ?? v.sku ?? ''),
+          name: String(v.variantNameEn ?? v.nameEn ?? ''),
+          costCents: Math.round(Number(v.variantSellPrice ?? v.sellPrice ?? sellPrice) * 100),
           stock: Number(v.variantVolume ?? 999),
           attributes: {} as Record<string, string>,
         }))
       : [{
-          sku: String(raw.productSku ?? ''),
-          name: String(raw.productNameEn ?? ''),
-          costCents: Math.round(Number(raw.sellPrice ?? 0) * 100),
+          sku: String(raw.productSku ?? raw.sku ?? ''),
+          name: String(raw.productNameEn ?? raw.nameEn ?? ''),
+          costCents: Math.round(sellPrice * 100),
           stock: 999,
           attributes: {},
         }];
 
+    // v2 API uses id/nameEn/bigImage, v1 uses pid/productNameEn/productImage
+    const name = String(raw.productNameEn ?? raw.nameEn ?? '');
+    const image = String(raw.productImage ?? raw.bigImage ?? '');
+    const category = String(
+      raw.categoryName ?? raw.threeCategoryName ?? raw.twoCategoryName ?? raw.oneCategoryName ?? 'Uncategorized'
+    );
+
     return {
-      externalId: String(raw.pid ?? raw.productId ?? ''),
-      name: String(raw.productNameEn ?? ''),
-      description: String(raw.description ?? raw.productNameEn ?? ''),
-      costCents: Math.round(Number(raw.sellPrice ?? 0) * 100),
-      category: String(raw.categoryName ?? 'Uncategorized'),
-      imageUrls: [String(raw.productImage ?? '')].filter(Boolean),
+      externalId: String(raw.pid ?? raw.id ?? raw.productId ?? ''),
+      name,
+      description: String(raw.description ?? name),
+      costCents: Math.round(sellPrice * 100),
+      category,
+      imageUrls: image ? [image] : [],
       variants,
       shippingDays: { min: 15, max: 30 },
     };

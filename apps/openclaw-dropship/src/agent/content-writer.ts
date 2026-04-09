@@ -2,12 +2,17 @@ import OpenAI from 'openai';
 import type { BrandIdentity, SiteContent, EnrichedProduct } from './types.js';
 import { logger } from '../logger.js';
 
+const LLM_MODE = process.env['LLM_MODE'] ?? 'auto';
 const VLLM_URL = process.env['VLLM_GPU1_URL'] ?? 'http://100.88.191.49:8000/v1';
 const VLLM_FAST_URL = process.env['VLLM_GPU1_FAST_URL'] ?? 'http://100.88.191.49:8001/v1';
 const VLLM_API_KEY = process.env['VLLM_API_KEY'] ?? 'not-needed';
 const VLLM_MODEL = process.env['VLLM_MODEL'] ?? 'Qwen/Qwen2.5-Coder-32B-Instruct-AWQ';
 const VLLM_FAST_MODEL = process.env['VLLM_FAST_MODEL'] ?? 'Qwen/Qwen2.5-Coder-7B-Instruct-AWQ';
 const FALLBACK_MODEL = process.env['LLM_FALLBACK_MODEL']?.trim() || 'gpt-4o-mini';
+
+function isLocalMode(): boolean {
+  return LLM_MODE === 'local';
+}
 
 export type LLMClientBundle = {
   vllm: OpenAI;
@@ -209,7 +214,11 @@ export async function generateSiteContent(input: {
   topProducts: string[];
 }): Promise<SiteContent> {
   const t0 = Date.now();
-  logger.info('content', `Generating site content for niche: ${input.niche}`);
+  logger.info('content', `Generating site content for niche: ${input.niche} (mode: ${LLM_MODE})`);
+
+  if (isLocalMode()) {
+    return localSiteContent(input.niche, input.market, input.positioning);
+  }
 
   // Call 1 (fast model): brand + hero + policies + SEO in a single JSON call
   const combined = await jsonCompletion<SiteContentJSON>(
@@ -322,7 +331,11 @@ export async function generateProductDescriptions(
   niche: string,
 ): Promise<EnrichedProduct[]> {
   const t0 = Date.now();
-  logger.info('content', `Enriching ${products.length} products for "${brandName}" (batch size: ${BATCH_SIZE})`);
+  logger.info('content', `Enriching ${products.length} products for "${brandName}" (mode: ${LLM_MODE})`);
+
+  if (isLocalMode()) {
+    return products.map(p => localEnrichProduct(p, brandName));
+  }
 
   const enriched: EnrichedProduct[] = [];
   let fallbackCount = 0;
@@ -343,4 +356,57 @@ export async function generateProductDescriptions(
 
   logger.info('content', `Enriched ${products.length} products in ${((Date.now() - t0) / 1000).toFixed(1)}s (${fallbackCount} fallbacks)`);
   return enriched;
+}
+
+// ─── Local mode: deterministic content without any LLM ───
+
+function localSiteContent(niche: string, market: string, positioning: string): SiteContent {
+  const primary = niche.split(',')[0]?.trim() ?? niche;
+  const cap = primary.charAt(0).toUpperCase() + primary.slice(1);
+  const region = market === 'US' ? 'the US' : market === 'EU' ? 'Europe' : 'France';
+  const tier = positioning === 'premium' ? 'Premium' : positioning === 'budget' ? 'Affordable' : 'Quality';
+
+  logger.info('content', `[local] Generated site content for "${primary}" (${market}/${positioning})`);
+
+  return {
+    brand: {
+      name: `${cap} Hub`,
+      tagline: `${tier} ${primary} delivered to you`,
+      tone_of_voice: positioning === 'premium' ? 'refined and confident' : 'friendly and direct',
+      color_mood: positioning === 'premium' ? 'dark and elegant' : 'clean and bright',
+    },
+    hero_title: `${tier} ${cap}`,
+    hero_subtitle: `Discover our curated selection of ${primary} products, handpicked for ${region}.`,
+    hero_cta: 'Shop Now',
+    about_html: [
+      `<h2>About ${cap} Hub</h2>`,
+      `<p>We are a ${positioning}-tier ${primary} store serving ${region}. `,
+      `Our team carefully selects each product for quality, design, and value.</p>`,
+      `<p>Fast shipping, easy returns, and dedicated customer support — that's our promise.</p>`,
+    ].join(''),
+    shipping_policy: `<p>Standard shipping: 7-15 business days to ${region}. Free shipping on orders over €50. Express options available at checkout.</p>`,
+    return_policy: '<p>14-day satisfaction guarantee. Return unused items in original packaging for a full refund. Contact support to start a return.</p>',
+    seo_title: `${cap} Hub — ${tier} ${primary} Online`,
+    seo_description: `Shop ${positioning}-range ${primary} products online. Curated selection, fast shipping to ${region}. Satisfaction guaranteed.`,
+    seo_keywords: niche.split(',').map(k => k.trim()).filter(Boolean),
+  };
+}
+
+function localEnrichProduct(
+  product: { name: string; category: string; costCents: number; image?: string; externalId?: string },
+  brandName: string,
+): EnrichedProduct {
+  const sellingPrice = Math.round(product.costCents * PRICE_MULTIPLIER) / 100;
+  return {
+    title: product.name,
+    description: `${product.name} from ${brandName}. A quality ${product.category.toLowerCase()} product, carefully selected for our customers. Order now and enjoy fast, reliable shipping.`,
+    price: sellingPrice,
+    cost_cents: product.costCents,
+    images: product.image ? [product.image] : [],
+    seo_title: `${product.name} | ${brandName}`,
+    seo_description: `Buy ${product.name} — ${product.category}. ${brandName} quality, fast shipping.`,
+    category: product.category,
+    supplier: 'cj',
+    external_id: product.externalId ?? '',
+  };
 }

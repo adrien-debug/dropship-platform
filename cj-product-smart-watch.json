@@ -1,0 +1,23 @@
+{
+  "externalId": "2604071005001605100",
+  "name": "Cross-border Smart Multi-functional Clothes Dryer",
+  "description": "Cross-border Smart Multi-functional Clothes Dryer",
+  "costCents": 647,
+  "category": "Home Office Storage",
+  "imageUrls": [
+    "https://oss-cf.cjdropshipping.com/product/2026/04/07/10/b66b865b-1175-4725-a366-d09b88bc37e6_trans.jpeg"
+  ],
+  "variants": [
+    {
+      "sku": "CJYD2822500",
+      "name": "Cross-border Smart Multi-functional Clothes Dryer",
+      "costCents": 647,
+      "stock": 999,
+      "attributes": {}
+    }
+  ],
+  "shippingDays": {
+    "min": 15,
+    "max": 30
+  }
+}

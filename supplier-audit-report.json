@@ -1,0 +1,233 @@
+{
+  "timestamp": "2026-04-08T03:55:27.589Z",
+  "summary": {
+    "total": 10,
+    "success": 10,
+    "error": 0
+  },
+  "byCJ": {
+    "total": 5,
+    "success": 5,
+    "error": 0
+  },
+  "byAE": {
+    "total": 4,
+    "success": 4,
+    "error": 0
+  },
+  "results": [
+    {
+      "supplier": "cjdropshipping",
+      "test": "connection",
+      "status": "success",
+      "duration": 1866,
+      "data": {
+        "connected": true
+      }
+    },
+    {
+      "supplier": "cjdropshipping",
+      "test": "search_phone_case",
+      "status": "success",
+      "duration": 403,
+      "data": {
+        "count": 10,
+        "products": [
+          {
+            "id": "2041712638535561217",
+            "name": "BICYCLE FRAME TOOL PUNCTURE REPAIR KIT CARRY CASE BAG TOOL CARRY CASE BAG",
+            "costCents": 2017,
+            "category": "Tool Sets",
+            "images": 1,
+            "variants": 1
+          },
+          {
+            "id": "2604071029151626800",
+            "name": "Anti-Spy Double-Sided Glass Phone Case",
+            "costCents": 293,
+            "category": "Home Office Storage",
+            "images": 1,
+            "variants": 1
+          },
+          {
+            "id": "2041421606583316482",
+            "name": "Non-TSA Customs Lock 3-in-1 PP Trolley Case, 20in, 24in, 28in, PP Off-white",
+            "costCents": 8579,
+            "category": "Office & School Supplies",
+            "images": 1,
+            "variants": 1
+          }
+        ]
+      }
+    },
+    {
+      "supplier": "cjdropshipping",
+      "test": "search_wireless_earbuds",
+      "status": "success",
+      "duration": 420,
+      "data": {
+        "count": 10,
+        "products": [
+          {
+            "id": "2604070852581613200",
+            "name": "Wireless Remote-Controlled Male Telescopic Prostate Massager",
+            "costCents": 1227,
+            "category": "Adult Wellness",
+            "images": 1,
+            "variants": 1
+          },
+          {
+            "id": "2604070532471632300",
+            "name": "Plastic Bluetooth Mouse Wireless Mute",
+            "costCents": 126,
+            "category": "Home Office Storage",
+            "images": 1,
+            "variants": 1
+          },
+          {
+            "id": "2041495902959022081",
+            "name": "Portable Bluetooth Speaker With LED Lights&Transparent Casing, Bluetooth 5.3 Wireless Outdoor Speakers Support TWS PairingTF Card, 10W Stereo Sound, Electronics For Home, Outdoors, Travel Black",
+            "costCents": 1512,
+            "category": "Audio Amplifiers",
+            "images": 1,
+            "variants": 1
+          }
+        ]
+      }
+    },
+    {
+      "supplier": "cjdropshipping",
+      "test": "search_smart_watch",
+      "status": "success",
+      "duration": 651,
+      "data": {
+        "count": 10,
+        "products": [
+          {
+            "id": "2604071005001605100",
+            "name": "Cross-border Smart Multi-functional Clothes Dryer",
+            "costCents": 647,
+            "category": "Home Office Storage",
+            "images": 1,
+            "variants": 1
+          },
+          {
+            "id": "2041442699964624897",
+            "name": "3ft Single Daybed With Smart RGB LED Lights And 2 Storage Drawers, Modern Velvet Youth Bed With Scalloped Backrest And Wooden Slats, Reversible Side Panel, Easy Assembly, Beige  No Mattress",
+            "costCents": 25599,
+            "category": "Furniture",
+            "images": 1,
+            "variants": 1
+          },
+          {
+            "id": "2041443301331349505",
+            "name": "3ft Single Daybed With Smart RGB LED Lights And 2 Storage Drawers, Modern Velvet Youth Bed With Scalloped Backrest And Wooden Slats, Reversible Side Panel, Easy Assembly, Pink  No Mattress",
+            "costCents": 25599,
+            "category": "Furniture",
+            "images": 1,
+            "variants": 1
+          }
+        ]
+      }
+    },
+    {
+      "supplier": "cjdropshipping",
+      "test": "get_product",
+      "status": "success",
+      "duration": 4807,
+      "data": {
+        "id": "2041712638535561217",
+        "name": "BICYCLE FRAME TOOL PUNCTURE REPAIR KIT CARRY CASE BAG TOOL CARRY CASE BAG",
+        "costCents": 2017,
+        "variants": 1
+      }
+    },
+    {
+      "supplier": "aliexpress",
+      "test": "connection",
+      "status": "success",
+      "duration": 495,
+      "data": {
+        "connected": true
+      }
+    },
+    {
+      "supplier": "aliexpress",
+      "test": "search_phone_case",
+      "status": "success",
+      "duration": 98,
+      "data": {
+        "count": 0,
+        "products": []
+      }
+    },
+    {
+      "supplier": "aliexpress",
+      "test": "search_wireless_earbuds",
+      "status": "success",
+      "duration": 123,
+      "data": {
+        "count": 0,
+        "products": []
+      }
+    },
+    {
+      "supplier": "aliexpress",
+      "test": "search_smart_watch",
+      "status": "success",
+      "duration": 103,
+      "data": {
+        "count": 0,
+        "products": []
+      }
+    },
+    {
+      "supplier": "router",
+      "test": "multi_search",
+      "status": "success",
+      "duration": 1565,
+      "data": {
+        "count": 20,
+        "byCJ": 20,
+        "byAE": 0,
+        "products": [
+          {
+            "id": "cj-2041712638535561217",
+            "title": "BICYCLE FRAME TOOL PUNCTURE REPAIR KIT CARRY CASE BAG TOOL CARRY CASE BAG",
+            "price": 52.44,
+            "cost": 20.17,
+            "supplier": "cjdropshipping"
+          },
+          {
+            "id": "cj-2604071029151626800",
+            "title": "Anti-Spy Double-Sided Glass Phone Case",
+            "price": 7.62,
+            "cost": 2.93,
+            "supplier": "cjdropshipping"
+          },
+          {
+            "id": "cj-2041421606583316482",
+            "title": "Non-TSA Customs Lock 3-in-1 PP Trolley Case, 20in, 24in, 28in, PP Off-white",
+            "price": 223.05,
+            "cost": 85.79,
+            "supplier": "cjdropshipping"
+          },
+          {
+            "id": "cj-2041421715440570369",
+            "title": "Non-TSA Customs Lock 3-in-1 PP Trolley Case, 20in, 24in, 28in, PP, Navy Blue",
+            "price": 223.05,
+            "cost": 85.79,
+            "supplier": "cjdropshipping"
+          },
+          {
+            "id": "cj-2604060902161602200",
+            "title": "Anti-peeping Clip Missing Label Magnetic Metal Phone Case",
+            "price": 10.76,
+            "cost": 4.14,
+            "supplier": "cjdropshipping"
+          }
+        ]
+      }
+    }
+  ]
+}

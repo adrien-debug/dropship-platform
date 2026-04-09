@@ -413,13 +413,14 @@ async function testIntegrations(config: TestConfig): Promise<StepResult> {
 
   const logs: string[] = [];
 
+  const medusaUrl = process.env['NEXT_PUBLIC_MEDUSA_URL'] ?? process.env['MEDUSA_URL'] ?? '';
+  const medusaPubKey = process.env['NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY'] ?? '';
+  const medusaRegionId = process.env['NEXT_PUBLIC_MEDUSA_REGION_ID'] ?? '';
+
   // 1. Create Medusa client if not exists
   const medusaPath = join(dir, 'src', 'lib', 'medusa.ts');
   if (!existsSync(medusaPath)) {
     mkdirSync(join(dir, 'src', 'lib'), { recursive: true });
-    const medusaUrl = process.env['NEXT_PUBLIC_MEDUSA_URL'] ?? process.env['MEDUSA_URL'] ?? '';
-    const medusaPubKey = process.env['NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY'] ?? '';
-    const medusaRegionId = process.env['NEXT_PUBLIC_MEDUSA_REGION_ID'] ?? '';
     writeFileSync(medusaPath, `const MEDUSA_URL = process.env.NEXT_PUBLIC_MEDUSA_URL || '${medusaUrl}';
 const PUB_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || '${medusaPubKey}';
 const REGION_ID = process.env.NEXT_PUBLIC_MEDUSA_REGION_ID || '${medusaRegionId}';

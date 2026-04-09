@@ -9,6 +9,7 @@ import {
   useState,
 } from 'react';
 import { shippingEur, type ShippingMethod } from '@/lib/shipping';
+import { trackAddToCart } from '@/lib/analytics';
 
 const STORAGE_KEY = 'onepeace-shop-cart';
 const PROMO_STORAGE_KEY = 'onepeace-shop-promo-code';
@@ -115,6 +116,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const addItem = useCallback((line: Omit<CartLine, 'quantity'> & { quantity?: number }) => {
     const qty = line.quantity ?? 1;
+    trackAddToCart(line.productId, line.name, line.unitPrice * qty);
     setItems(prev => {
       const i = prev.findIndex(p => p.productId === line.productId);
       if (i === -1) {

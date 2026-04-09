@@ -28,10 +28,11 @@ const FILLER_WORDS = new Set([
 ]);
 
 // Market normalization
-const MARKET_MAP: Record<string, 'FR' | 'EU' | 'US'> = {
+const MARKET_MAP: Record<string, 'FR' | 'EU' | 'US' | 'WORLD'> = {
   fr: 'FR', france: 'FR', french: 'FR', français: 'FR', francais: 'FR',
   eu: 'EU', europe: 'EU', european: 'EU', européen: 'EU', europeen: 'EU',
   us: 'US', usa: 'US', 'united states': 'US', america: 'US', american: 'US', américain: 'US', americain: 'US',
+  world: 'WORLD', mondial: 'WORLD', global: 'WORLD', international: 'WORLD', worldwide: 'WORLD',
 };
 
 // Positioning normalization
@@ -84,7 +85,7 @@ export type NormalizedValue<T> =
 /**
  * Normalize market parameter with explicit absent/invalid distinction
  */
-export function normalizeMarket(input?: string): NormalizedValue<'FR' | 'EU' | 'US'> {
+export function normalizeMarket(input?: string): NormalizedValue<'FR' | 'EU' | 'US' | 'WORLD'> {
   if (!input) {
     return { provided: false, value: undefined };
   }
@@ -127,16 +128,15 @@ export function normalizePipelineInput(input: {
   positioning?: string;
 }): {
   keywords: string[];
-  market: 'FR' | 'EU' | 'US';
+  market: 'FR' | 'EU' | 'US' | 'WORLD';
   positioning: 'budget' | 'mid' | 'premium';
 } {
   const normalizedKeywords = normalizeKeywords(input.keywords);
   const marketResult = normalizeMarket(input.market);
   const positioningResult = normalizePositioning(input.positioning);
 
-  // Check for invalid explicit values
   if (marketResult.provided && !marketResult.valid) {
-    throw new Error(`Invalid market value: "${marketResult.input}". Valid values: FR, EU, US, france, europe, usa, etc.`);
+    throw new Error(`Invalid market value: "${marketResult.input}". Valid values: FR, EU, US, WORLD, france, europe, usa, mondial, etc.`);
   }
   
   if (positioningResult.provided && !positioningResult.valid) {
