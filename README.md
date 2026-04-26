@@ -2,6 +2,38 @@
 
 Application **Next.js** dans `apps/web` : admin, API Medusa, Supabase.
 
+## Status intégrations fournisseurs
+
+### Clés récupérées et configurées
+- ✅ CJ Dropshipping API key ajoutée sur Vercel
+- ✅ AliExpress App Key + Secret ajoutés sur Vercel
+- ✅ Clients API créés (`lib/suppliers/cj.ts`, `lib/suppliers/aliexpress.ts`)
+- ✅ Route d'import `/api/suppliers/import` fonctionnelle
+
+### Actions requises
+⚠️ **Les clés API nécessitent une revalidation :**
+
+**CJ Dropshipping** : Erreur `APIkey is wrong`
+- Aller sur https://cjdropshipping.com/
+- Developer Center → API
+- Régénérer une nouvelle clé
+- Mettre à jour `CJ_DROPSHIPPING_API_KEY` sur Vercel
+
+**AliExpress** : Erreur `App does not have permission`
+- Aller sur https://open.aliexpress.com/
+- Vérifier le statut de l'application
+- Demander l'accès à l'API Affiliate si nécessaire
+- Mettre à jour clés si expirées
+
+**Test local une fois les clés mises à jour :**
+```bash
+cd apps/web
+# Copier les nouvelles clés dans .env.local
+curl -X POST http://localhost:3063/api/suppliers/import \
+  -H "Content-Type: application/json" \
+  -d '{"source":"cj","keywords":"phone case","limit":3,"autoImport":true}'
+```
+
 ## Déploiement cloud (sans serveur local)
 
 | Service    | Rôle |
