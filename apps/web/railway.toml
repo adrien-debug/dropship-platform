@@ -1,0 +1,9 @@
+# Déploiement Next sur Railway : définir le dossier racine du service sur `apps/web`
+# (ou cloner uniquement ce sous-dossier). Variables d’environnement = idem Vercel (voir README).
+
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "npm run start"
+restartPolicyType = "ON_FAILURE"
