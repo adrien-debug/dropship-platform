@@ -10,20 +10,24 @@ Application **Next.js** dans `apps/web` : admin, API Medusa, Supabase.
 - ✅ Clients API créés (`lib/suppliers/cj.ts`, `lib/suppliers/aliexpress.ts`)
 - ✅ Route d'import `/api/suppliers/import` fonctionnelle
 
-### Actions requises
-⚠️ **Les clés API nécessitent une revalidation :**
+### Actions requises (bloquantes)
+⚠️ **Les APIs nécessitent des permissions développeur :**
 
-**CJ Dropshipping** : Erreur `APIkey is wrong`
-- Aller sur https://cjdropshipping.com/
-- Developer Center → API
-- Régénérer une nouvelle clé
-- Mettre à jour `CJ_DROPSHIPPING_API_KEY` sur Vercel
+**CJ Dropshipping** : Erreur `APIkey is wrong` (code 1600005)
+- Credentials testés : `adrien@hearstcorporation.io` / `Sasha0334$$`
+- **Action** : Contacter support CJ via dashboard pour activer l'accès API développeur
+- Le compte CJ standard n'a pas l'API activée par défaut
+- Support : https://cjdropshipping.com/ → Contact Agent (chat en bas à droite)
 
-**AliExpress** : Erreur `App does not have permission`
-- Aller sur https://open.aliexpress.com/
-- Vérifier le statut de l'application
-- Demander l'accès à l'API Affiliate si nécessaire
-- Mettre à jour clés si expirées
+**AliExpress** : Erreur `App does not have permission to access this api`
+- App Key `531346` (statut Online, catégorie Drop Shipping)
+- **Action** : Demander l'accès à "Affiliate Product Query API"
+  1. Aller sur https://open.aliexpress.com/console
+  2. Cliquer sur l'app (531346)
+  3. Section "API Access" → Request "Affiliate Product Query"
+  4. Attendre approbation (24-48h)
+
+**Note** : Le code est prêt et fonctionnera dès l'activation des permissions
 
 **Test local une fois les clés mises à jour :**
 ```bash
