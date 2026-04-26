@@ -67,6 +67,11 @@ async function authenticate(): Promise<string> {
 
   accessToken = data.data.accessToken;
   tokenExpiresAt = Date.now() + 3600 * 1000; // 1h
+  
+  if (!accessToken) {
+    throw new Error('CJ API returned empty access token');
+  }
+  
   return accessToken;
 }
 
