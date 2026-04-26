@@ -1,37 +1,28 @@
-import Link from "next/link";
-import { AdminLogoutButton } from "../login/AdminLogoutButton";
+import Link from 'next/link';
+import { AdminLogoutButton } from '../login/AdminLogoutButton';
 
 export default function AdminAppLayout({ children }: { children: React.ReactNode }) {
-  const navItems = [
-    { href: "/admin", label: "Dashboard" },
-    { href: "/admin/stores", label: "Boutiques", badge: "Multi" },
-    { href: "/admin/boutique", label: "Boutique" },
-    { href: "/admin/produits", label: "Produits" },
-    { href: "/admin/suppliers", label: "Fournisseurs", badge: "Ali+CJ" },
-    { href: "/admin/medusa", label: "Medusa", badge: "Railway" },
-    { href: "/admin/agents-managed", label: "Agents IA", highlight: true },
-  ];
+  /** Liens alignés sur les routes réellement présentes dans `app/admin`. */
+  const navItems = [{ href: '/admin/medusa', label: 'Medusa', badge: 'Railway' }];
 
   return (
     <div className="flex min-h-screen">
       <aside className="w-64 shrink-0 bg-black text-white flex flex-col">
         <div className="p-6">
-          <h1 className="text-xl font-bold">Dropship Admin</h1>
+          <Link href="/admin/medusa" className="block text-xl font-bold hover:text-zinc-200">
+            Dropship Admin
+          </Link>
+          <p className="mt-2 text-xs text-zinc-500">Navigation réduite aux écrans implémentés.</p>
         </div>
         <nav className="flex-1 px-4">
           <ul className="space-y-2">
             {navItems.map((item) => (
               <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={`block px-4 py-2 rounded transition-colors ${
-                    item.highlight
-                      ? "bg-blue-600 hover:bg-blue-700 font-semibold"
-                      : "hover:bg-gray-800"
-                  }`}
-                >
-                  {item.highlight && <span className="mr-2">✨</span>}
+                <Link href={item.href} className="block px-4 py-2 rounded transition-colors hover:bg-gray-800">
                   {item.label}
+                  {item.badge ? (
+                    <span className="ml-2 text-[10px] uppercase text-zinc-400">({item.badge})</span>
+                  ) : null}
                 </Link>
               </li>
             ))}

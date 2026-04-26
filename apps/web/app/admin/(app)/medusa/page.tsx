@@ -1,17 +1,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import type { Product } from '@/lib/types/product';
 
-interface Product {
-  id: string;
+interface PublishErrorRow {
   title: string;
-  description: string;
-  price_cents: number;
-  category: string;
-  supplier: string;
-  medusa_product_id?: string;
-  published_to_medusa_at?: string;
-  status: string;
+  error: string;
+}
+
+interface PublishResultPayload {
+  success?: boolean;
+  error?: string;
+  published?: {
+    success?: number;
+    errors?: PublishErrorRow[];
+  };
 }
 
 export default function MedusaPage() {
@@ -21,7 +24,7 @@ export default function MedusaPage() {
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [config, setConfig] = useState<{ ok: boolean; message: string } | null>(null);
   const [stats, setStats] = useState<{ publishedToMedusa: number; notPublished: number } | null>(null);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<PublishResultPayload | null>(null);
 
   useEffect(() => {
     loadConfig();
@@ -90,7 +93,7 @@ export default function MedusaPage() {
       const data = await res.json();
       setResult(data);
 
-      if (data.success) {
+      if (data.success && data.published?.success != null) {
         alert(`${data.published.success} produits publiés sur Medusa`);
         loadProducts();
         loadStats();
@@ -98,7 +101,7 @@ export default function MedusaPage() {
       } else {
         alert(`Erreur: ${data.error}`);
       }
-    } catch (err) {
+    } catch {
       alert('Erreur de connexion');
     } finally {
       setPublishing(false);
@@ -183,8 +186,8 @@ export default function MedusaPage() {
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-800 font-medium mb-2">Erreurs:</p>
           <ul className="text-sm text-red-600 space-y-1">
-            {result.published.errors.map((err: any, i: number) => (
-              <li key={i}>{err.title}: {err.error}</li>
+            {result.published.errors.map((err) => (
+              <li key={`${err.title}-${err.error}`}>{err.title}: {err.error}</li>
             ))}
           </ul>
         </div>
@@ -223,9 +226,9 @@ export default function MedusaPage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="font-medium">{product.title}</div>
-                    <div className="text-sm text-gray-500">{product.supplier}</div>
+                    <div className="text-sm text-gray-500">{product.supplier ?? '—'}</div>
                   </td>
-                  <td className="px-4 py-3 text-sm">{product.category}</td>
+                  <td className="px-4 py-3 text-sm">{product.category ?? '—'}</td>
                   <td className="px-4 py-3 text-sm">
                     {(product.price_cents / 100).toFixed(2)} €
                   </td>
@@ -249,7 +252,9 @@ export default function MedusaPage() {
 
       {products.length === 0 && !loading && (
         <p className="text-center text-gray-500 py-12">
-          Aucun produit. Importez d'abord des produits depuis /admin/suppliers
+          Aucun produit. Importez-en via{' '}
+          <code className="text-xs bg-zinc-100 px-1 rounded">POST /api/suppliers/import</code> (voir README
+          racine).
         </p>
       )}
     </div>

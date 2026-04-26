@@ -3,6 +3,8 @@
  * Docs: https://developers.aliexpress.com/en/doc.htm
  */
 
+import { createHash } from 'crypto';
+
 const APP_KEY = (process.env.ALIEXPRESS_APP_KEY || '').trim();
 const APP_SECRET = (process.env.ALIEXPRESS_APP_SECRET || '').trim();
 const API_BASE = 'https://api-sg.aliexpress.com/sync';
@@ -121,8 +123,5 @@ function generateSignature(params: Record<string, string>, secret: string): stri
     .join('');
   
   const str = `${secret}${sorted}${secret}`;
-  
-  // MD5 hash (Node.js crypto)
-  const crypto = require('crypto');
-  return crypto.createHash('md5').update(str).digest('hex').toUpperCase();
+  return createHash('md5').update(str).digest('hex').toUpperCase();
 }

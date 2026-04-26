@@ -1,8 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getDb } from '@/lib/db';
+import type { AliExpressProduct, AliExpressSearchResult } from '@/lib/suppliers/aliexpress';
 import * as aliexpress from '@/lib/suppliers/aliexpress';
+import type { CJProduct, CJSearchResult } from '@/lib/suppliers/cj';
 import * as cj from '@/lib/suppliers/cj';
+
+type SupplierSearchResult =
+  | Awaited<ReturnType<typeof aliexpress.searchProducts>>
+  | Awaited<ReturnType<typeof cj.searchProducts>>;
+
+interface ImportedProductRow {
+  id: string;
+  title: string;
+  price_cents: number;
+  supplier: string;
+  external_id: string;
+}
 
 const importSchema = z.object({
   source: z.enum(['aliexpress', 'cj']),
@@ -21,7 +35,7 @@ export async function POST(request: NextRequest) {
     const validated = importSchema.parse(body);
     const db = getDb();
 
-    let searchResult: { success: boolean; data?: any; error?: string };
+    let searchResult: SupplierSearchResult;
 
     if (validated.source === 'aliexpress') {
       searchResult = await aliexpress.searchProducts({
@@ -42,9 +56,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const products = validated.source === 'aliexpress' 
-      ? searchResult.data.products 
-      : searchResult.data.list;
+    const products =
+      validated.source === 'aliexpress'
+        ? (searchResult.data as AliExpressSearchResult).products
+        : (searchResult.data as CJSearchResult).list;
 
     if (!products || products.length === 0) {
       return NextResponse.json({
@@ -55,54 +70,68 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const imported: any[] = [];
+    const imported: (ImportedProductRow & { supplier_url: string })[] = [];
 
     if (validated.autoImport) {
-      for (const product of products) {
-        try {
-          let title: string;
-          let price_cents: number;
-          let external_id: string;
-          let image_url: string;
-          let supplier_url: string;
-
-          if (validated.source === 'aliexpress') {
-            title = product.product_title || 'Untitled';
-            price_cents = Math.round(parseFloat(product.sale_price || product.original_price || '0') * 100);
-            external_id = product.product_id;
-            image_url = product.product_main_image_url || '';
-            supplier_url = product.product_url || '';
-          } else {
-            title = product.productNameEn || 'Untitled';
-            price_cents = Math.round((product.sellPrice || 0) * 100);
-            external_id = product.pid;
-            image_url = product.productImage || '';
-            supplier_url = product.sellUrl || '';
-          }
-
-          const { rows } = await db.query(
-            `INSERT INTO dropship_products (
+      const insertRow = async (
+        title: string,
+        price_cents: number,
+        external_id: string,
+        image_url: string,
+        supplier_url: string,
+        category: string,
+      ) => {
+        const { rows } = await db.query<ImportedProductRow>(
+          `INSERT INTO dropship_products (
               title, description, price_cents, cost_cents, category, supplier, 
               external_id, image_url, status, created_at, updated_at
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), now())
             RETURNING id, title, price_cents, supplier, external_id`,
-            [
-              title,
-              `Imported from ${validated.source}`,
-              price_cents,
-              Math.round(price_cents * 0.6), // Cost = 60% of price (example)
-              validated.source === 'aliexpress' ? product.category_name : product.categoryName || 'General',
-              validated.source,
-              external_id,
-              image_url,
-              'draft',
-            ],
-          );
+          [
+            title,
+            `Imported from ${validated.source}`,
+            price_cents,
+            Math.round(price_cents * 0.6),
+            category,
+            validated.source,
+            external_id,
+            image_url,
+            'draft',
+          ],
+        );
+        const row = rows[0];
+        if (row) imported.push({ ...row, supplier_url });
+      };
 
-          imported.push({ ...rows[0], supplier_url });
-        } catch (err) {
-          console.error(`[Import] Failed to import product:`, err);
-          // Continue with next product
+      if (validated.source === 'aliexpress') {
+        for (const product of products as AliExpressProduct[]) {
+          try {
+            await insertRow(
+              product.product_title || 'Untitled',
+              Math.round(parseFloat(product.sale_price || product.original_price || '0') * 100),
+              product.product_id,
+              product.product_main_image_url || '',
+              product.product_url || '',
+              product.category_name || 'General',
+            );
+          } catch (err) {
+            console.error(`[Import] Failed to import product:`, err);
+          }
+        }
+      } else {
+        for (const product of products as CJProduct[]) {
+          try {
+            await insertRow(
+              product.productNameEn || 'Untitled',
+              Math.round((product.sellPrice || 0) * 100),
+              product.pid,
+              product.productImage || '',
+              product.sellUrl || '',
+              product.categoryName || 'General',
+            );
+          } catch (err) {
+            console.error(`[Import] Failed to import product:`, err);
+          }
         }
       }
     }

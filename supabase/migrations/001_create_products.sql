@@ -43,7 +43,7 @@ END $$;
 
 -- ============================================================
 -- Railway Postgres (table: dropship_products)
--- Connexion : postgresql://medusa@hopper.proxy.rlwy.net:51210/medusa
+-- DDL exécutable versionné : voir ../../infra/postgres/001_dropship_products.sql
 -- ============================================================
 -- CREATE TABLE IF NOT EXISTS public.dropship_products (
 --   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

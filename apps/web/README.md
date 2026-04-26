@@ -14,6 +14,8 @@ npm run dev
 
 → [http://localhost:3063](http://localhost:3063) (racine redirige vers `/admin/medusa`).
 
+Après avoir rempli `.env.local`, vérifie les prérequis prod : `npm run go-live:check` (voir aussi checklist racine `README.md`).
+
 ## Déploiement production
 
 Tout tourne sur les **variables d’environnement** de l’hébergeur : plus besoin de machine locale une fois le dépôt branché.
@@ -49,3 +51,12 @@ Créer un projet sur [supabase.com](https://supabase.com), activer la table `pro
 En prod, **`MEDUSA_URL` est obligatoire** (pas de fallback). En `next dev` seulement, une URL de secours peut s’appliquer si la variable est vide.
 
 État connexion : `GET /api/medusa/status` (page `/admin/medusa`).
+
+Catalogue admin : `GET /api/products?status=all|draft|published&limit=50` (table `dropship_products`, `DATABASE_URL` requis). DDL à la racine du monorepo : `infra/postgres/001_dropship_products.sql`.
+
+## Tests et QA
+
+- **Vitest** : `npm test` (CI), `npm test:watch` en local — couverture : `lib/medusa`, `lib/types/product`, routes API `products`, `suppliers/*`, `medusa/*` (health, status, publish GET/POST).
+- **Qualité** : `npm run lint` → `tsc --noEmit` puis **ESLint** (`next/core-web-vitals`, `next/typescript`). Seul le typage : `npm run typecheck`. Seul ESLint : `npm run eslint`.
+- **CI GitHub** : `.github/workflows/ci.yml` (`npm run lint` + `npm test` dans `apps/web`).
+- Vérifications manuelles fournisseurs : README racine du monorepo (curl import).

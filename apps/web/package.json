@@ -6,7 +6,12 @@
     "dev": "next dev --port 3063",
     "build": "next build",
     "start": "next start --hostname 0.0.0.0",
-    "lint": "tsc --noEmit"
+    "lint": "npm run typecheck && eslint .",
+    "typecheck": "tsc --noEmit",
+    "eslint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "go-live:check": "node scripts/check-go-live.mjs"
   },
   "dependencies": {
     "next": "^15.0.0",
@@ -20,8 +25,11 @@
     "@types/pg": "^8.20.0",
     "@types/react": "^19.0.0",
     "autoprefixer": "^10.5.0",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^15.5.7",
     "postcss": "^8.5.10",
     "tailwindcss": "^3.4.19",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "vitest": "^3.0.0"
   }
 }
