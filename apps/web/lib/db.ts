@@ -16,11 +16,11 @@ export function getDb(): Pool {
     );
   }
 
+  // Railway Postgres n'expose pas de TLS sur le proxy TCP public.
+  // On désactive SSL pour les deux cas (interne + proxy public).
   pool = new Pool({
     connectionString,
-    ssl: connectionString.includes('railway.internal')
-      ? false
-      : { rejectUnauthorized: false },
+    ssl: false,
     max: 5,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 5000,
