@@ -14,7 +14,6 @@ Application **Next.js** dans `apps/web` : admin, API Medusa, Supabase.
 ⚠️ **Les APIs nécessitent des permissions développeur :**
 
 **CJ Dropshipping** : Erreur `APIkey is wrong` (code 1600005)
-- Credentials testés : `adrien@hearstcorporation.io` / `Sasha0334$$`
 - **Action** : Contacter support CJ via dashboard pour activer l'accès API développeur
 - Le compte CJ standard n'a pas l'API activée par défaut
 - Support : https://cjdropshipping.com/ → Contact Agent (chat en bas à droite)
@@ -74,4 +73,4 @@ Medusa est un **projet séparé** (souvent un autre repo). Sur Railway : nouveau
 3. Variables = même liste que Vercel.
 4. Railway injecte `PORT` ; `npm run start` est compatible Next 15.
 
-Détails locaux et Medusa : `apps/web/README.md`.
+Détails locaux, Medusa et **tests/QA** : `apps/web/README.md`. CI : `.github/workflows/ci.yml` (`npm run typecheck` + `npm test` dans `apps/web`).
