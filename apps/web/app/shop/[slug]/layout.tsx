@@ -47,11 +47,18 @@ export default async function ShopLayout({
       <main className="min-h-screen bg-gray-50">{children}</main>
 
       <footer style={{ backgroundColor: store.primaryColor }} className="text-white mt-16 py-8">
-        <div className="max-w-7xl mx-auto px-4 text-center">
+        <div className="max-w-7xl mx-auto px-4 text-center space-y-3">
           <p className="text-sm opacity-75">
             {store.logoEmoji} {store.name} — {store.tagline}
           </p>
-          <p className="text-xs opacity-50 mt-2">Livraison internationale · Paiement sécurisé</p>
+          <p className="text-xs opacity-50">Livraison internationale · Paiement sécurisé</p>
+          <nav className="flex items-center justify-center gap-4 text-xs opacity-75">
+            <Link href="/legal/cgv" className="hover:opacity-100 transition-opacity">CGV</Link>
+            <span className="opacity-30">·</span>
+            <Link href="/legal/mentions-legales" className="hover:opacity-100 transition-opacity">Mentions légales</Link>
+            <span className="opacity-30">·</span>
+            <Link href="/legal/confidentialite" className="hover:opacity-100 transition-opacity">Confidentialité</Link>
+          </nav>
         </div>
       </footer>
     </div>
