@@ -71,7 +71,13 @@ async function searchSuppliers(
   let cjCount = 0;
 
   const [aliRes, cjRes] = await Promise.allSettled([
-    aliexpress.searchProducts({ keywords: niche, pageSize: maxPerSupplier }),
+    aliexpress.searchProducts({
+      keywords: niche,
+      pageSize: maxPerSupplier,
+      currency: 'EUR',
+      countryCode: 'FR',
+      locale: 'fr_FR',
+    }),
     cj.searchProducts({ keywords: niche, pageSize: maxPerSupplier }),
   ]);
 
@@ -121,7 +127,7 @@ async function generateProductsWithClaude(
   maxProducts: number,
   language: 'fr' | 'en',
   emit: (e: AgentEvent) => void,
-): Promise<EnrichedProduct[]> {
+): Promise<{ products: EnrichedProduct[]; branding: BrandingResult }> {
   emit({ type: 'step', message: `APIs fournisseurs indisponibles — génération IA des produits pour "${niche}"...` });
 
   const langInstruction = language === 'fr'
@@ -196,10 +202,7 @@ Return ONLY valid JSON:
     data: { count: parsed.products.length, source: 'ai-generated' },
   });
 
-  // Store branding in closure — returned together with products below
-  (generateProductsWithClaude as unknown as { lastBranding: BrandingResult }).lastBranding = parsed.branding;
-
-  return parsed.products.map(p => ({
+  const products: EnrichedProduct[] = parsed.products.map(p => ({
     originalTitle: p.originalTitle,
     enrichedTitle: p.enrichedTitle,
     enrichedDescription: p.enrichedDescription,
@@ -210,6 +213,8 @@ Return ONLY valid JSON:
     supplier: 'ai-generated' as const,
     externalId: p.id,
   }));
+
+  return { products, branding: parsed.branding };
 }
 
 async function enrichSupplierProductsWithClaude(
@@ -233,7 +238,7 @@ async function enrichSupplierProductsWithClaude(
       supplier: p.supplier,
       id: p.externalId,
       title: p.title,
-      price_eur: p.price,
+      cost_eur: p.price,
       has_image: !!p.imageUrl,
     })),
     null,
@@ -269,7 +274,7 @@ Return ONLY valid JSON:
       "enrichedTitle": "...",
       "enrichedDescription": "...",
       "retailPriceCents": <integer>,
-      "costCents": <integer from price_eur * 100>
+      "costCents": <integer from cost_eur * 100>
     }
   ],
   "branding": {
@@ -372,30 +377,19 @@ export async function* createStore(input: StoreCreationInput): AsyncGenerator<Ag
 
       if (rawProducts.length === 0) {
         // Fallback: let Claude generate the whole catalog
-        emit({ type: 'progress', message: 'APIs fournisseurs non disponibles (permissions en attente) — passage en mode génération IA pure.' });
+        emit({ type: 'progress', message: 'APIs fournisseurs non disponibles — passage en mode génération IA pure.' });
 
-        const aiProducts = await generateProductsWithClaude(input.niche, input.storeName, maxProducts, language, emit);
+        const aiResult = await generateProductsWithClaude(input.niche, input.storeName, maxProducts, language, emit);
 
         emit({ type: 'step', message: 'Attribution des visuels produits...' });
-        for (const p of aiProducts) {
+        for (const p of aiResult.products) {
           if (!p.imageUrl) {
             p.imageUrl = fetchProductImage(p.enrichedTitle);
           }
         }
 
-        enriched = aiProducts;
-        branding = (generateProductsWithClaude as unknown as { lastBranding: BrandingResult }).lastBranding;
-
-        if (!branding) {
-          branding = {
-            tagline: `La boutique ${input.niche} de référence`,
-            description: `Découvrez notre sélection ${input.niche} soigneusement choisie.`,
-            primaryColor: '#111827',
-            secondaryColor: '#f9fafb',
-            accentColor: '#6366f1',
-            logoEmoji: '🛍️',
-          };
-        }
+        enriched = aiResult.products;
+        branding = aiResult.branding;
       } else {
         // Enrich real supplier products
         const result = await enrichSupplierProductsWithClaude(
@@ -417,10 +411,12 @@ export async function* createStore(input: StoreCreationInput): AsyncGenerator<Ag
 
       emit({ type: 'step', message: `Import de ${enriched.length} produits dans Medusa...` });
 
+      const storeHandleSuffix = storeId.replace(/-/g, '').slice(0, 6);
+
       let imported = 0;
       for (const ep of enriched) {
         try {
-          const handle = slugify(ep.enrichedTitle) + '-' + ep.externalId.slice(0, 8).replace(/[^a-z0-9]/gi, '');
+          const handle = `${slugify(ep.enrichedTitle)}-${ep.externalId.slice(0, 8).replace(/[^a-z0-9]/gi, '')}-${storeHandleSuffix}`;
           const medusaProduct = await medusa.createProductWithChannel(
             {
               title: ep.enrichedTitle,
