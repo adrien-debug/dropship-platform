@@ -324,15 +324,26 @@ Return ONLY valid JSON:
   return { products: enriched, branding: parsed.branding };
 }
 
-// Fetch real product images from Unsplash-compatible free source
+// Fetch product image via Unsplash source API (free, no key required)
 async function fetchProductImage(query: string): Promise<string> {
   try {
-    const encoded = encodeURIComponent(query.split(' ').slice(0, 3).join(' '));
-    // Use picsum as reliable placeholder; replace with Unsplash API if key available
-    const seed = Math.abs(query.split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % 1000;
-    return `https://picsum.photos/seed/${seed}/600/600`;
+    // Extract 2-3 meaningful keywords for the image search
+    const keywords = query
+      .toLowerCase()
+      .replace(/[^a-z0-9 ]/g, ' ')
+      .split(' ')
+      .filter(w => w.length > 3)
+      .slice(0, 3)
+      .join(',');
+    // Unsplash source: free, redirects to a real photo matching the query
+    const url = `https://source.unsplash.com/600x600/?${encodeURIComponent(keywords)},product`;
+    // Follow the redirect to get the actual stable image URL
+    const res = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(8000) });
+    return res.url || url;
   } catch {
-    return '';
+    // Deterministic fallback using picsum with a seed from the title
+    const seed = query.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 1000;
+    return `https://picsum.photos/seed/${seed}/600/600`;
   }
 }
 
