@@ -6,6 +6,8 @@ RUN npm install --no-audit --no-fund --legacy-peer-deps
 
 FROM node:20-alpine AS build
 WORKDIR /app
+ENV NODE_ENV=production \
+    DISABLE_MEDUSA_ADMIN=true
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json tsconfig.json medusa-config.ts ./
 COPY src ./src
