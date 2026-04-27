@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getStoreBySlug } from '@/lib/store-config';
+import { BrandLogo } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,26 +18,26 @@ export default async function ShopLayout({
 
   return (
     <div style={{ '--primary': store.primaryColor, '--accent': store.accentColor } as React.CSSProperties}>
-      <header
-        style={{ backgroundColor: store.primaryColor }}
-        className="text-white sticky top-0 z-50 shadow-lg"
-      >
+      <header className="absolute top-0 left-0 right-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link href={`/shop/${slug}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-              <span className="text-3xl">{store.logoEmoji}</span>
-              <div>
-                <div className="font-bold text-lg leading-tight">{store.name}</div>
-                {store.tagline && (
-                  <div className="text-xs opacity-75 leading-tight">{store.tagline}</div>
-                )}
-              </div>
+          <div className="flex items-center justify-between h-20">
+            <Link
+              href={`/shop/${slug}`}
+              className="hover:opacity-90 transition-opacity"
+              aria-label={`${store.name} accueil`}
+            >
+              <BrandLogo
+                name={store.name}
+                accentColor={store.accentColor}
+                tone="inverse"
+                size="header"
+              />
             </Link>
-            <nav className="flex items-center gap-6 text-sm font-medium">
-              <Link href={`/shop/${slug}`} className="hover:opacity-75 transition-opacity">
+            <nav className="flex items-center gap-8 text-sm font-medium text-white">
+              <Link href={`/shop/${slug}`} className="hover:opacity-75 transition-opacity uppercase tracking-wider text-xs">
                 Boutique
               </Link>
-              <Link href="/cart" className="hover:opacity-75 transition-opacity">
+              <Link href="/cart" className="hover:opacity-75 transition-opacity uppercase tracking-wider text-xs">
                 Panier
               </Link>
             </nav>
@@ -44,20 +45,26 @@ export default async function ShopLayout({
         </div>
       </header>
 
-      <main className="min-h-screen bg-gray-50">{children}</main>
+      <main className="min-h-screen bg-white">{children}</main>
 
-      <footer style={{ backgroundColor: store.primaryColor }} className="text-white mt-16 py-8">
-        <div className="max-w-7xl mx-auto px-4 text-center space-y-3">
-          <p className="text-sm opacity-75">
-            {store.logoEmoji} {store.name} — {store.tagline}
+      <footer style={{ backgroundColor: store.primaryColor }} className="text-white py-14">
+        <div className="max-w-7xl mx-auto px-4 text-center space-y-4 flex flex-col items-center">
+          <BrandLogo
+            name={store.name}
+            accentColor={store.accentColor}
+            tone="inverse"
+            size="footer"
+          />
+          {store.tagline && <p className="text-sm opacity-80">{store.tagline}</p>}
+          <p className="text-xs opacity-60 max-w-md mx-auto">
+            Livraison France métropolitaine sous 7 à 15 jours · Paiement sécurisé Stripe · Retour 30 jours
           </p>
-          <p className="text-xs opacity-50">Livraison internationale · Paiement sécurisé</p>
-          <nav className="flex items-center justify-center gap-4 text-xs opacity-75">
-            <Link href="/legal/cgv" className="hover:opacity-100 transition-opacity">CGV</Link>
+          <nav className="flex items-center justify-center gap-4 text-xs opacity-70 pt-2">
+            <Link href="/legal/cgv" className="hover:opacity-100 transition-opacity uppercase tracking-wider">CGV</Link>
             <span className="opacity-30">·</span>
-            <Link href="/legal/mentions-legales" className="hover:opacity-100 transition-opacity">Mentions légales</Link>
+            <Link href="/legal/mentions-legales" className="hover:opacity-100 transition-opacity uppercase tracking-wider">Mentions légales</Link>
             <span className="opacity-30">·</span>
-            <Link href="/legal/confidentialite" className="hover:opacity-100 transition-opacity">Confidentialité</Link>
+            <Link href="/legal/confidentialite" className="hover:opacity-100 transition-opacity uppercase tracking-wider">Confidentialité</Link>
           </nav>
         </div>
       </footer>

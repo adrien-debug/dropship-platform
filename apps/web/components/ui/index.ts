@@ -11,6 +11,7 @@ export { Stat } from './Stat';
 export { NumberMark } from './NumberMark';
 export { TrustItem } from './TrustItem';
 export { Stars } from './Stars';
+export { BrandLogo } from './BrandLogo';
 export { Parallax } from './Parallax';
 export { Pullquote } from './Pullquote';
 export { Marquee } from './Marquee';
