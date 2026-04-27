@@ -1,6 +1,12 @@
 /**
- * AliExpress Open Platform API client
- * Docs: https://developers.aliexpress.com/en/doc.htm
+ * AliExpress Open Platform — DS (Dropshipping) API client
+ * App: Hearstai | AppKey: 531346 | Category: Drop Shipping | Status: Online
+ *
+ * API status:
+ * - aliexpress.ds.category.get → works (no OAuth needed)
+ * - aliexpress.ds.text.search  → needs DS seller account linked (apply via App Console → Apply process)
+ * - aliexpress.affiliate.product.query → needs Affiliate permission (Apply process → API Permission Group)
+ * - aliexpress.ds.product.get  → needs OAuth access_token (seller auth flow)
  */
 
 import { createHash } from 'crypto';
@@ -33,67 +39,116 @@ export interface AliExpressSearchResult {
   products: AliExpressProduct[];
 }
 
+export interface AliExpressCategory {
+  category_id: number;
+  category_name: string;
+  parent_category_id?: number;
+}
+
+function generateSignature(params: Record<string, string>, secret: string): string {
+  const sorted = Object.keys(params)
+    .filter(k => k !== 'sign')
+    .sort()
+    .map(k => `${k}${params[k]}`)
+    .join('');
+  return createHash('md5').update(`${secret}${sorted}${secret}`).digest('hex').toUpperCase();
+}
+
+async function callApi<T>(method: string, extraParams: Record<string, string>): Promise<T> {
+  if (!APP_KEY || !APP_SECRET) throw new Error('AliExpress API credentials not configured');
+
+  const params: Record<string, string> = {
+    app_key: APP_KEY,
+    method,
+    timestamp: Date.now().toString(),
+    format: 'json',
+    v: '2.0',
+    sign_method: 'md5',
+    ...extraParams,
+  };
+  params.sign = generateSignature(params, APP_SECRET);
+
+  const res = await fetch(`${API_BASE}?${new URLSearchParams(params)}`, {
+    headers: { 'User-Agent': 'hearstai-dropship/1.0' },
+  });
+  if (!res.ok) throw new Error(`AliExpress HTTP ${res.status}`);
+  return res.json() as Promise<T>;
+}
+
 /**
- * Recherche produits AliExpress via Affiliate Product Search API
+ * Fetch DS categories (works without OAuth or Affiliate permission).
+ */
+export async function getCategories(): Promise<{ success: boolean; data?: AliExpressCategory[]; error?: string }> {
+  if (!APP_KEY || !APP_SECRET) return { success: false, error: 'AliExpress credentials not configured' };
+  try {
+    const data = await callApi<{ aliexpress_ds_category_get_response?: { resp_result?: { result?: { categories?: { category?: AliExpressCategory[] } } } } }>(
+      'aliexpress.ds.category.get',
+      { language: 'en' },
+    );
+    const categories = data.aliexpress_ds_category_get_response?.resp_result?.result?.categories?.category ?? [];
+    return { success: true, data: categories };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : 'Unknown error' };
+  }
+}
+
+/**
+ * Search products via affiliate API.
+ * Requires "Affiliate Product Query" permission — apply at:
+ * open.aliexpress.com → App Console → Apply process → API Permission Group
  */
 export async function searchProducts(params: {
   keywords: string;
   page?: number;
   pageSize?: number;
-  minPrice?: number;
-  maxPrice?: number;
   sort?: 'default' | 'salesDesc' | 'priceAsc' | 'priceDesc';
-}): Promise<{ success: boolean; data?: AliExpressSearchResult; error?: string }> {
+  trackingId?: string;
+}): Promise<{ success: boolean; data?: AliExpressSearchResult; error?: string; needsPermission?: boolean }> {
   if (!APP_KEY || !APP_SECRET) {
-    return {
-      success: false,
-      error: 'AliExpress API credentials not configured (ALIEXPRESS_APP_KEY, ALIEXPRESS_APP_SECRET)',
-    };
+    return { success: false, error: 'AliExpress credentials not configured (ALIEXPRESS_APP_KEY, ALIEXPRESS_APP_SECRET)' };
   }
 
   try {
-    // AliExpress Open Platform nécessite signature + timestamp
-    const timestamp = Date.now().toString();
-    const method = 'aliexpress.affiliate.product.query';
-    
-    const apiParams: Record<string, string> = {
-      app_key: APP_KEY,
-      method,
-      timestamp,
-      format: 'json',
-      v: '2.0',
-      sign_method: 'md5',
+    type AffiliateResponse = {
+      error_response?: { code: string; msg: string };
+      aliexpress_affiliate_product_query_response?: {
+        resp_result?: {
+          result?: {
+            current_page_no?: number;
+            current_record_count?: number;
+            total_record_count?: number;
+            products?: { product?: AliExpressProduct[] };
+          };
+        };
+      };
+    };
+
+    const data = await callApi<AffiliateResponse>('aliexpress.affiliate.product.query', {
       keywords: params.keywords,
       page_no: String(params.page || 1),
       page_size: String(params.pageSize || 20),
-    };
+      tracking_id: params.trackingId || 'hearstai',
+      fields: 'product_id,product_title,sale_price,original_price,product_main_image_url,product_url,category_name,evaluate_rate,thirty_days_sold_count',
+      target_currency: 'EUR',
+      target_language: 'FR',
+      ship_to_country: 'FR',
+      ...(params.sort && params.sort !== 'default' ? { sort: params.sort } : {}),
+    });
 
-    if (params.minPrice) apiParams.min_price = String(params.minPrice);
-    if (params.maxPrice) apiParams.max_price = String(params.maxPrice);
-    if (params.sort) apiParams.sort = params.sort;
-
-    // Signature MD5 (AliExpress specific)
-    const sign = generateSignature(apiParams, APP_SECRET);
-    apiParams.sign = sign;
-
-    const url = `${API_BASE}?${new URLSearchParams(apiParams)}`;
-    const response = await fetch(url, { method: 'GET' });
-
-    if (!response.ok) {
-      throw new Error(`AliExpress API error: ${response.status}`);
+    if (data.error_response?.code === 'InsufficientPermission') {
+      return {
+        success: false,
+        needsPermission: true,
+        error: 'AliExpress: Affiliate Product Query permission required. Go to open.aliexpress.com → App Console → Apply process → API Permission Group → apply for "Affiliate Product Query".',
+      };
     }
 
-    const data = await response.json();
-    
-    // Structure de réponse AliExpress peut varier — adapter selon la doc réelle
     if (data.error_response) {
-      throw new Error(data.error_response.msg || 'AliExpress API error');
+      return { success: false, error: `AliExpress: ${data.error_response.code} — ${data.error_response.msg}` };
     }
 
-    const result = data.aliexpress_affiliate_product_query_response?.resp_result;
-    if (!result) {
-      throw new Error('Unexpected AliExpress API response structure');
-    }
+    const result = data.aliexpress_affiliate_product_query_response?.resp_result?.result;
+    if (!result) return { success: false, error: 'Unexpected AliExpress response structure' };
 
     return {
       success: true,
@@ -105,23 +160,6 @@ export async function searchProducts(params: {
       },
     };
   } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    };
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
-}
-
-/**
- * Génère la signature MD5 pour AliExpress API
- */
-function generateSignature(params: Record<string, string>, secret: string): string {
-  const sorted = Object.keys(params)
-    .filter(k => k !== 'sign')
-    .sort()
-    .map(k => `${k}${params[k]}`)
-    .join('');
-  
-  const str = `${secret}${sorted}${secret}`;
-  return createHash('md5').update(str).digest('hex').toUpperCase();
 }
