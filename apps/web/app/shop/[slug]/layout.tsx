@@ -47,7 +47,7 @@ export default async function ShopLayout({
 
       <main className="min-h-screen bg-white">{children}</main>
 
-      <footer style={{ backgroundColor: store.primaryColor }} className="text-white py-14">
+      <footer className="bg-zinc-950 text-white py-14">
         <div className="max-w-7xl mx-auto px-4 text-center space-y-4 flex flex-col items-center">
           <BrandLogo
             name={store.name}
