@@ -305,9 +305,15 @@ class MedusaAPI {
     external_id?: string;
     metadata?: Record<string, unknown>;
   }): Promise<MedusaProduct> {
+    // Medusa v2: images must be [{ url }], not string[]; variants have no inventory_quantity
+    const { images, variants, ...rest } = product;
     const payload = {
-      ...product,
+      ...rest,
       status: product.status || 'draft',
+      ...(images?.length ? { images: images.map(url => ({ url })) } : {}),
+      ...(variants ? {
+        variants: variants.map(({ inventory_quantity: _iq, ...v }) => v),
+      } : {}),
     };
 
     const response = await fetch(`${this.baseUrl}/admin/products`, {
@@ -452,30 +458,33 @@ class MedusaAPI {
   }
 
   async addProductsToSalesChannel(salesChannelId: string, productIds: string[]): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/admin/sales-channels/${salesChannelId}/products/batch`, {
+    // Medusa v2: POST /admin/sales-channels/:id/products with { add: [...] }
+    const response = await fetch(`${this.baseUrl}/admin/sales-channels/${salesChannelId}/products`, {
       method: 'POST',
       headers: await this.adminJsonHeaders(),
-      body: JSON.stringify({ product_ids: productIds.map(id => ({ id })) }),
+      body: JSON.stringify({ add: productIds }),
     });
     if (!response.ok) throw new Error(`addProductsToChannel: ${await readMedusaErrorMessage(response)}`);
   }
 
   async createPublishableApiKey(title: string): Promise<{ id: string; token: string; title: string }> {
-    const response = await fetch(`${this.baseUrl}/admin/publishable-api-keys`, {
+    // Medusa v2: POST /admin/api-keys with type: "publishable"
+    const response = await fetch(`${this.baseUrl}/admin/api-keys`, {
       method: 'POST',
       headers: await this.adminJsonHeaders(),
-      body: JSON.stringify({ title }),
+      body: JSON.stringify({ title, type: 'publishable' }),
     });
     if (!response.ok) throw new Error(`createPublishableKey: ${await readMedusaErrorMessage(response)}`);
     const data = await response.json();
-    return data.publishable_api_key;
+    return data.api_key;
   }
 
   async addSalesChannelsToPublishableKey(keyId: string, salesChannelIds: string[]): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/admin/publishable-api-keys/${keyId}/sales-channels/batch`, {
+    // Medusa v2: POST /admin/api-keys/:id/sales-channels with { add: [...] }
+    const response = await fetch(`${this.baseUrl}/admin/api-keys/${keyId}/sales-channels`, {
       method: 'POST',
       headers: await this.adminJsonHeaders(),
-      body: JSON.stringify({ sales_channel_ids: salesChannelIds.map(id => ({ id })) }),
+      body: JSON.stringify({ add: salesChannelIds }),
     });
     if (!response.ok) throw new Error(`addChannelsToKey: ${await readMedusaErrorMessage(response)}`);
   }
