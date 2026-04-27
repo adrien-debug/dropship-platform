@@ -44,6 +44,7 @@ export interface StoreCart {
   email?: string | null;
   currency_code: string;
   region_id?: string | null;
+  sales_channel_id?: string | null;
   shipping_address?: StoreAddress | null;
   billing_address?: StoreAddress | null;
   items: StoreLineItem[];
@@ -170,21 +171,30 @@ export async function listRegions(): Promise<{ regions: StoreRegion[] }> {
   return storeFetch('/store/regions');
 }
 
-export async function createCart(input: { region_id: string; email?: string }): Promise<{ cart: StoreCart }> {
+export async function createCart(
+  input: { region_id: string; email?: string; sales_channel_id?: string; publishableKey?: string },
+): Promise<{ cart: StoreCart }> {
+  const { publishableKey, ...body } = input;
   return storeFetch('/store/carts', {
     method: 'POST',
-    body: JSON.stringify(input),
+    body: JSON.stringify(body),
+    publishableKey,
   });
 }
 
-export async function getCart(cartId: string): Promise<{ cart: StoreCart }> {
-  return storeFetch(`/store/carts/${cartId}`);
+export async function getCart(cartId: string, opts?: { publishableKey?: string }): Promise<{ cart: StoreCart }> {
+  return storeFetch(`/store/carts/${cartId}`, { publishableKey: opts?.publishableKey });
 }
 
-export async function addLineItem(cartId: string, input: { variant_id: string; quantity: number }): Promise<{ cart: StoreCart }> {
+export async function addLineItem(
+  cartId: string,
+  input: { variant_id: string; quantity: number },
+  opts?: { publishableKey?: string },
+): Promise<{ cart: StoreCart }> {
   return storeFetch(`/store/carts/${cartId}/line-items`, {
     method: 'POST',
     body: JSON.stringify(input),
+    publishableKey: opts?.publishableKey,
   });
 }
 

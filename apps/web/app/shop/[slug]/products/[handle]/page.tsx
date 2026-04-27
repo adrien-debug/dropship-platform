@@ -105,7 +105,7 @@ export default async function ShopProductPage({
           </div>
 
           {variant && (
-            <AddToCartButton variantId={variant.id} />
+            <AddToCartButton variantId={variant.id} storeSlug={slug} />
           )}
 
           <p className="text-xs text-gray-400 mt-4 text-center">

@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 
-export function AddToCartButton({ variantId }: { variantId: string }) {
+export function AddToCartButton({ variantId, storeSlug }: { variantId: string; storeSlug?: string }) {
   const [qty, setQty] = useState(1);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -16,7 +16,7 @@ export function AddToCartButton({ variantId }: { variantId: string }) {
         const res = await fetch('/api/cart/add', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ variantId, quantity: qty }),
+          body: JSON.stringify({ variantId, quantity: qty, ...(storeSlug ? { slug: storeSlug } : {}) }),
         });
         const data = await res.json();
         if (!res.ok || !data.success) throw new Error(data.error || 'Erreur ajout panier');

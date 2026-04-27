@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { createStore } from '@/lib/agent/store-creator';
+import { checkRateLimit, clientIp } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -13,6 +14,23 @@ const schema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  // Each create-store call costs ~$0.005 in Anthropic credits + a Medusa write
+  // burst, so cap it at 5/min/IP. The middleware Basic auth already gates this
+  // route, but a panicking admin spamming the button shouldn't burn credits.
+  const rl = await checkRateLimit(`create-store:${clientIp(req)}`, { max: 5, windowSec: 60 });
+  if (!rl.ok) {
+    return new Response(
+      JSON.stringify({ error: `Rate limit reached. Retry in ${rl.retryAfterSec}s.` }),
+      {
+        status: 429,
+        headers: {
+          'Content-Type': 'application/json',
+          'Retry-After': String(rl.retryAfterSec),
+        },
+      },
+    );
+  }
+
   let input;
   try {
     const body = await req.json();

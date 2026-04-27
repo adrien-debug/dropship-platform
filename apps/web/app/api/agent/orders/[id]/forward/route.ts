@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { forwardOrder } from '@/lib/agent/order-forwarder';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -24,6 +25,19 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       { error: err instanceof Error ? err.message : 'Invalid input' },
       { status: 400 },
     );
+  }
+
+  // Cap live-forward attempts globally — the AE order_create is the most
+  // expensive thing an authenticated session can trigger by accident.
+  // Dry-runs are cheap enough that we don't bother.
+  if (!body.dryRun) {
+    const rl = await checkRateLimit('forward-live:global', { max: 10, windowSec: 60 });
+    if (!rl.ok) {
+      return NextResponse.json(
+        { error: `Live forwarding rate-limited. Retry in ${rl.retryAfterSec}s.` },
+        { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } },
+      );
+    }
   }
 
   if (!body.dryRun && body.confirm !== 'PLACE_REAL_ORDER') {
