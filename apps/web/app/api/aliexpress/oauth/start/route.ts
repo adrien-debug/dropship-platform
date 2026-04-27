@@ -7,12 +7,9 @@ export async function GET() {
     return NextResponse.json({ error: 'ALIEXPRESS_APP_KEY not configured' }, { status: 500 });
   }
 
-  // AliExpress rejette localhost — toujours utiliser l'URL de production
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL
-    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
-    || 'https://dropship-platform-amber.vercel.app';
-
-  const redirectUri = `${baseUrl}/api/aliexpress/oauth/callback`;
+  // Le redirect_uri doit matcher EXACTEMENT le Callback URL de la console AliExpress.
+  // VERCEL_URL est l'URL du déploiement (preview), pas l'alias prod — on hardcode la prod.
+  const redirectUri = 'https://dropship-platform-amber.vercel.app/api/aliexpress/oauth/callback';
 
   // Doc officielle Alibaba (treeId=727 articleId=120687) :
   // https://api-sg.aliexpress.com/oauth/authorize?response_type=code&force_auth=true&redirect_uri=${cb}&client_id=${appkey}

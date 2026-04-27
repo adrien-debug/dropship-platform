@@ -21,10 +21,7 @@ export async function GET(req: NextRequest) {
   }
 
   // Doit matcher EXACTEMENT le redirect_uri envoyé au /authorize (et déclaré dans App Console)
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL
-    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
-    || 'https://dropship-platform-amber.vercel.app';
-  const redirectUri = `${baseUrl}/api/aliexpress/oauth/callback`;
+  const redirectUri = 'https://dropship-platform-amber.vercel.app/api/aliexpress/oauth/callback';
 
   const params: Record<string, string> = {
     app_key: APP_KEY,
