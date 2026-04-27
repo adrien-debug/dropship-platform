@@ -19,7 +19,7 @@ export function StoreShell({ children }: { children: React.ReactNode }) {
       <footer className="border-t border-zinc-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-sm text-zinc-500 flex flex-wrap items-center justify-between gap-2">
           <p>© {new Date().getFullYear()} Dropship Store</p>
-          <Link href="/admin/medusa" className="underline">Admin</Link>
+          <Link href="/admin/stores" className="underline">Admin</Link>
         </div>
       </footer>
     </div>

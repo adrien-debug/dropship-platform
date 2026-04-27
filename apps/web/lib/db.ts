@@ -28,5 +28,3 @@ export function getDb(): Pool {
 
   return pool;
 }
-
-export type { Product } from './types/product';

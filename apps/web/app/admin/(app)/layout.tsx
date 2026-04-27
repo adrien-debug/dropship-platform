@@ -6,7 +6,6 @@ export default function AdminAppLayout({ children }: { children: React.ReactNode
   const navItems = [
     { href: '/admin/stores', label: '🤖 Stores IA', badge: 'Agent' },
     { href: '/admin/catalog', label: 'Catalogue', badge: 'Medusa' },
-    { href: '/admin/medusa', label: 'Pré-staging', badge: 'DB' },
     { href: '/admin/settings', label: '⚙️ API Settings', badge: '' },
   ];
 
@@ -14,7 +13,7 @@ export default function AdminAppLayout({ children }: { children: React.ReactNode
     <div className="flex min-h-screen">
       <aside className="w-64 shrink-0 bg-black text-white flex flex-col">
         <div className="p-6">
-          <Link href="/admin/medusa" className="block text-xl font-bold hover:text-zinc-200">
+          <Link href="/admin/stores" className="block text-xl font-bold hover:text-zinc-200">
             Dropship Admin
           </Link>
           <p className="mt-2 text-xs text-zinc-500">Navigation réduite aux écrans implémentés.</p>

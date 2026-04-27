@@ -98,34 +98,6 @@ class MedusaAPI {
     this.baseUrl = getMedusaBaseUrl();
   }
 
-  /**
-   * Check API configuration (URL + présence d’au moins une méthode d’auth admin)
-   */
-  checkConfig(): { ok: boolean; message: string } {
-    if (!this.baseUrl) {
-      return {
-        ok: false,
-        message:
-          'MEDUSA_URL manquant : définir sur Vercel / Railway (Project Settings → Environment Variables). En local, utiliser .env.local.',
-      };
-    }
-    const mode = getMedusaAuthMode();
-    if (mode === 'missing') {
-      return {
-        ok: false,
-        message:
-          'Identifiants Medusa manquants : définir MEDUSA_ADMIN_API_TOKEN (clé secrète Admin, recommandé) ou MEDUSA_ADMIN_EMAIL + MEDUSA_ADMIN_PASSWORD dans .env.local',
-      };
-    }
-    return {
-      ok: true,
-      message:
-        mode === 'api_token'
-          ? `Medusa configuré (${this.baseUrl}, auth par clé API)`
-          : `Medusa configuré (${this.baseUrl}, auth email/mot de passe)`,
-    };
-  }
-
   /** En-têtes pour les routes /admin (JWT ou clé secrète Medusa v2) */
   private async getAdminAuthHeaders(): Promise<Record<string, string>> {
     if (MEDUSA_ADMIN_API_TOKEN) {
@@ -441,61 +413,3 @@ class MedusaAPI {
 }
 
 export const medusa = new MedusaAPI();
-
-export async function publishToMedusa(supplierProduct: {
-  title: string;
-  description: string;
-  price_cents: number;
-  cost_cents: number;
-  category: string;
-  supplier: string;
-  external_id: string;
-  image_url: string;
-  metadata?: Record<string, unknown>;
-}): Promise<{ success: boolean; product?: MedusaProduct; error?: string }> {
-  try {
-    const handle = supplierProduct.title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '');
-
-    const product = await medusa.createProduct({
-      title: supplierProduct.title,
-      description: supplierProduct.description,
-      handle: `${handle}-${Date.now()}`,
-      status: 'draft',
-      thumbnail: supplierProduct.image_url,
-      images: supplierProduct.image_url ? [supplierProduct.image_url] : [],
-      variants: [
-        {
-          title: 'Default',
-          prices: [
-            {
-              currency_code: 'eur',
-              amount: supplierProduct.price_cents,
-            },
-          ],
-          inventory_quantity: 100,
-        },
-      ],
-      tags: [
-        { value: supplierProduct.category },
-        { value: supplierProduct.supplier },
-      ],
-      external_id: supplierProduct.external_id,
-      metadata: {
-        ...supplierProduct.metadata,
-        cost_cents: supplierProduct.cost_cents,
-        supplier: supplierProduct.supplier,
-        imported_from: 'supplier_api',
-      },
-    });
-
-    return { success: true, product };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    };
-  }
-}

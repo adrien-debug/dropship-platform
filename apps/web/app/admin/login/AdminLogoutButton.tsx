@@ -4,7 +4,7 @@ export function AdminLogoutButton() {
   const handleLogout = () => {
     document.cookie = 'admin_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
     // Pas de page `/admin/login` dans le repo : retour à l’écran principal admin.
-    window.location.href = '/admin/medusa';
+    window.location.href = '/admin/stores';
   };
 
   return (
