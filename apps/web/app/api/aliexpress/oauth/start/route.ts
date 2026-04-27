@@ -14,12 +14,13 @@ export async function GET() {
 
   const redirectUri = `${baseUrl}/api/aliexpress/oauth/callback`;
 
-  // Singapore endpoint for DS apps
-  const oauthUrl = new URL('https://oauth-sg.aliexpress.com/authorize');
+  // Doc officielle Alibaba (treeId=727 articleId=120687) :
+  // https://api-sg.aliexpress.com/oauth/authorize?response_type=code&force_auth=true&redirect_uri=${cb}&client_id=${appkey}
+  const oauthUrl = new URL('https://api-sg.aliexpress.com/oauth/authorize');
   oauthUrl.searchParams.set('response_type', 'code');
+  oauthUrl.searchParams.set('force_auth', 'true');
   oauthUrl.searchParams.set('client_id', APP_KEY);
   oauthUrl.searchParams.set('redirect_uri', redirectUri);
-  oauthUrl.searchParams.set('view', 'web');
 
   return NextResponse.redirect(oauthUrl.toString());
 }

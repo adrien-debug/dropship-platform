@@ -20,9 +20,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Missing code parameter' }, { status: 400 });
   }
 
+  // Doit matcher EXACTEMENT le redirect_uri envoyé au /authorize (et déclaré dans App Console)
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL
-    || process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}`
-    || 'http://localhost:3000';
+    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
+    || 'https://dropship-platform-amber.vercel.app';
   const redirectUri = `${baseUrl}/api/aliexpress/oauth/callback`;
 
   const params: Record<string, string> = {
