@@ -361,65 +361,6 @@ class MedusaAPI {
     return this.updateProduct(productId, { status: 'published' });
   }
 
-  async createCollection(data: {
-    title: string;
-    handle?: string;
-  }): Promise<{ id: string; title: string; handle: string }> {
-    const response = await fetch(`${this.baseUrl}/admin/collections`, {
-      method: 'POST',
-      headers: await this.adminJsonHeaders(),
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to create collection: ${response.status}`);
-    }
-
-    const result = await response.json();
-    return result.collection;
-  }
-
-  async getCollections(): Promise<{ id: string; title: string; handle: string }[]> {
-    const response = await fetch(`${this.baseUrl}/admin/collections`, {
-      headers: await this.adminJsonHeaders(),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch collections: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data.collections || [];
-  }
-
-  async createProductType(value: string): Promise<{ id: string; value: string }> {
-    const response = await fetch(`${this.baseUrl}/admin/product-types`, {
-      method: 'POST',
-      headers: await this.adminJsonHeaders(),
-      body: JSON.stringify({ value }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to create product type: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data.product_type;
-  }
-
-  async getProductTypes(): Promise<{ id: string; value: string }[]> {
-    const response = await fetch(`${this.baseUrl}/admin/product-types`, {
-      headers: await this.adminJsonHeaders(),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch product types: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data.product_types || [];
-  }
-
   async getStore(): Promise<{ id: string; name: string; default_currency_code: string }> {
     const response = await fetch(`${this.baseUrl}/store`, {
       headers: { 'Content-Type': 'application/json' },
