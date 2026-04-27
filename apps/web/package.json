@@ -14,10 +14,13 @@
     "go-live:check": "node scripts/check-go-live.mjs"
   },
   "dependencies": {
+    "@stripe/react-stripe-js": "^6.2.0",
+    "@stripe/stripe-js": "^9.3.1",
     "next": "^15.0.0",
     "pg": "^8.20.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "stripe": "^22.1.0",
     "zod": "^3.22.0"
   },
   "devDependencies": {
