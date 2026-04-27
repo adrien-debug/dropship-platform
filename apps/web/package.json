@@ -14,6 +14,7 @@
     "go-live:check": "node scripts/check-go-live.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.91.1",
     "@stripe/react-stripe-js": "^6.2.0",
     "@stripe/stripe-js": "^9.3.1",
     "next": "^15.0.0",
