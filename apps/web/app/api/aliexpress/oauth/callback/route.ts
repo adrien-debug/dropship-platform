@@ -1,17 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createHash } from 'crypto';
+import { createHmac } from 'crypto';
 import { getDb } from '@/lib/db';
 
 const APP_KEY = (process.env.ALIEXPRESS_APP_KEY || '').trim();
 const APP_SECRET = (process.env.ALIEXPRESS_APP_SECRET || '').trim();
 
-function sign(params: Record<string, string>): string {
+// IOP system endpoints (/auth/token/create, /auth/token/refresh) :
+// HMAC-SHA256(secret, apiPath + concat(sorted(k+v))), hex uppercase.
+// Différent de /sync qui utilise MD5(secret + concat + secret).
+function signSystem(apiPath: string, params: Record<string, string>): string {
   const sorted = Object.keys(params)
-    .filter(k => k !== 'sign')
+    .filter(k => k !== 'sign' && params[k] !== '' && params[k] != null)
     .sort()
     .map(k => `${k}${params[k]}`)
     .join('');
-  return createHash('md5').update(`${APP_SECRET}${sorted}${APP_SECRET}`).digest('hex').toUpperCase();
+  return createHmac('sha256', APP_SECRET).update(`${apiPath}${sorted}`, 'utf8').digest('hex').toUpperCase();
 }
 
 export async function GET(req: NextRequest) {
@@ -20,18 +23,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Missing code parameter' }, { status: 400 });
   }
 
-  // Doit matcher EXACTEMENT le redirect_uri envoyé au /authorize (et déclaré dans App Console)
-  const redirectUri = 'https://dropship-platform-amber.vercel.app/api/aliexpress/oauth/callback';
-
+  const apiPath = '/auth/token/create';
   const params: Record<string, string> = {
     app_key: APP_KEY,
-    timestamp: Date.now().toString(),
-    sign_method: 'md5',
     code,
-    grant_type: 'authorization_code',
-    redirect_uri: redirectUri,
+    sign_method: 'sha256',
+    timestamp: Date.now().toString(),
   };
-  params.sign = sign(params);
+  params.sign = signSystem(apiPath, params);
 
   const qs = new URLSearchParams(params).toString();
   const tokenUrl = `https://api-sg.aliexpress.com/rest/auth/token/create?${qs}`;
