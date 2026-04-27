@@ -156,13 +156,16 @@ async function callApi<T>(method: string, extraParams: Record<string, string>, a
 }
 
 /**
- * Search products via aliexpress.solution.product.list.get (DS API, requires access_token).
+ * Search products via aliexpress.ds.text.search (DS API, requires OAuth access_token).
+ * Permission group: AliExpress-dropship.
  */
 export async function searchProducts(params: {
   keywords: string;
   page?: number;
   pageSize?: number;
-  sort?: 'default' | 'salesDesc' | 'priceAsc' | 'priceDesc';
+  countryCode?: string;
+  currency?: string;
+  locale?: string;
 }): Promise<{ success: boolean; data?: AliExpressSearchResult; error?: string; needsAuth?: boolean }> {
   if (!APP_KEY || !APP_SECRET) {
     return { success: false, error: 'AliExpress credentials not configured' };
@@ -178,46 +181,47 @@ export async function searchProducts(params: {
   }
 
   try {
-    type DsProductListResponse = {
-      aliexpress_solution_product_list_get_response?: {
-        result?: {
-          current_page_no?: number;
-          current_record_count?: number;
-          total_record_count?: number;
-          products?: {
-            aliexpress_product?: Array<{
-              product_id: number;
-              subject: string;
-              image_url: string;
-              ws_display: string;
-              min_price?: string;
-              max_price?: string;
-              wishs_count?: number;
-              order_count?: number;
-            }>;
-          };
+    type DsTextSearchProduct = {
+      itemId: string | number;
+      title: string;
+      itemMainPic: string;
+      itemUrl: string;
+      score?: string;
+      evaluateRate?: string;
+      orders?: string;
+      discount?: string;
+      originalPrice?: string;
+      originalPriceCurrency?: string;
+      salePrice?: string;
+      salePriceCurrency?: string;
+      targetSalePrice?: string;
+      targetOriginalPrice?: string;
+      targetOriginalPriceCurrency?: string;
+      cateId?: string;
+    };
+    type DsTextSearchResponse = {
+      aliexpress_ds_text_search_response?: {
+        code?: string;
+        data?: {
+          pageIndex?: number;
+          pageSize?: number;
+          totalCount?: number;
+          products?: { selection_search_product?: DsTextSearchProduct[] };
         };
-        rsp_code?: string;
-        rsp_msg?: string;
+        error_msg?: string;
       };
       error_response?: { code: string; msg: string; sub_msg?: string };
     };
 
-    const sortMap: Record<string, string> = {
-      salesDesc: 'SALE_PRICE_ASC',
-      priceAsc: 'SALE_PRICE_ASC',
-      priceDesc: 'SALE_PRICE_DESC',
-    };
-
-    const data = await callApi<DsProductListResponse>(
-      'aliexpress.solution.product.list.get',
+    const data = await callApi<DsTextSearchResponse>(
+      'aliexpress.ds.text.search',
       {
-        keywords: params.keywords,
-        page_index: String(params.page || 1),
-        page_size: String(Math.min(params.pageSize || 20, 50)),
-        local_country: 'FR',
-        local_currency: 'EUR',
-        ...(params.sort && params.sort !== 'default' ? { sort: sortMap[params.sort] || '' } : {}),
+        keyWord: params.keywords,
+        pageIndex: String(params.page || 1),
+        pageSize: String(Math.min(params.pageSize || 20, 50)),
+        countryCode: params.countryCode || 'US',
+        currency: params.currency || 'USD',
+        local: params.locale || 'en_US',
       },
       accessToken,
     );
@@ -225,43 +229,46 @@ export async function searchProducts(params: {
     if (data.error_response) {
       const code = data.error_response.code;
       if (code === 'invalid-sessionkey' || code === '27') {
-        // Token expired, clear it so next call re-auths
         await getDb().query(`DELETE FROM platform_settings WHERE key = 'aliexpress_access_token'`).catch(() => {});
         return { success: false, needsAuth: true, error: 'AliExpress token expiré — re-autoriser via /api/aliexpress/oauth/start' };
       }
-      return { success: false, error: `AliExpress: ${data.error_response.code} — ${data.error_response.sub_msg || data.error_response.msg}` };
+      return { success: false, error: `AliExpress: ${code} — ${data.error_response.sub_msg || data.error_response.msg}` };
     }
 
-    const resp = data.aliexpress_solution_product_list_get_response;
-    if (resp?.rsp_code && resp.rsp_code !== '200') {
-      return { success: false, error: `AliExpress DS: ${resp.rsp_code} — ${resp.rsp_msg}` };
+    const resp = data.aliexpress_ds_text_search_response;
+    if (resp?.code && resp.code !== '00' && resp.code !== '0') {
+      return { success: false, error: `AliExpress DS: ${resp.code} — ${resp.error_msg || 'unknown'}` };
     }
 
-    const result = resp?.result;
-    const rawProducts = result?.products?.aliexpress_product || [];
+    const rawProducts = resp?.data?.products?.selection_search_product || [];
 
-    const products: AliExpressProduct[] = rawProducts.map(p => ({
-      product_id: String(p.product_id),
-      product_title: p.subject,
-      product_main_image_url: p.image_url,
-      original_price: p.max_price || p.min_price || '0',
-      sale_price: p.min_price || '0',
-      discount: '',
-      shop_id: '',
-      shop_url: '',
-      product_url: `https://www.aliexpress.com/item/${p.product_id}.html`,
-      category_id: '',
-      category_name: '',
-      evaluate_rate: '',
-      thirty_days_sold_count: String(p.order_count || 0),
-    }));
+    const products: AliExpressProduct[] = rawProducts.map(p => {
+      const url = p.itemUrl
+        ? (p.itemUrl.startsWith('//') ? `https:${p.itemUrl}` : p.itemUrl)
+        : `https://www.aliexpress.com/item/${p.itemId}.html`;
+      return {
+        product_id: String(p.itemId),
+        product_title: p.title,
+        product_main_image_url: p.itemMainPic,
+        original_price: p.targetOriginalPrice || p.originalPrice || '0',
+        sale_price: p.targetSalePrice || p.salePrice || '0',
+        discount: p.discount || '',
+        shop_id: '',
+        shop_url: '',
+        product_url: url,
+        category_id: p.cateId || '',
+        category_name: '',
+        evaluate_rate: p.evaluateRate || p.score || '',
+        thirty_days_sold_count: p.orders || '0',
+      };
+    });
 
     return {
       success: true,
       data: {
-        current_page_no: result?.current_page_no || 1,
+        current_page_no: resp?.data?.pageIndex || 1,
         current_record_count: products.length,
-        total_record_count: result?.total_record_count || products.length,
+        total_record_count: resp?.data?.totalCount || products.length,
         products,
       },
     };
