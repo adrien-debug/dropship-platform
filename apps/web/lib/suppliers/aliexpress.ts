@@ -7,13 +7,13 @@
  * Fallback: aliexpress.ds.category.get (no token needed, for health checks)
  */
 
-import { createHash } from 'crypto';
+import { createHash, createHmac } from 'crypto';
 import { getDb } from '@/lib/db';
 
 const APP_KEY = (process.env.ALIEXPRESS_APP_KEY || '').trim();
 const APP_SECRET = (process.env.ALIEXPRESS_APP_SECRET || '').trim();
 const API_BASE = 'https://api-sg.aliexpress.com/sync';
-const TOKEN_ENDPOINT = 'https://api-sg.aliexpress.com/rest/auth/token/refresh';
+const REST_BASE = 'https://api-sg.aliexpress.com/rest';
 
 export interface AliExpressProduct {
   product_id: string;
@@ -45,6 +45,7 @@ export interface AliExpressCategory {
   parent_category_id?: number;
 }
 
+// /sync (TOP gateway): MD5(secret + concat(sorted(k+v)) + secret), uppercase.
 function generateSignature(params: Record<string, string>): string {
   const sorted = Object.keys(params)
     .filter(k => k !== 'sign')
@@ -52,6 +53,16 @@ function generateSignature(params: Record<string, string>): string {
     .map(k => `${k}${params[k]}`)
     .join('');
   return createHash('md5').update(`${APP_SECRET}${sorted}${APP_SECRET}`).digest('hex').toUpperCase();
+}
+
+// /rest/auth/token/{create,refresh} (IOP system): HMAC-SHA256(secret, apiPath + concat(sorted(k+v))), hex uppercase.
+function signSystem(apiPath: string, params: Record<string, string>): string {
+  const sorted = Object.keys(params)
+    .filter(k => k !== 'sign' && params[k] !== '' && params[k] != null)
+    .sort()
+    .map(k => `${k}${params[k]}`)
+    .join('');
+  return createHmac('sha256', APP_SECRET).update(`${apiPath}${sorted}`, 'utf8').digest('hex').toUpperCase();
 }
 
 async function getAccessToken(): Promise<string | null> {
@@ -86,15 +97,16 @@ async function getAccessToken(): Promise<string | null> {
 
 async function refreshAccessToken(refreshToken: string): Promise<string | null> {
   try {
+    const apiPath = '/auth/token/refresh';
     const params: Record<string, string> = {
       app_key: APP_KEY,
-      timestamp: Date.now().toString(),
-      sign_method: 'md5',
       refresh_token: refreshToken,
+      sign_method: 'sha256',
+      timestamp: Date.now().toString(),
     };
-    params.sign = generateSignature(params);
+    params.sign = signSystem(apiPath, params);
 
-    const res = await fetch(`${TOKEN_ENDPOINT}?${new URLSearchParams(params)}`, { method: 'POST' });
+    const res = await fetch(`${REST_BASE}${apiPath}?${new URLSearchParams(params)}`, { method: 'POST' });
     const data = await res.json() as { access_token?: string; expire_time?: number; refresh_token?: string };
 
     if (!data.access_token) return null;
