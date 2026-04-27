@@ -31,23 +31,51 @@ function digitsOnly(s: string | undefined | null): string {
   return (s || '').replace(/\D+/g, '');
 }
 
-function splitPhone(raw: string | undefined | null, defaultDial = '33'): { dial: string; number: string } {
+// ISO-2 country code → ITU dial code (without +).
+// Covers the storefront's supported countries plus a few neighbours; extend as needed.
+const DIAL_BY_COUNTRY: Record<string, string> = {
+  fr: '33', be: '32', de: '49', it: '39', nl: '31', pt: '351', es: '34',
+  gb: '44', uk: '44', ie: '353', ch: '41', at: '43', lu: '352',
+  us: '1', ca: '1',
+};
+
+function splitPhone(raw: string | undefined | null, countryCode: string | undefined | null): { dial: string; number: string } {
+  const country = (countryCode || 'fr').toLowerCase();
+  const expected = DIAL_BY_COUNTRY[country] ?? '33';
   const cleaned = (raw || '').trim();
-  if (!cleaned) return { dial: defaultDial, number: '' };
+  if (!cleaned) return { dial: expected, number: '' };
+
   if (cleaned.startsWith('+')) {
-    const digits = cleaned.slice(1).replace(/\s+/g, '');
-    // dial code = 1-3 digits at the start; treat the rest as the number.
-    const m = digits.match(/^(\d{1,3})(\d+)$/);
+    const digits = cleaned.slice(1).replace(/\D+/g, '');
+    // Strip the country dial deterministically, no greedy regex.
+    if (digits.startsWith(expected)) {
+      return { dial: expected, number: digits.slice(expected.length) };
+    }
+    // Phone says +<X> but X doesn't match the address country — keep the
+    // user's dial code by trying every known prefix from longest to shortest.
+    const sorted = Object.values(DIAL_BY_COUNTRY).sort((a, b) => b.length - a.length);
+    for (const dial of sorted) {
+      if (digits.startsWith(dial)) {
+        return { dial, number: digits.slice(dial.length) };
+      }
+    }
+    // Last-resort: assume a 1-2 digit dial.
+    const m = digits.match(/^(\d{1,2})(\d{6,})$/);
     if (m) return { dial: m[1], number: m[2] };
+    return { dial: expected, number: digits };
   }
-  return { dial: defaultDial, number: digitsOnly(cleaned) };
+
+  // No leading "+": treat the whole input as the local number, drop a leading 0
+  // (FR pattern "0612345678" → "612345678").
+  const local = digitsOnly(cleaned).replace(/^0/, '');
+  return { dial: expected, number: local };
 }
 
 function buildLogisticsAddress(order: MedusaOrder, provinceOverride?: string): { address: AliExpressLogisticsAddress; missing: string[] } {
   const a = order.shipping_address ?? {};
   const fullName = [a.first_name, a.last_name].filter(Boolean).join(' ').trim();
   const province = (a.province || provinceOverride || '').trim();
-  const phone = splitPhone(a.phone);
+  const phone = splitPhone(a.phone, a.country_code);
 
   const missing: string[] = [];
   if (!fullName) missing.push('full_name');

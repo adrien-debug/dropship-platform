@@ -414,8 +414,19 @@ export async function* createStore(input: StoreCreationInput): AsyncGenerator<Ag
       try {
         apiKey = await medusa.createPublishableApiKey(`${input.storeName} Store Key`);
         await medusa.addSalesChannelsToPublishableKey(apiKey.id, [channel.id]);
+
+        // Without this link, Medusa /store/shipping-options returns 0 options
+        // for any cart on this sales_channel — checkout would dead-end at "no
+        // shipping option available". We use the first stock_location (a
+        // single warehouse setup is the assumption for this MVP).
+        const stockLocations = await medusa.listStockLocations();
+        if (stockLocations[0]) {
+          await medusa.linkSalesChannelsToStockLocation(stockLocations[0].id, [channel.id]);
+        } else {
+          console.warn('[store-creator] no stock_location to link new sales channel to', { channelId: channel.id });
+        }
       } catch (e) {
-        console.error('[store-creator] publishable key setup failed, rolling back sales channel', {
+        console.error('[store-creator] publishable key / stock-location setup failed, rolling back', {
           channelId: channel.id,
           error: e instanceof Error ? e.message : String(e),
         });

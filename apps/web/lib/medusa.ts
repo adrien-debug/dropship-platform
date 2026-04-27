@@ -355,14 +355,21 @@ class MedusaAPI {
     external_id?: string;
     metadata?: Record<string, unknown>;
   }): Promise<MedusaProduct> {
-    // Medusa v2: images must be [{ url }], not string[]; variants have no inventory_quantity
+    // Medusa v2: images must be [{ url }], not string[]; variants have no inventory_quantity.
+    // For dropshipping, the supplier (AliExpress) is the source of truth for stock, so we
+    // disable manage_inventory on every variant. Otherwise Medusa requires an inventory_item
+    // per variant linked to the sales_channel's stock_location, which would block the cart
+    // with "Sales channel is not associated with any stock location for variant ...".
     const { images, variants, ...rest } = product;
     const payload = {
       ...rest,
       status: product.status || 'draft',
       ...(images?.length ? { images: images.map(url => ({ url })) } : {}),
       ...(variants ? {
-        variants: variants.map(({ inventory_quantity: _iq, ...v }) => v),
+        variants: variants.map(({ inventory_quantity: _iq, ...v }) => ({
+          ...v,
+          manage_inventory: false,
+        })),
       } : {}),
     };
 
@@ -466,6 +473,24 @@ class MedusaAPI {
     if (!response.ok && response.status !== 404) {
       throw new Error(`deletePublishableKey: ${await readMedusaErrorMessage(response)}`);
     }
+  }
+
+  async listStockLocations(): Promise<{ id: string; name: string }[]> {
+    const response = await fetch(`${this.baseUrl}/admin/stock-locations?fields=id,name`, {
+      headers: await this.adminJsonHeaders(),
+    });
+    if (!response.ok) throw new Error(`listStockLocations: ${await readMedusaErrorMessage(response)}`);
+    const data = await response.json();
+    return data.stock_locations ?? [];
+  }
+
+  async linkSalesChannelsToStockLocation(stockLocationId: string, salesChannelIds: string[]): Promise<void> {
+    const response = await fetch(`${this.baseUrl}/admin/stock-locations/${stockLocationId}/sales-channels`, {
+      method: 'POST',
+      headers: await this.adminJsonHeaders(),
+      body: JSON.stringify({ add: salesChannelIds }),
+    });
+    if (!response.ok) throw new Error(`linkSalesChannelsToStockLocation: ${await readMedusaErrorMessage(response)}`);
   }
 
   async addProductsToSalesChannel(salesChannelId: string, productIds: string[]): Promise<void> {
