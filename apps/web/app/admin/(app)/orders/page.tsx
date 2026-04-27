@@ -1,6 +1,7 @@
 import { medusa } from '@/lib/medusa';
 import { getDb } from '@/lib/db';
 import { ForwardButton } from './ForwardButton';
+import { DryRunPendingButton } from './DryRunPendingButton';
 import { formatMoney } from '@/lib/medusa-store';
 
 export const dynamic = 'force-dynamic';
@@ -41,12 +42,15 @@ export default async function OrdersPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Commandes</h2>
-        <p className="text-sm text-zinc-500 mt-1">
-          Forward chaque commande payée vers AliExpress. <strong>Dry-run</strong> sauve la payload sans rien envoyer ;{' '}
-          <strong>Envoyer à AE</strong> place une vraie commande dropshipping.
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-2xl font-bold">Commandes</h2>
+          <p className="text-sm text-zinc-500 mt-1">
+            Forward chaque commande payée vers AliExpress. <strong>Dry-run</strong> sauve la payload sans rien envoyer ;{' '}
+            <strong>Envoyer à AE</strong> place une vraie commande dropshipping.
+          </p>
+        </div>
+        <DryRunPendingButton />
       </div>
 
       {fetchError && (
