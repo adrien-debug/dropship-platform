@@ -8,7 +8,7 @@ import {
   updateLineItem,
   type StoreCart,
 } from './medusa-store';
-import { getCartId, setCartId } from './cart-cookie';
+import { getCartId, setCartId, setLastStoreSlug } from './cart-cookie';
 import { getStoreBySlug } from './store-config';
 
 async function ensureRegionId(): Promise<string> {
@@ -83,6 +83,12 @@ export async function addToCart(variantId: string, quantity: number, slug?: stri
     { variant_id: variantId, quantity },
     ctx ? { publishableKey: ctx.publishableKey } : undefined,
   );
+  if (slug) {
+    // Pinpoint which store the customer was on so /cart, /checkout, /order
+    // can rewrap themselves with the merchant's branding instead of the
+    // generic StoreShell.
+    await setLastStoreSlug(slug);
+  }
   return updated;
 }
 

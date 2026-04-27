@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { loadCart } from '@/lib/store-cart';
 import { listShippingOptions, formatMoney, type StoreShippingOption } from '@/lib/medusa-store';
+import { resolveActiveStore } from '@/lib/active-store';
 import { StoreShell } from '@/app/_components/StoreShell';
 import { CheckoutForm } from './CheckoutForm';
 
@@ -8,12 +9,15 @@ export const dynamic = 'force-dynamic';
 
 export default async function CheckoutPage() {
   const cart = await loadCart();
+  const store = await resolveActiveStore(cart);
+  const boutiqueHref = store ? `/shop/${store.slug}` : '/products';
+
   if (!cart || cart.items.length === 0) {
     return (
-      <StoreShell>
+      <StoreShell store={store}>
         <div className="max-w-3xl mx-auto px-4 py-16 text-center">
           <h1 className="text-2xl font-bold">Votre panier est vide</h1>
-          <Link href="/products" className="mt-4 inline-block underline">
+          <Link href={boutiqueHref} className="mt-4 inline-block underline">
             Retour boutique
           </Link>
         </div>
@@ -36,7 +40,7 @@ export default async function CheckoutPage() {
   const stripeEnabled = !!stripePublishableKey && !!process.env.STRIPE_SECRET_KEY?.trim();
 
   return (
-    <StoreShell>
+    <StoreShell store={store}>
       <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 grid grid-cols-1 lg:grid-cols-2 gap-10">
         <div>
           <h1 className="text-3xl font-bold mb-6">Checkout</h1>

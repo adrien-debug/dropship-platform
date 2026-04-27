@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { loadCart } from '@/lib/store-cart';
 import { formatMoney } from '@/lib/medusa-store';
+import { resolveActiveStore } from '@/lib/active-store';
 import { StoreShell } from '@/app/_components/StoreShell';
 import { CartLineRow } from './CartLineRow';
 
@@ -8,19 +9,22 @@ export const dynamic = 'force-dynamic';
 
 export default async function CartPage() {
   const cart = await loadCart();
+  const store = await resolveActiveStore(cart);
+  const boutiqueHref = store ? `/shop/${store.slug}` : '/products';
+
   if (!cart || cart.items.length === 0) {
     return (
-      <StoreShell>
+      <StoreShell store={store}>
         <div className="max-w-3xl mx-auto px-4 py-16 text-center">
           <h1 className="text-3xl font-bold mb-4">Votre panier est vide</h1>
-          <Link href="/products" className="underline">Parcourir la boutique</Link>
+          <Link href={boutiqueHref} className="underline">Parcourir la boutique</Link>
         </div>
       </StoreShell>
     );
   }
   const currency = cart.currency_code || 'eur';
   return (
-    <StoreShell>
+    <StoreShell store={store}>
       <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <h1 className="text-3xl font-bold mb-8">Panier</h1>
         <div className="border rounded-lg overflow-hidden">
