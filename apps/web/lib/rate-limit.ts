@@ -50,3 +50,39 @@ export function clientIp(req: Request): string {
   if (xff) return xff.split(',')[0]!.trim();
   return req.headers.get('x-real-ip')?.trim() || 'unknown';
 }
+
+/**
+ * Per-IP rate-limit guard for public route handlers. Returns a 429 Response
+ * when over the limit, or null when the request should proceed.
+ *
+ * Fails OPEN: if the underlying Postgres call errors, real users still go
+ * through. The cost of a missed 429 in a transient DB blip is far lower
+ * than the cost of blocking paid traffic during the same blip.
+ *
+ * Usage:
+ *   const limited = await enforceRateLimit(request, 'cart-add', { max: 30 });
+ *   if (limited) return limited;
+ */
+export async function enforceRateLimit(
+  req: Request,
+  scope: string,
+  opts: { max: number; windowSec?: number },
+): Promise<Response | null> {
+  try {
+    const ip = clientIp(req);
+    const r = await checkRateLimit(`${scope}:${ip}`, opts);
+    if (r.ok) return null;
+    return new Response(
+      JSON.stringify({ success: false, error: 'Trop de requêtes, réessayez dans un instant.' }),
+      {
+        status: 429,
+        headers: {
+          'Content-Type': 'application/json',
+          'Retry-After': String(r.retryAfterSec),
+        },
+      },
+    );
+  } catch {
+    return null;
+  }
+}

@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getCartId } from '@/lib/cart-cookie';
 import { getCart, storeFetch } from '@/lib/medusa-store';
 import { STRIPE_PROVIDER_ID, stripeEnabled } from '@/lib/stripe-env';
+import { enforceRateLimit } from '@/lib/rate-limit';
 
 interface PaymentSession {
   id: string;
@@ -18,8 +19,10 @@ interface PaymentCollection {
  * Initializes a Stripe payment session against Medusa.
  * Returns the Stripe `client_secret` consumed by `<PaymentElement />`.
  */
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
+    const limited = await enforceRateLimit(request, 'checkout-payment', { max: 10, windowSec: 60 });
+    if (limited) return limited;
     if (!stripeEnabled()) {
       return NextResponse.json({ success: false, error: 'Stripe not configured' }, { status: 503 });
     }

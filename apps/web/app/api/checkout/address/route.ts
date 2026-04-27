@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getCartId } from '@/lib/cart-cookie';
 import { updateCart } from '@/lib/medusa-store';
+import { enforceRateLimit } from '@/lib/rate-limit';
 
 const schema = z.object({
   email: z.string().email(),
@@ -18,6 +19,8 @@ const schema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const limited = await enforceRateLimit(request, 'checkout-address', { max: 20, windowSec: 60 });
+    if (limited) return limited;
     const cartId = await getCartId();
     if (!cartId) return NextResponse.json({ success: false, error: 'No cart' }, { status: 400 });
     const body = schema.parse(await request.json());

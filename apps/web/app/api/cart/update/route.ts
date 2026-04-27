@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { setLineQuantity, removeLine } from '@/lib/store-cart';
+import { enforceRateLimit } from '@/lib/rate-limit';
 
 const updateSchema = z.object({
   lineItemId: z.string().min(1),
@@ -9,6 +10,8 @@ const updateSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const limited = await enforceRateLimit(request, 'cart-update', { max: 60, windowSec: 60 });
+    if (limited) return limited;
     const { lineItemId, quantity } = updateSchema.parse(await request.json());
     const cart = quantity === 0 ? await removeLine(lineItemId) : await setLineQuantity(lineItemId, quantity);
     return NextResponse.json({ success: true, items: cart?.items?.length ?? 0 });

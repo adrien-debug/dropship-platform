@@ -3,11 +3,30 @@ import { getCartId, clearCartId } from '@/lib/cart-cookie';
 import { completeCart, initPaymentSession } from '@/lib/medusa-store';
 import { medusa } from '@/lib/medusa';
 import { stripeEnabled, STRIPE_PROVIDER_ID } from '@/lib/stripe-env';
+import { checkRateLimit, enforceRateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
+    const limited = await enforceRateLimit(request, 'checkout-complete', { max: 5, windowSec: 60 });
+    if (limited) return limited;
+
     const cartId = await getCartId();
     if (!cartId) return NextResponse.json({ success: false, error: 'No cart' }, { status: 400 });
+
+    // Per-cart idempotency lock: a double-click on the Pay button (or a
+    // browser-level retry on a flaky network) must not double-fire the
+    // completeCart + capturePayments flow before captured_at is written.
+    // 1 request per 10 s per cart is plenty for the user; replays beyond
+    // that get a 429 instead of a possibly-double-charged order.
+    const cartLock = await checkRateLimit(`checkout-complete-cart:${cartId}`, { max: 1, windowSec: 10 }).catch(
+      () => ({ ok: true } as { ok: boolean }),
+    );
+    if (!cartLock.ok) {
+      return NextResponse.json(
+        { success: false, error: 'Commande déjà en cours de validation, patientez un instant.' },
+        { status: 429 },
+      );
+    }
 
     const body = await request.json().catch(() => ({}));
     const skipPaymentInit = body?.skipPaymentInit === true;
@@ -36,13 +55,22 @@ export async function POST(request: NextRequest) {
       await clearCartId();
 
       // Auto-capture: dropship business needs funds in-hand to forward to AE.
-      // Best-effort — a capture failure (already captured, network blip) must
+      // Best-effort: a capture failure (already captured, network blip) must
       // not roll back an otherwise-valid order. The merchant can retry from
       // /admin/orders if needed.
-      try {
-        await medusa.capturePayments(result.order.id);
-      } catch (err) {
-        console.error(`[checkout/complete] capture failed for ${result.order.id}:`, err);
+      //
+      // Per-order capture lock: prevents two concurrent completeCart calls
+      // (Medusa returns the same order for both) from both racing past the
+      // captured_at=null check inside capturePayments and double-charging.
+      const captureLock = await checkRateLimit(`capture:${result.order.id}`, { max: 1, windowSec: 30 }).catch(
+        () => ({ ok: true } as { ok: boolean }),
+      );
+      if (captureLock.ok) {
+        try {
+          await medusa.capturePayments(result.order.id);
+        } catch (err) {
+          console.error(`[checkout/complete] capture failed for ${result.order.id}:`, err);
+        }
       }
 
       return NextResponse.json({ success: true, orderId: result.order.id, displayId: result.order.display_id });

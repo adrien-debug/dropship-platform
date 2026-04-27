@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { addToCart } from '@/lib/store-cart';
+import { enforceRateLimit } from '@/lib/rate-limit';
 
 const schema = z.object({
   variantId: z.string().min(1),
@@ -13,6 +14,8 @@ const schema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const limited = await enforceRateLimit(request, 'cart-add', { max: 30, windowSec: 60 });
+    if (limited) return limited;
     const body = await request.json();
     const { variantId, quantity, slug } = schema.parse(body);
     const cart = await addToCart(variantId, quantity, slug);
