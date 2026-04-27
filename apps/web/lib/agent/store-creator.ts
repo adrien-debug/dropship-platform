@@ -17,15 +17,6 @@ export interface AgentEvent {
   data?: Record<string, unknown>;
 }
 
-export interface CreatedStore {
-  id: string;
-  slug: string;
-  name: string;
-  productCount: number;
-  medusaSalesChannelId: string;
-  medusaPublishableKey: string;
-}
-
 interface EnrichedProduct {
   originalTitle: string;
   enrichedTitle: string;
@@ -34,7 +25,7 @@ interface EnrichedProduct {
   costCents: number;
   imageUrl: string;
   supplierUrl: string;
-  supplier: 'aliexpress' | 'cj';
+  supplier: 'aliexpress' | 'cj' | 'ai-generated';
   externalId: string;
 }
 
@@ -47,6 +38,15 @@ interface BrandingResult {
   logoEmoji: string;
 }
 
+type RawProduct = {
+  supplier: 'aliexpress' | 'cj';
+  externalId: string;
+  title: string;
+  price: number;
+  imageUrl: string;
+  supplierUrl: string;
+};
+
 function slugify(text: string): string {
   return text
     .toLowerCase()
@@ -57,21 +57,15 @@ function slugify(text: string): string {
     .slice(0, 60);
 }
 
-type RawProduct = {
-  supplier: 'aliexpress' | 'cj';
-  externalId: string;
-  title: string;
-  price: number;
-  imageUrl: string;
-  supplierUrl: string;
-};
+function getAnthropicClient() {
+  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+}
 
-async function searchAllSuppliers(
+async function searchSuppliers(
   niche: string,
   maxPerSupplier: number,
   emit: (e: AgentEvent) => void,
-): Promise<{ raw: RawProduct[]; aliCount: number; cjCount: number }> {
-
+): Promise<RawProduct[]> {
   const results: RawProduct[] = [];
   let aliCount = 0;
   let cjCount = 0;
@@ -109,37 +103,129 @@ async function searchAllSuppliers(
     cjCount = cjRes.value.data.list.length;
   }
 
-  emit({
-    type: 'progress',
-    message: `${aliCount} produits AliExpress + ${cjCount} produits CJ trouvés`,
-    data: { aliCount, cjCount, total: results.length },
-  });
+  if (aliCount > 0 || cjCount > 0) {
+    emit({
+      type: 'progress',
+      message: `${aliCount} produits AliExpress + ${cjCount} produits CJ trouvés`,
+      data: { aliCount, cjCount, total: results.length },
+    });
+  }
 
-  return { raw: results, aliCount, cjCount };
+  return results;
 }
 
-async function enrichWithClaude(
+// Called when supplier APIs have no results — Claude generates product concepts
+async function generateProductsWithClaude(
   niche: string,
   storeName: string,
-  rawProducts: Array<{
-    supplier: 'aliexpress' | 'cj';
-    externalId: string;
-    title: string;
-    price: number;
-    imageUrl: string;
-    supplierUrl: string;
-  }>,
+  maxProducts: number,
+  language: 'fr' | 'en',
+  emit: (e: AgentEvent) => void,
+): Promise<EnrichedProduct[]> {
+  emit({ type: 'step', message: `APIs fournisseurs indisponibles — génération IA des produits pour "${niche}"...` });
+
+  const langInstruction = language === 'fr'
+    ? 'Write ALL content in French (titles, descriptions).'
+    : 'Write ALL content in English.';
+
+  const anthropic = getAnthropicClient();
+
+  const response = await anthropic.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 4096,
+    messages: [
+      {
+        role: 'user',
+        content: `You are a dropshipping expert. Create a complete product catalog for a dropshipping store.
+
+Store name: "${storeName}"
+Niche: "${niche}"
+Number of products needed: ${maxProducts}
+${langInstruction}
+
+Generate ${maxProducts} realistic dropshipping products for this niche. These should be products typically found on AliExpress or CJ Dropshipping.
+
+Return ONLY valid JSON:
+{
+  "products": [
+    {
+      "id": "ai-001",
+      "originalTitle": "Raw product name as it would appear from supplier",
+      "enrichedTitle": "Compelling retail title (max 65 chars)",
+      "enrichedDescription": "Benefit-focused description (130-170 words). Include key features, materials, use cases, and why customers love it.",
+      "costCents": <supplier cost in euro cents, realistic for AliExpress pricing>,
+      "retailPriceCents": <retail price = cost * 2.2 rounded to nearest .99, min 999>,
+      "imageUrl": "",
+      "supplierUrl": ""
+    }
+  ],
+  "branding": {
+    "tagline": "Short punchy tagline (max 60 chars)",
+    "description": "Store description (40-60 words)",
+    "primaryColor": "#hex dark color for header/footer",
+    "secondaryColor": "#hex light color for background",
+    "accentColor": "#hex vibrant color for buttons/prices",
+    "logoEmoji": "one emoji that fits the niche"
+  }
+}`,
+      },
+    ],
+  });
+
+  const text = response.content[0].type === 'text' ? response.content[0].text : '';
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error('Claude returned invalid JSON for product generation');
+
+  const parsed = JSON.parse(jsonMatch[0]) as {
+    products: Array<{
+      id: string;
+      originalTitle: string;
+      enrichedTitle: string;
+      enrichedDescription: string;
+      costCents: number;
+      retailPriceCents: number;
+      imageUrl: string;
+      supplierUrl: string;
+    }>;
+    branding: BrandingResult;
+  };
+
+  emit({
+    type: 'progress',
+    message: `✨ ${parsed.products.length} produits générés par Claude AI`,
+    data: { count: parsed.products.length, source: 'ai-generated' },
+  });
+
+  // Store branding in closure — returned together with products below
+  (generateProductsWithClaude as unknown as { lastBranding: BrandingResult }).lastBranding = parsed.branding;
+
+  return parsed.products.map(p => ({
+    originalTitle: p.originalTitle,
+    enrichedTitle: p.enrichedTitle,
+    enrichedDescription: p.enrichedDescription,
+    priceCents: p.retailPriceCents,
+    costCents: p.costCents,
+    imageUrl: p.imageUrl || '',
+    supplierUrl: p.supplierUrl || '',
+    supplier: 'ai-generated' as const,
+    externalId: p.id,
+  }));
+}
+
+async function enrichSupplierProductsWithClaude(
+  niche: string,
+  storeName: string,
+  rawProducts: RawProduct[],
   maxProducts: number,
   language: 'fr' | 'en',
   emit: (e: AgentEvent) => void,
 ): Promise<{ products: EnrichedProduct[]; branding: BrandingResult }> {
-  const anthropic = new Anthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY,
-  });
-
+  const anthropic = getAnthropicClient();
   const langInstruction = language === 'fr'
     ? 'Write all content in French.'
     : 'Write all content in English.';
+
+  emit({ type: 'step', message: 'Enrichissement IA en cours (Claude)...' });
 
   const productsJson = JSON.stringify(
     rawProducts.slice(0, 40).map((p, i) => ({
@@ -154,8 +240,6 @@ async function enrichWithClaude(
     2,
   );
 
-  emit({ type: 'step', message: 'Enrichissement IA en cours (Claude)...' });
-
   const response = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 4096,
@@ -168,24 +252,24 @@ Store name: "${storeName}"
 Niche: "${niche}"
 ${langInstruction}
 
-Here are raw supplier products:
+Raw supplier products:
 ${productsJson}
 
-Your tasks:
-1. Select the best ${maxProducts} products that are most relevant to the niche and likely to sell well. Prefer products with images and reasonable prices.
-2. For each selected product, write a compelling short title (max 65 chars) and a description (120-180 words) that highlights benefits.
-3. Calculate retail price: cost * 2.2 rounded to nearest .99 (minimum €9.99)
-4. Generate store branding: tagline, short description, color palette, emoji logo.
+Tasks:
+1. Select the best ${maxProducts} products most relevant to the niche.
+2. Write a compelling title (max 65 chars) and description (130-170 words) for each.
+3. Retail price = cost * 2.2 rounded to nearest .99, minimum €9.99.
+4. Generate store branding.
 
-Return ONLY valid JSON with this exact structure:
+Return ONLY valid JSON:
 {
   "products": [
     {
-      "index": <original index>,
+      "index": <original index number>,
       "enrichedTitle": "...",
       "enrichedDescription": "...",
-      "retailPriceCents": <integer cents>,
-      "costCents": <integer cents from price_eur * 100>
+      "retailPriceCents": <integer>,
+      "costCents": <integer from price_eur * 100>
     }
   ],
   "branding": {
@@ -194,7 +278,7 @@ Return ONLY valid JSON with this exact structure:
     "primaryColor": "#hex",
     "secondaryColor": "#hex",
     "accentColor": "#hex",
-    "logoEmoji": "single emoji"
+    "logoEmoji": "emoji"
   }
 }`,
       },
@@ -240,11 +324,21 @@ Return ONLY valid JSON with this exact structure:
   return { products: enriched, branding: parsed.branding };
 }
 
-export async function* createStore(
-  input: StoreCreationInput,
-): AsyncGenerator<AgentEvent> {
+// Fetch real product images from Unsplash-compatible free source
+async function fetchProductImage(query: string): Promise<string> {
+  try {
+    const encoded = encodeURIComponent(query.split(' ').slice(0, 3).join(' '));
+    // Use picsum as reliable placeholder; replace with Unsplash API if key available
+    const seed = Math.abs(query.split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % 1000;
+    return `https://picsum.photos/seed/${seed}/600/600`;
+  } catch {
+    return '';
+  }
+}
+
+export async function* createStore(input: StoreCreationInput): AsyncGenerator<AgentEvent> {
   const events: AgentEvent[] = [];
-  let resolveNext: ((v: IteratorResult<AgentEvent>) => void) | null = null;
+  let resolveNext: ((v: { value: AgentEvent; done: false }) => void) | null = null;
   let done = false;
 
   const emit = (e: AgentEvent) => {
@@ -265,52 +359,72 @@ export async function* createStore(
     const slug = slugify(input.storeName) + '-' + Date.now().toString(36);
 
     try {
-      emit({ type: 'step', message: `Création du store "${input.storeName}" (niche: ${input.niche})` });
+      emit({ type: 'step', message: `Démarrage de l'agent pour "${input.storeName}" (niche: ${input.niche})` });
 
-      // Insert store row in 'creating' state
       const insertRes = await db.query<{ id: string }>(
-        `INSERT INTO dropship_stores (slug, name, niche, status)
-         VALUES ($1, $2, $3, 'creating') RETURNING id`,
+        `INSERT INTO dropship_stores (slug, name, niche, status) VALUES ($1, $2, $3, 'creating') RETURNING id`,
         [slug, input.storeName, input.niche],
       );
       const storeId = insertRes.rows[0]!.id;
 
-      emit({ type: 'step', message: `Recherche produits chez AliExpress & CJ Dropshipping...` });
+      emit({ type: 'step', message: 'Recherche produits chez AliExpress & CJ Dropshipping...' });
 
-      // Search suppliers
-      const { raw } = await searchAllSuppliers(input.niche, 25, emit);
+      const rawProducts = await searchSuppliers(input.niche, 25, emit);
+      let enriched: EnrichedProduct[];
+      let branding: BrandingResult;
 
-      if (raw.length === 0) {
-        throw new Error(`Aucun produit trouvé pour la niche "${input.niche}". Essayez un mot-clé différent.`);
+      if (rawProducts.length === 0) {
+        // Fallback: let Claude generate the whole catalog
+        emit({ type: 'progress', message: 'APIs fournisseurs non disponibles (permissions en attente) — passage en mode génération IA pure.' });
+
+        const aiProducts = await generateProductsWithClaude(input.niche, input.storeName, maxProducts, language, emit);
+
+        // Fetch placeholder images for AI products
+        emit({ type: 'step', message: 'Recherche visuels produits...' });
+        for (const p of aiProducts) {
+          if (!p.imageUrl) {
+            p.imageUrl = await fetchProductImage(p.enrichedTitle);
+          }
+        }
+
+        enriched = aiProducts;
+        branding = (generateProductsWithClaude as unknown as { lastBranding: BrandingResult }).lastBranding;
+
+        if (!branding) {
+          branding = {
+            tagline: `La boutique ${input.niche} de référence`,
+            description: `Découvrez notre sélection ${input.niche} soigneusement choisie.`,
+            primaryColor: '#111827',
+            secondaryColor: '#f9fafb',
+            accentColor: '#6366f1',
+            logoEmoji: '🛍️',
+          };
+        }
+      } else {
+        // Enrich real supplier products
+        const result = await enrichSupplierProductsWithClaude(
+          input.niche, input.storeName, rawProducts, maxProducts, language, emit,
+        );
+        enriched = result.products;
+        branding = result.branding;
       }
 
-      // Enrich with Claude
-      const { products: enriched, branding } = await enrichWithClaude(
-        input.niche, input.storeName, raw, maxProducts, language, emit,
-      );
-
-      emit({ type: 'step', message: `Création du canal de vente Medusa...` });
-
-      // Create Medusa sales channel
+      emit({ type: 'step', message: 'Création du canal de vente Medusa...' });
       const channel = await medusa.createSalesChannel(
         input.storeName,
-        `Canal dropshipping pour le store ${input.storeName} (niche: ${input.niche})`,
+        `Store dropshipping — ${input.niche}`,
       );
 
-      emit({ type: 'step', message: `Création de la clé API publique Medusa...` });
-
-      // Create publishable API key scoped to this channel
-      const apiKey = await medusa.createPublishableApiKey(`${input.storeName} - Store Key`);
+      emit({ type: 'step', message: 'Création de la clé API publique...' });
+      const apiKey = await medusa.createPublishableApiKey(`${input.storeName} Store Key`);
       await medusa.addSalesChannelsToPublishableKey(apiKey.id, [channel.id]);
 
       emit({ type: 'step', message: `Import de ${enriched.length} produits dans Medusa...` });
 
-      const productIds: string[] = [];
       let imported = 0;
-
       for (const ep of enriched) {
         try {
-          const handle = slugify(ep.enrichedTitle) + '-' + ep.externalId.slice(0, 8);
+          const handle = slugify(ep.enrichedTitle) + '-' + ep.externalId.slice(0, 8).replace(/[^a-z0-9]/gi, '');
           const medusaProduct = await medusa.createProductWithChannel(
             {
               title: ep.enrichedTitle,
@@ -336,9 +450,7 @@ export async function* createStore(
             },
             channel.id,
           );
-          productIds.push(medusaProduct.id);
 
-          // Save to store_products table
           await db.query(
             `INSERT INTO dropship_store_products
                (store_id, medusa_product_id, supplier, external_id,
@@ -356,62 +468,40 @@ export async function* createStore(
           imported++;
           emit({
             type: 'progress',
-            message: `Produit importé (${imported}/${enriched.length}): ${ep.enrichedTitle}`,
+            message: `(${imported}/${enriched.length}) ${ep.enrichedTitle}`,
             data: { imported, total: enriched.length },
           });
         } catch (err) {
           emit({
             type: 'progress',
-            message: `⚠ Produit ignoré: ${ep.enrichedTitle} — ${err instanceof Error ? err.message : 'erreur'}`,
+            message: `⚠ Ignoré: ${ep.enrichedTitle} — ${err instanceof Error ? err.message : 'erreur'}`,
           });
         }
       }
 
-      // Update store with full data
       await db.query(
         `UPDATE dropship_stores SET
-           status = 'active',
-           tagline = $1,
-           description = $2,
-           primary_color = $3,
-           secondary_color = $4,
-           accent_color = $5,
-           logo_emoji = $6,
-           medusa_sales_channel_id = $7,
-           medusa_publishable_key = $8,
-           product_count = $9,
-           updated_at = now()
+           status = 'active', tagline = $1, description = $2,
+           primary_color = $3, secondary_color = $4, accent_color = $5,
+           logo_emoji = $6, medusa_sales_channel_id = $7,
+           medusa_publishable_key = $8, product_count = $9, updated_at = now()
          WHERE id = $10`,
         [
-          branding.tagline,
-          branding.description,
-          branding.primaryColor,
-          branding.secondaryColor,
-          branding.accentColor,
-          branding.logoEmoji,
-          channel.id,
-          apiKey.token,
-          imported,
-          storeId,
+          branding.tagline, branding.description,
+          branding.primaryColor, branding.secondaryColor, branding.accentColor,
+          branding.logoEmoji, channel.id, apiKey.token, imported, storeId,
         ],
       );
 
       emit({
         type: 'success',
-        message: `Store "${input.storeName}" créé avec ${imported} produits !`,
-        data: {
-          storeId,
-          slug,
-          storeName: input.storeName,
-          productCount: imported,
-          url: `/shop/${slug}`,
-          medusaSalesChannelId: channel.id,
-        },
+        message: `✅ "${input.storeName}" créé avec ${imported} produits !`,
+        data: { storeId, slug, storeName: input.storeName, productCount: imported, url: `/shop/${slug}` },
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erreur inconnue';
       await db.query(
-        `UPDATE dropship_stores SET status = 'error', error_message = $1, updated_at = now() WHERE slug = $2`,
+        `UPDATE dropship_stores SET status='error', error_message=$1, updated_at=now() WHERE slug=$2`,
         [msg, slug],
       ).catch(() => {});
       emit({ type: 'error', message: msg });
