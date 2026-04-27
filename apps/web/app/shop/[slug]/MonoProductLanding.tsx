@@ -1,4 +1,4 @@
-import { existsSync, readdirSync } from 'fs';
+import { existsSync } from 'fs';
 import path from 'path';
 import { AddToCartButton } from '@/app/products/[handle]/AddToCartButton';
 import { formatMoney } from '@/lib/medusa-store';
@@ -9,14 +9,9 @@ import {
   Heading,
   Lede,
   Kicker,
-  Stat,
   NumberMark,
   TrustItem,
-  Stars,
   Parallax,
-  Pullquote,
-  Marquee,
-  ImagePlate,
   GestureIcon,
 } from '@/components/ui';
 import { ProductShowcase } from '@/components/ui/ProductShowcase';
@@ -45,83 +40,24 @@ interface Props {
   product: MonoProductLandingProduct;
 }
 
-interface GalleryShot {
-  src: string;
-  caption: string;
-  tag: string;
-}
-
-/**
- * Walk public/generated/{slug}/run-*-flux-kontext-real-product/ and surface the
- * shots that hold up. Keeps the gallery declarative — adding a new render
- * means dropping a PNG with one of the known basenames into that folder.
- *
- * The blacklist excludes the obvious mismatches (dark studio shots that
- * don't fit the bright editorial mood). Captions are baked here because the
- * Kontext filenames carry semantic meaning we want to surface.
- */
-const GALLERY_CAPTIONS: Record<string, { caption: string; tag: string }> = {
-  beach_terrace: { caption: 'Du bureau à la plage,\nsans transition.', tag: 'En vacances' },
-  cafe_terrace: { caption: 'Pause café, sans transpirer.', tag: 'En ville' },
-  rooftop_evening: { caption: 'Apéro rooftop, mains libres.', tag: 'Apéro' },
-  metro_commute: { caption: 'Le métro, en silence.', tag: 'Trajet' },
-  office_summer: { caption: 'L’open-space, climatisé pour soi.', tag: 'Au bureau' },
-  home_kitchen: { caption: 'Le dîner, sans la cuisson.', tag: 'À la maison' },
-  running_seine: { caption: 'Footing matinal, fraîcheur garantie.', tag: 'Au sport' },
-};
-const GALLERY_BLACKLIST = new Set(['hero_dark_studio']);
-
-function discoverGalleryImages(slug: string): GalleryShot[] {
-  const root = path.join(process.cwd(), 'public', 'generated', slug);
-  if (!existsSync(root)) return [];
-  const out: GalleryShot[] = [];
-  for (const dirent of readdirSync(root, { withFileTypes: true })) {
-    if (!dirent.isDirectory()) continue;
-    if (!dirent.name.includes('flux-kontext-real-product')) continue;
-    const runDir = path.join(root, dirent.name);
-    for (const f of readdirSync(runDir)) {
-      const m = f.match(/^(.+)\.(png|webp|jpe?g)$/i);
-      if (!m) continue;
-      const base = m[1].toLowerCase();
-      if (GALLERY_BLACKLIST.has(base)) continue;
-      const meta = GALLERY_CAPTIONS[base];
-      if (!meta) continue;
-      out.push({
-        src: `/generated/${slug}/${dirent.name}/${f}`,
-        caption: meta.caption,
-        tag: meta.tag,
-      });
-    }
-  }
-  // Stable order matching the captions dict declaration.
-  const order = Object.keys(GALLERY_CAPTIONS);
-  out.sort((a, b) => {
-    const ka = order.findIndex((k) => a.src.includes(`/${k}.`));
-    const kb = order.findIndex((k) => b.src.includes(`/${k}.`));
-    return ka - kb;
-  });
-  return out;
-}
-
 /**
  * Long-form mono-product landing page, built exclusively from the
- * `components/ui` primitives. Layout:
+ * `components/ui` primitives. Layout (per founder's explicit plan):
  *
- *   1. Hero (parallax bg image, italic-accented H1, fades)
- *   2. Press marquee (continuous scrolling endorsement strip)
- *   3. Social proof bar (4 stats)
- *   4. Trois raisons (numbered USPs)
- *   5. 3D Showcase (R3F billboard + airflow particles, 80vh tall)
- *   6. Pullquote (editorial italic statement)
- *   7. Lifestyle gallery (auto-discovered Kontext shots, uniform grade)
- *   8. Beach moment (single full-bleed Kontext + parallax)
- *   9. Specs (10-row table)
- *  10. Trois gestes (process, with custom monoline icons)
- *  11. Inclus dans le pack (4 cards)
- *  12. Témoignages
- *  13. Comparatif
- *  14. FAQ
- *  15. Final CTA
+ *   1. Hero (parallax bg, italic-accented H1, single bare CTA — no qty stepper)
+ *   2. Trois raisons (numbered USPs)
+ *   3. Showcase (dark stage with the headline integrated INSIDE the frame —
+ *      no SectionHeader above to avoid the "empty stage" feeling)
+ *   4. Beach moment (single full-bleed Kontext + parallax)
+ *   5. Specs (10-row table)
+ *   6. Trois gestes (process, with custom monoline icons)
+ *   7. Inclus dans le pack (4 cards)
+ *   8. Final CTA (gradient stage, single bare CTA — no qty stepper)
+ *
+ * Decisive cuts vs the previous draft (founder feedback): no press marquee,
+ * no social-proof stats, no pullquote, no lifestyle gallery, no
+ * testimonials, no comparison table, no FAQ. The page is the story; the
+ * cart page is where qty/details get nailed down.
  */
 export function MonoProductLanding({ store, product }: Props) {
   const variant = product.variants?.[0];
@@ -158,8 +94,6 @@ export function MonoProductLanding({ store, product }: Props) {
     return null;
   })();
 
-  const galleryShots = discoverGalleryImages(store.slug);
-
   return (
     <>
       {/* ================== HERO ================== */}
@@ -171,35 +105,6 @@ export function MonoProductLanding({ store, product }: Props) {
         compareAtPrice={compareAtPrice}
         variant={variant}
       />
-
-      {/* ================== PRESS MARQUEE ================== */}
-      <Section tone="light" padding="sm" className="border-b border-zinc-200">
-        <Marquee
-          duration={48}
-          items={[
-            'Élu produit innovation été 2026',
-            'Vu dans Konbini Tech',
-            '— 38 % vs prix marché',
-            'Made for summer 2026',
-            'Garantie 24 mois',
-            'Stripe · Apple Pay · Google Pay',
-          ].map((label, i) => (
-            <span key={i} className="font-serif italic text-zinc-500 text-base sm:text-lg whitespace-nowrap">
-              {label}
-            </span>
-          ))}
-        />
-      </Section>
-
-      {/* ================== SOCIAL PROOF ================== */}
-      <Section tone="muted" padding="md" className="border-b border-zinc-200">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-          <Stat value="12 400" label="Clients en France" />
-          <Stat value="4.7 / 5" label="Note moyenne" />
-          <Stat value="< 24h" label="Expédition" />
-          <Stat value="2 ans" label="Garantie" />
-        </div>
-      </Section>
 
       {/* ================== TROIS RAISONS ================== */}
       <Section tone="light" padding="lg">
@@ -239,69 +144,27 @@ export function MonoProductLanding({ store, product }: Props) {
         </div>
       </Section>
 
-      {/* ================== PRODUCT SHOWCASE 3D ================== */}
+      {/* ================== PRODUCT SHOWCASE ==================
+         Headline lives INSIDE the dark frame to avoid an empty stage. No
+         SectionHeader above. */}
       {cutoutImage && (
         <Section tone="dark" padding="xl">
-          <SectionHeader
-            kicker="Démonstration"
-            title={<>Un courant d’air, <em className="font-serif italic text-white/70">jamais</em> une rafale.</>}
-            lede="Bladeless. Silencieux. Mains libres. Faites-le tourner avec la souris."
-            tone="inverse"
-            size="xl"
-          />
-          <div className="mt-14 sm:mt-16 max-w-[1400px] mx-auto">
+          <div className="max-w-[1400px] mx-auto">
             <ProductShowcase
               imageUrl={cutoutImage}
               alt={product.title}
               primaryColor={store.primaryColor}
               accentColor={store.accentColor}
-              tag="360° · interactif"
-              caption="Cliquez et glissez pour faire tourner"
+              kicker="L’objet"
+              headline={
+                <>
+                  Un courant d’air,<br />
+                  <em className="font-serif italic text-white/75">jamais</em> une rafale.
+                </>
+              }
+              lede="Bladeless. Silencieux. Mains libres. 265 grammes, posés sur le cou."
               aspect="16/10"
             />
-          </div>
-        </Section>
-      )}
-
-      {/* ================== PULLQUOTE ================== */}
-      <Section tone="light" padding="lg" width="default">
-        <Pullquote
-          accentColor={store.primaryColor}
-          attribution={<>Note de design · Adrien P., directeur produit</>}
-        >
-          «&nbsp;On a passé deux ans à dessiner un objet qui se fait oublier.
-          Posez-le sur le cou. Au bout d’une minute, vous ne savez plus qu’il est là —
-          il ne reste que la fraîcheur.&nbsp;»
-        </Pullquote>
-      </Section>
-
-      {/* ================== LIFESTYLE GALLERY ================== */}
-      {galleryShots.length >= 3 && (
-        <Section tone="muted" padding="lg" innerClassName="!px-0 sm:!px-8 lg:!px-12">
-          <div className="px-6 sm:px-0">
-            <SectionHeader
-              kicker="Au quotidien"
-              title={<>Là où il <em className="font-serif italic text-zinc-500">vous suit</em>.</>}
-              lede="Sept moments de la journée d’été. Le même objet, sept fois oublié."
-            />
-          </div>
-          <div className="mt-14 grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 lg:gap-5">
-            {galleryShots.map((shot, i) => (
-              <ImagePlate
-                key={shot.src}
-                src={shot.src}
-                alt={shot.tag}
-                tag={shot.tag}
-                caption={shot.caption.split('\n').map((line, k, arr) => (
-                  <span key={k}>
-                    {line}
-                    {k < arr.length - 1 && <br />}
-                  </span>
-                ))}
-                aspect={i % 5 === 0 ? '4/5' : i % 5 === 2 ? '1/1' : '4/5'}
-                grade="cool"
-              />
-            ))}
           </div>
         </Section>
       )}
@@ -429,121 +292,6 @@ export function MonoProductLanding({ store, product }: Props) {
         </div>
       </Section>
 
-      {/* ================== TÉMOIGNAGES ================== */}
-      <Section tone="muted" padding="lg">
-        <SectionHeader kicker="Avis vérifiés" title="Ce qu’elles et ils en disent." />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-14">
-          {[
-            {
-              quote: 'Je l’utilise tous les jours dans le métro entre Châtelet et La Défense. Plus jamais sans.',
-              author: 'Sophie M.',
-              detail: 'Paris · juin 2025',
-            },
-            {
-              quote: 'Bluffé par le silence. Je le porte au bureau, personne ne l’entend. Et la batterie tient deux jours.',
-              author: 'Marc D.',
-              detail: 'Lyon · juillet 2025',
-            },
-            {
-              quote: 'Cadeau pour ma mère qui supporte mal la chaleur. Adoptée immédiatement, elle ne le quitte plus.',
-              author: 'Léa B.',
-              detail: 'Bordeaux · août 2025',
-            },
-          ].map((t, i) => (
-            <figure
-              key={i}
-              className="bg-white border border-zinc-200 rounded-2xl p-8 flex flex-col transition-all duration-300 hover:border-zinc-300 hover:-translate-y-1 hover:shadow-[0_24px_44px_-26px_rgba(0,0,0,0.25)]"
-            >
-              <Stars color={store.accentColor} />
-              <blockquote className="font-serif text-lg text-zinc-800 leading-snug flex-1 mt-5">
-                «&nbsp;{t.quote}&nbsp;»
-              </blockquote>
-              <figcaption className="mt-6 pt-6 border-t border-zinc-100">
-                <div className="font-medium text-sm text-zinc-900">{t.author}</div>
-                <div className="text-xs text-zinc-500 mt-0.5">{t.detail}</div>
-              </figcaption>
-            </figure>
-          ))}
-        </div>
-      </Section>
-
-      {/* ================== COMPARATIF ================== */}
-      <Section tone="light" padding="lg">
-        <div className="max-w-5xl mx-auto">
-          <SectionHeader kicker="Comparatif" title="Brisa, vs. tout le reste." />
-          <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white mt-14">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-zinc-200 bg-zinc-50/50">
-                  <th className="text-left px-6 py-4 text-zinc-500 font-medium text-xs uppercase tracking-[0.18em]">
-                    Critère
-                  </th>
-                  <th
-                    className="text-center px-6 py-4 text-white font-serif text-base"
-                    style={{ backgroundColor: store.primaryColor }}
-                  >
-                    Brisa
-                  </th>
-                  <th className="text-center px-6 py-4 text-zinc-400 font-medium text-xs uppercase tracking-[0.18em]">
-                    Ventilateur USB classique
-                  </th>
-                  <th className="text-center px-6 py-4 text-zinc-400 font-medium text-xs uppercase tracking-[0.18em]">
-                    Climatiseur portable
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {[
-                  ['Mains libres', 'Oui', 'Non', 'Non'],
-                  ['Sans pales (sécurité)', 'Oui', 'Non', 'Partielle'],
-                  ['Autonomie 8h', 'Oui', '~ 3h', 'Secteur uniquement'],
-                  ['Silencieux < 35 dB', 'Oui', 'Variable', 'Non, ~ 55 dB'],
-                  ['Transportable partout', 'Oui', 'Limité', 'Non'],
-                  ['Prix', formattedPrice ?? '—', '15 à 25 €', '200 à 600 €'],
-                ].map((row, i) => (
-                  <tr key={i}>
-                    <td className="px-6 py-4 font-medium text-zinc-700">{row[0]}</td>
-                    <td
-                      className="px-6 py-4 text-center font-medium"
-                      style={{ color: store.primaryColor }}
-                    >
-                      {row[1]}
-                    </td>
-                    <td className="px-6 py-4 text-center text-zinc-500">{row[2]}</td>
-                    <td className="px-6 py-4 text-center text-zinc-500">{row[3]}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </Section>
-
-      {/* ================== FAQ ================== */}
-      <Section tone="muted" padding="lg" width="narrow">
-        <SectionHeader kicker="Questions fréquentes" title="On répond à tout." />
-        <div className="divide-y divide-zinc-200 border-y border-zinc-200 mt-14">
-          {[
-            { q: 'Combien de temps pour la livraison ?', a: 'Expédition sous 24h ouvrées. Livraison en France métropolitaine sous 7 à 15 jours. Suivi de commande envoyé par email dès l’expédition.' },
-            { q: 'Le ventilateur est vraiment silencieux ?', a: 'Oui. En vitesse 1 il fait moins de 35 dB (l’équivalent d’une bibliothèque). En vitesse 3 il monte à environ 50 dB, ce qui reste plus discret qu’un ventilateur sur pied.' },
-            { q: 'Combien de temps tient la batterie ?', a: 'Jusqu’à 8h en vitesse 1, environ 5h en vitesse 2, et 3h en vitesse 3. Recharge complète en 2h via le câble USB-C fourni.' },
-            { q: 'Est-ce que ça prend les cheveux ?', a: 'Non. La technologie bladeless utilise des micro-perforations sur le côté du collier, pas de pales rotatives apparentes. Sécurité totale, même cheveux longs.' },
-            { q: 'C’est compatible avec quelle taille de cou ?', a: 'Le collier est flexible et s’adapte aux tours de cou de 28 à 48 cm. Cela couvre la quasi-totalité des morphologies adultes.' },
-            { q: 'Et si le produit ne me convient pas ?', a: 'Retour gratuit sous 30 jours. Vous nous renvoyez le produit dans son emballage d’origine, on vous rembourse intégralement.' },
-            { q: 'C’est quoi le paiement ?', a: 'Stripe sécurisé : carte bancaire, Apple Pay, Google Pay. Vos données ne transitent pas par notre site, tout est chiffré côté Stripe.' },
-            { q: 'Quelle est la garantie ?', a: 'Garantie constructeur de 24 mois. En cas de défaut, on remplace le produit ou on rembourse, sans débat.' },
-          ].map((f, i) => (
-            <details key={i} className="group py-5">
-              <summary className="flex items-center justify-between cursor-pointer list-none">
-                <span className="font-medium text-zinc-900 pr-4">{f.q}</span>
-                <span className="text-zinc-400 group-open:rotate-45 transition-transform text-2xl leading-none shrink-0 font-light">+</span>
-              </summary>
-              <p className="mt-3 text-sm text-zinc-600 leading-relaxed">{f.a}</p>
-            </details>
-          ))}
-        </div>
-      </Section>
-
       {/* ================== FINAL CTA ================== */}
       <section
         className="relative overflow-hidden py-24 sm:py-32"
@@ -563,8 +311,8 @@ export function MonoProductLanding({ store, product }: Props) {
             </Lede>
           </div>
           {variant && (
-            <div className="mt-12 inline-block w-full max-w-sm bg-white rounded-3xl shadow-2xl text-left">
-              <CartCard variantId={variant.id} storeSlug={store.slug} tone="dark" />
+            <div className="mt-12 mx-auto w-full max-w-xs">
+              <AddToCartButton variantId={variant.id} storeSlug={store.slug} tone="light" />
             </div>
           )}
           {formattedPrice && (
@@ -600,7 +348,6 @@ function HeroSection({
   variant: MedusaVariant | undefined;
 }) {
   // Heuristic italic accent: take the last word of the tagline and italicise it.
-  // Falls back to the full string if there's only one word.
   const tagline = store.tagline || 'La fraîcheur, où que vous alliez.';
   const lastSpace = tagline.lastIndexOf(' ');
   const taglineHead = lastSpace > 0 ? tagline.slice(0, lastSpace) : tagline;
@@ -626,7 +373,6 @@ function HeroSection({
       `}</style>
 
       {heroImage && (
-        // Background image runs slower than scroll → classic depth cue.
         <Parallax speed={-0.22} className="absolute inset-0 -top-[6%] -bottom-[6%]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -645,7 +391,6 @@ function HeroSection({
       <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/40" />
 
       <div className="relative max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 pt-32 pb-20 min-h-[100svh] flex items-center">
-        {/* Foreground text rises slightly faster than scroll for parallax separation. */}
         <Parallax speed={0.08} className="max-w-xl text-white">
           <div className="brisa-fade-1 inline-flex items-center gap-3 mb-8">
             <span className="h-px w-10 bg-white/60" aria-hidden="true" />
@@ -688,10 +433,8 @@ function HeroSection({
           )}
 
           {variant && (
-            <div className="brisa-fade-3 mt-8 max-w-sm">
-              <div className="bg-white rounded-3xl shadow-2xl">
-                <CartCard variantId={variant.id} storeSlug={store.slug} tone="dark" />
-              </div>
+            <div className="brisa-fade-3 mt-8 max-w-xs">
+              <AddToCartButton variantId={variant.id} storeSlug={store.slug} tone="light" />
             </div>
           )}
 
@@ -710,29 +453,5 @@ function HeroSection({
         </svg>
       </div>
     </section>
-  );
-}
-
-/**
- * The CTA card that wraps the AddToCartButton. Centralized so the visual
- * (white card, generous padding, label above) is identical wherever it
- * appears (hero, final CTA).
- */
-function CartCard({
-  variantId,
-  storeSlug,
-  tone = 'dark',
-}: {
-  variantId: string;
-  storeSlug: string;
-  tone?: 'dark' | 'light';
-}) {
-  return (
-    <div className="p-5 sm:p-6">
-      <div className="text-[10px] uppercase tracking-[0.22em] text-zinc-500 font-medium mb-3">
-        Quantité
-      </div>
-      <AddToCartButton variantId={variantId} storeSlug={storeSlug} tone={tone} />
-    </div>
   );
 }

@@ -10,9 +10,16 @@ interface Props {
   tone?: 'dark' | 'light';
   /** Override CTA copy (default "Ajouter au panier"). */
   label?: string;
+  /**
+   * Show the inline quantity stepper above the button. Off by default —
+   * landing pages should defer the qty choice to the cart page so the hero
+   * CTA stays a single, decisive action. Turn on for the standalone product
+   * page where qty selection in-context makes sense.
+   */
+  showQuantity?: boolean;
 }
 
-export function AddToCartButton({ variantId, storeSlug, tone = 'dark', label = 'Ajouter au panier' }: Props) {
+export function AddToCartButton({ variantId, storeSlug, tone = 'dark', label = 'Ajouter au panier', showQuantity = false }: Props) {
   const [qty, setQty] = useState(1);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -50,26 +57,28 @@ export function AddToCartButton({ variantId, storeSlug, tone = 'dark', label = '
 
   return (
     <div className="w-full">
-      <div className={`flex items-center justify-between rounded-full border ${stepperBorder} mb-3 px-1.5 py-1.5`}>
-        <button
-          type="button"
-          onClick={stepDown}
-          aria-label="Diminuer la quantité"
-          className={`h-9 w-9 rounded-full flex items-center justify-center text-lg font-light ${stepperText} ${stepperBtnHover} transition-colors disabled:opacity-30`}
-          disabled={qty <= 1}
-        >
-          −
-        </button>
-        <div className={`text-sm font-medium ${stepperText} tabular-nums`}>{qty}</div>
-        <button
-          type="button"
-          onClick={stepUp}
-          aria-label="Augmenter la quantité"
-          className={`h-9 w-9 rounded-full flex items-center justify-center text-lg font-light ${stepperText} ${stepperBtnHover} transition-colors`}
-        >
-          +
-        </button>
-      </div>
+      {showQuantity && (
+        <div className={`flex items-center justify-between rounded-full border ${stepperBorder} mb-3 px-1.5 py-1.5`}>
+          <button
+            type="button"
+            onClick={stepDown}
+            aria-label="Diminuer la quantité"
+            className={`h-9 w-9 rounded-full flex items-center justify-center text-lg font-light ${stepperText} ${stepperBtnHover} transition-colors disabled:opacity-30`}
+            disabled={qty <= 1}
+          >
+            −
+          </button>
+          <div className={`text-sm font-medium ${stepperText} tabular-nums`}>{qty}</div>
+          <button
+            type="button"
+            onClick={stepUp}
+            aria-label="Augmenter la quantité"
+            className={`h-9 w-9 rounded-full flex items-center justify-center text-lg font-light ${stepperText} ${stepperBtnHover} transition-colors`}
+          >
+            +
+          </button>
+        </div>
+      )}
 
       <button
         type="button"

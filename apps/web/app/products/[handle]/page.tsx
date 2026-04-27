@@ -44,7 +44,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           )}
           {variant ? (
             <div className="mt-8">
-              <AddToCartButton variantId={variant.id} />
+              <AddToCartButton variantId={variant.id} showQuantity />
             </div>
           ) : (
             <p className="mt-6 text-sm text-zinc-500">Aucune variante disponible.</p>
