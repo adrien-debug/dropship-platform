@@ -412,9 +412,10 @@ export async function* createStore(input: StoreCreationInput): AsyncGenerator<Ag
       emit({ type: 'step', message: `Import de ${enriched.length} produits dans Medusa...` });
 
       const storeHandleSuffix = storeId.replace(/-/g, '').slice(0, 6);
+      const IMPORT_CONCURRENCY = 4;
 
       let imported = 0;
-      for (const ep of enriched) {
+      const importOne = async (ep: EnrichedProduct) => {
         try {
           const handle = `${slugify(ep.enrichedTitle)}-${ep.externalId.slice(0, 8).replace(/[^a-z0-9]/gi, '')}-${storeHandleSuffix}`;
           const medusaProduct = await medusa.createProductWithChannel(
@@ -469,6 +470,10 @@ export async function* createStore(input: StoreCreationInput): AsyncGenerator<Ag
             message: `⚠ Ignoré: ${ep.enrichedTitle} — ${err instanceof Error ? err.message : 'erreur'}`,
           });
         }
+      };
+
+      for (let i = 0; i < enriched.length; i += IMPORT_CONCURRENCY) {
+        await Promise.all(enriched.slice(i, i + IMPORT_CONCURRENCY).map(importOne));
       }
 
       await db.query(
