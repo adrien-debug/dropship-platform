@@ -448,6 +448,26 @@ class MedusaAPI {
     return data.sales_channel;
   }
 
+  async deleteSalesChannel(id: string): Promise<void> {
+    const response = await fetch(`${this.baseUrl}/admin/sales-channels/${id}`, {
+      method: 'DELETE',
+      headers: await this.getAdminAuthHeaders(),
+    });
+    if (!response.ok && response.status !== 404) {
+      throw new Error(`deleteSalesChannel: ${await readMedusaErrorMessage(response)}`);
+    }
+  }
+
+  async deletePublishableApiKey(id: string): Promise<void> {
+    const response = await fetch(`${this.baseUrl}/admin/api-keys/${id}`, {
+      method: 'DELETE',
+      headers: await this.getAdminAuthHeaders(),
+    });
+    if (!response.ok && response.status !== 404) {
+      throw new Error(`deletePublishableKey: ${await readMedusaErrorMessage(response)}`);
+    }
+  }
+
   async addProductsToSalesChannel(salesChannelId: string, productIds: string[]): Promise<void> {
     // Medusa v2: POST /admin/sales-channels/:id/products with { add: [...] }
     const response = await fetch(`${this.baseUrl}/admin/sales-channels/${salesChannelId}/products`, {

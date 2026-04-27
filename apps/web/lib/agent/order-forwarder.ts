@@ -122,11 +122,19 @@ async function mapItemsToAliExpress(order: MedusaOrder): Promise<{
       continue;
     }
     storeId = mapping.store_id;
-    const sku = item.variant?.sku || undefined;
+    if (!item.quantity || item.quantity <= 0) {
+      unmapped.push({ itemId: item.id, title: item.title, reason: `Invalid quantity ${item.quantity}` });
+      continue;
+    }
+    // AE wants sku_attr like "14:175;5:100" (option_id:value_id pairs).
+    // Medusa stores free-form SKU strings ("Standard", "M-Blue", etc.) which AE silently ignores.
+    // Only forward the SKU when it's already in AE shape; otherwise let AE pick the default.
+    const sku = item.variant?.sku;
+    const aeShapedSku = sku && /^\d+:\d+(;\d+:\d+)*$/.test(sku) ? sku : undefined;
     product_items.push({
       product_count: item.quantity,
       product_id: mapping.external_id,
-      ...(sku ? { sku_attr: sku } : {}),
+      ...(aeShapedSku ? { sku_attr: aeShapedSku } : {}),
     });
   }
 
@@ -193,39 +201,70 @@ export async function forwardOrder(medusaOrderId: string, opts: ForwardOptions):
     };
   }
 
-  // Live: actually call AliExpress. The unique partial index on
-  // (medusa_order_id) WHERE dry_run=false AND status='sent' guards against
-  // a double-send racing with itself.
-  const aeRes = await placeOrder(payload);
-  if (aeRes.success) {
+  // Live: claim the slot first so a concurrent click can't place a second AE
+  // order. The unique partial index on (medusa_order_id) WHERE dry_run=false
+  // AND status IN ('sending','sent') turns the second INSERT into a 23505
+  // (unique_violation), which we treat as "another caller is/has already
+  // forwarded this order".
+  let lockId: string;
+  try {
     const { rows } = await db.query<{ id: string }>(
       `INSERT INTO dropship_order_forwards
-         (medusa_order_id, store_id, ae_order_id, payload, response, status, dry_run)
-       VALUES ($1, $2, $3, $4, $5, 'sent', false)
+         (medusa_order_id, store_id, payload, status, dry_run)
+       VALUES ($1, $2, $3, 'sending', false)
        RETURNING id`,
-      [medusaOrderId, storeId ?? null, aeRes.ae_order_id ?? null, JSON.stringify(payload), JSON.stringify(aeRes.raw)],
+      [medusaOrderId, storeId ?? null, JSON.stringify(payload)],
+    );
+    lockId = rows[0]!.id;
+  } catch (e) {
+    const code = (e as { code?: string }).code;
+    if (code === '23505') {
+      console.warn('[order-forwarder] live send already in-flight or completed', { medusaOrderId });
+      return {
+        ok: false,
+        status: 'error',
+        forwardId: '',
+        payload,
+        unmappedItems: unmapped,
+        error: 'Another live forward is already in-flight or completed for this order.',
+      };
+    }
+    throw e;
+  }
+
+  const aeRes = await placeOrder(payload);
+
+  if (aeRes.success) {
+    await db.query(
+      `UPDATE dropship_order_forwards
+          SET ae_order_id = $1, response = $2, status = 'sent'
+        WHERE id = $3`,
+      [aeRes.ae_order_id ?? null, JSON.stringify(aeRes.raw), lockId],
     );
     return {
       ok: true,
       status: 'sent',
-      forwardId: rows[0]!.id,
+      forwardId: lockId,
       aeOrderId: aeRes.ae_order_id,
       payload,
       unmappedItems: unmapped,
     };
   }
 
-  const { rows } = await db.query<{ id: string }>(
-    `INSERT INTO dropship_order_forwards
-       (medusa_order_id, store_id, payload, response, status, error_message, dry_run)
-     VALUES ($1, $2, $3, $4, 'error', $5, false)
-     RETURNING id`,
-    [medusaOrderId, storeId ?? null, JSON.stringify(payload), JSON.stringify(aeRes.raw), aeRes.error ?? 'unknown error'],
+  console.error('[order-forwarder] AE placeOrder failed', {
+    medusaOrderId,
+    error: aeRes.error,
+  });
+  await db.query(
+    `UPDATE dropship_order_forwards
+        SET response = $1, status = 'error', error_message = $2
+      WHERE id = $3`,
+    [JSON.stringify(aeRes.raw), aeRes.error ?? 'unknown error', lockId],
   );
   return {
     ok: false,
     status: 'error',
-    forwardId: rows[0]!.id,
+    forwardId: lockId,
     payload,
     unmappedItems: unmapped,
     error: aeRes.error,

@@ -196,6 +196,10 @@ Return ONLY valid JSON:
     branding: BrandingResult;
   };
 
+  if (!parsed.products?.length || !parsed.branding) {
+    throw new Error(`Claude returned incomplete payload (products=${parsed.products?.length ?? 0}, branding=${!!parsed.branding})`);
+  }
+
   emit({
     type: 'progress',
     message: `✨ ${parsed.products.length} produits générés par Claude AI`,
@@ -406,8 +410,18 @@ export async function* createStore(input: StoreCreationInput): AsyncGenerator<Ag
       );
 
       emit({ type: 'step', message: 'Création de la clé API publique...' });
-      const apiKey = await medusa.createPublishableApiKey(`${input.storeName} Store Key`);
-      await medusa.addSalesChannelsToPublishableKey(apiKey.id, [channel.id]);
+      let apiKey: { id: string; token: string };
+      try {
+        apiKey = await medusa.createPublishableApiKey(`${input.storeName} Store Key`);
+        await medusa.addSalesChannelsToPublishableKey(apiKey.id, [channel.id]);
+      } catch (e) {
+        console.error('[store-creator] publishable key setup failed, rolling back sales channel', {
+          channelId: channel.id,
+          error: e instanceof Error ? e.message : String(e),
+        });
+        await medusa.deleteSalesChannel(channel.id).catch(() => {});
+        throw e;
+      }
 
       emit({ type: 'step', message: `Import de ${enriched.length} produits dans Medusa...` });
 
