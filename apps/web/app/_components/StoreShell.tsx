@@ -23,7 +23,6 @@ export function StoreShell({ children }: { children: React.ReactNode }) {
             <Link href="/legal/cgv" className="hover:text-zinc-900 transition-colors">CGV</Link>
             <Link href="/legal/mentions-legales" className="hover:text-zinc-900 transition-colors">Mentions légales</Link>
             <Link href="/legal/confidentialite" className="hover:text-zinc-900 transition-colors">Confidentialité</Link>
-            <Link href="/admin/stores" className="hover:text-zinc-900 transition-colors">Admin</Link>
           </nav>
         </div>
       </footer>

@@ -254,10 +254,23 @@ export async function completeCart(cartId: string): Promise<{ type: 'order' | 'c
   });
 }
 
-export function formatMoney(amount: number, currency: string): string {
+/**
+ * Format an amount that comes from Medusa's storefront/admin APIs.
+ *
+ * Medusa v2 returns money values in **minor units** (cents for EUR/USD, etc.)
+ * across calculated_price, cart totals, line item totals, shipping options
+ * and order totals. Every callsite must divide by 100 before showing a
+ * human-readable price — centralising it here lets us pass raw Medusa values
+ * straight in.
+ */
+export function formatMoney(amountMinorUnits: number | null | undefined, currency: string): string {
+  if (amountMinorUnits == null || Number.isNaN(amountMinorUnits)) {
+    return `— ${currency.toUpperCase()}`;
+  }
+  const value = amountMinorUnits / 100;
   try {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: currency.toUpperCase() }).format(amount);
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: currency.toUpperCase() }).format(value);
   } catch {
-    return `${amount.toFixed(2)} ${currency.toUpperCase()}`;
+    return `${value.toFixed(2)} ${currency.toUpperCase()}`;
   }
 }

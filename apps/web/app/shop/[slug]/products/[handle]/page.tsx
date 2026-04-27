@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { getStoreBySlug } from '@/lib/store-config';
-import { getProduct } from '@/lib/medusa-store';
+import { formatMoney, getProduct } from '@/lib/medusa-store';
 import { AddToCartButton } from '@/app/products/[handle]/AddToCartButton';
 
 export const dynamic = 'force-dynamic';
@@ -79,7 +79,7 @@ export default async function ShopProductPage({
 
           {price !== undefined && (
             <div className="text-4xl font-bold mb-6" style={{ color: store.accentColor }}>
-              {(price / 100).toFixed(2)} €
+              {formatMoney(price, variant?.calculated_price?.currency_code || 'eur')}
             </div>
           )}
 
