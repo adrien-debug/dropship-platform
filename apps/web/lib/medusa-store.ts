@@ -255,22 +255,21 @@ export async function completeCart(cartId: string): Promise<{ type: 'order' | 'c
 }
 
 /**
- * Format an amount that comes from Medusa's storefront/admin APIs.
+ * Format a Medusa money amount.
  *
- * Medusa v2 returns money values in **minor units** (cents for EUR/USD, etc.)
- * across calculated_price, cart totals, line item totals, shipping options
- * and order totals. Every callsite must divide by 100 before showing a
- * human-readable price — centralising it here lets us pass raw Medusa values
- * straight in.
+ * Medusa v2 stores money in **major units** (EUR with decimals, e.g. 9.99),
+ * not minor units. Calculated prices, cart totals, line item totals,
+ * shipping options and order totals all come back ready to display — the
+ * payment-stripe module is the only place that converts to Stripe's
+ * smallest unit by multiplying by 100.
  */
-export function formatMoney(amountMinorUnits: number | null | undefined, currency: string): string {
-  if (amountMinorUnits == null || Number.isNaN(amountMinorUnits)) {
+export function formatMoney(amount: number | null | undefined, currency: string): string {
+  if (amount == null || Number.isNaN(amount)) {
     return `— ${currency.toUpperCase()}`;
   }
-  const value = amountMinorUnits / 100;
   try {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: currency.toUpperCase() }).format(value);
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: currency.toUpperCase() }).format(amount);
   } catch {
-    return `${value.toFixed(2)} ${currency.toUpperCase()}`;
+    return `${amount.toFixed(2)} ${currency.toUpperCase()}`;
   }
 }

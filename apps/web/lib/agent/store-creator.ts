@@ -455,7 +455,11 @@ export async function* createStore(input: StoreCreationInput): AsyncGenerator<Ag
               variants: [
                 {
                   title: 'Standard',
-                  prices: [{ currency_code: 'eur', amount: ep.priceCents }],
+                  // Medusa v2 stores money in major units (EUR with decimals),
+                  // not minor units. The payment-stripe module converts to
+                  // Stripe's smallest unit by multiplying by 100, so passing
+                  // cents here makes Stripe see 100× the real total.
+                  prices: [{ currency_code: 'eur', amount: ep.priceCents / 100 }],
                   inventory_quantity: 999,
                 },
               ],
