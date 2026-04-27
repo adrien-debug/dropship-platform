@@ -7,9 +7,10 @@ export async function GET() {
     return NextResponse.json({ error: 'ALIEXPRESS_APP_KEY not configured' }, { status: 500 });
   }
 
+  // AliExpress rejette localhost — toujours utiliser l'URL de production
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL
-    || process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}`
-    || 'http://localhost:3000';
+    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
+    || 'https://dropship-platform-amber.vercel.app';
 
   const redirectUri = `${baseUrl}/api/aliexpress/oauth/callback`;
 
