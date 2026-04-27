@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { formatMoney, type StoreCart, type StoreShippingOption } from '@/lib/medusa-store';
+import { StripePayment } from './StripePayment';
 
 const COUNTRIES = [
   { code: 'fr', name: 'France' },
@@ -19,9 +20,10 @@ interface Props {
   shippingOptions: StoreShippingOption[];
   shippingError: string | null;
   stripeEnabled: boolean;
+  stripePublishableKey: string;
 }
 
-export function CheckoutForm({ cart, shippingOptions, shippingError, stripeEnabled }: Props) {
+export function CheckoutForm({ cart, shippingOptions, shippingError, stripeEnabled, stripePublishableKey }: Props) {
   const router = useRouter();
   const [step, setStep] = useState<'address' | 'shipping' | 'payment'>(
     cart.shipping_address?.country_code ? (cart.shipping_methods?.length ? 'payment' : 'shipping') : 'address',
@@ -163,24 +165,26 @@ export function CheckoutForm({ cart, shippingOptions, shippingError, stripeEnabl
       {step === 'payment' && (
         <div className="space-y-3">
           <h2 className="font-semibold">Paiement</h2>
-          {!stripeEnabled && (
-            <div className="border border-amber-300 bg-amber-50 text-amber-900 p-4 rounded text-sm space-y-2">
-              <p className="font-medium">Mode test (Stripe désactivé)</p>
-              <p>Aucune clé Stripe configurée — la commande sera créée sans paiement (mode démo).</p>
-            </div>
+          {stripeEnabled && stripePublishableKey ? (
+            <StripePayment
+              publishableKey={stripePublishableKey}
+              amountLabel={formatMoney(cart.total, cart.currency_code)}
+            />
+          ) : (
+            <>
+              <div className="border border-amber-300 bg-amber-50 text-amber-900 p-4 rounded text-sm space-y-1">
+                <p className="font-medium">Mode test (paiement manuel)</p>
+                <p>Stripe non configuré — la commande est créée sans capture de carte.</p>
+              </div>
+              <button
+                onClick={complete}
+                disabled={pending}
+                className="bg-black text-white px-6 py-3 rounded-md hover:bg-zinc-800 disabled:opacity-60 w-full"
+              >
+                {pending ? '…' : `Confirmer la commande (${formatMoney(cart.total, cart.currency_code)})`}
+              </button>
+            </>
           )}
-          {stripeEnabled && (
-            <div className="border border-green-300 bg-green-50 text-green-900 p-4 rounded text-sm">
-              Stripe Payment Element s’afficherait ici (à activer côté Medusa pour finaliser).
-            </div>
-          )}
-          <button
-            onClick={complete}
-            disabled={pending}
-            className="bg-black text-white px-6 py-3 rounded-md hover:bg-zinc-800 disabled:opacity-60 w-full"
-          >
-            {pending ? '…' : `Confirmer la commande (${formatMoney(cart.total, cart.currency_code)})`}
-          </button>
           <button onClick={() => setStep('shipping')} className="text-sm underline text-zinc-600">Modifier la livraison</button>
         </div>
       )}
