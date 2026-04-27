@@ -38,6 +38,7 @@ export function CheckoutForm({ cart, shippingOptions, shippingError, stripeEnabl
     address_1: cart.shipping_address?.address_1 ?? '',
     city: cart.shipping_address?.city ?? '',
     postal_code: cart.shipping_address?.postal_code ?? '',
+    province: cart.shipping_address?.province ?? '',
     country_code: cart.shipping_address?.country_code ?? 'fr',
     phone: cart.shipping_address?.phone ?? '',
   });
@@ -122,15 +123,28 @@ export function CheckoutForm({ cart, shippingOptions, shippingError, stripeEnabl
             <Input label="Nom" value={form.last_name} onChange={(v) => setField('last_name', v)} />
           </div>
           <Input label="Adresse" value={form.address_1} onChange={(v) => setField('address_1', v)} />
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <Input label="Code postal" value={form.postal_code} onChange={(v) => setField('postal_code', v)} />
             <Input label="Ville" value={form.city} onChange={(v) => setField('city', v)} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Input label="Région / Département" value={form.province} onChange={(v) => setField('province', v)} />
             <Select label="Pays" value={form.country_code} onChange={(v) => setField('country_code', v)} options={COUNTRIES.map((c) => ({ value: c.code, label: c.name }))} />
           </div>
-          <Input label="Téléphone" value={form.phone} onChange={(v) => setField('phone', v)} />
+          <Input label="Téléphone" value={form.phone} onChange={(v) => setField('phone', v)} type="tel" />
           <button
             onClick={submitAddress}
-            disabled={pending || !form.email || !form.first_name || !form.address_1}
+            disabled={
+              pending ||
+              !form.email ||
+              !form.first_name ||
+              !form.last_name ||
+              !form.address_1 ||
+              !form.city ||
+              !form.postal_code ||
+              !form.province ||
+              !form.phone
+            }
             className="bg-black text-white px-6 py-3 rounded-md hover:bg-zinc-800 disabled:opacity-60"
           >
             {pending ? '…' : 'Continuer'}

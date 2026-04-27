@@ -10,8 +10,10 @@ const schema = z.object({
   address_1: z.string().min(1),
   city: z.string().min(1),
   postal_code: z.string().min(1),
+  // Required for AliExpress dropship orders (ds.order.create rejects without it).
+  province: z.string().min(1),
   country_code: z.string().length(2),
-  phone: z.string().optional(),
+  phone: z.string().min(5),
 });
 
 export async function POST(request: NextRequest) {
