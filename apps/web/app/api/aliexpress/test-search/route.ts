@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'No access_token in DB. Run /api/aliexpress/oauth/start first.' }, { status: 401 });
   }
 
-  const attempts = [
+  const attempts: Array<{ name: string; extra: Record<string, string> }> = [
     {
       name: 'aliexpress.ds.text.search',
       extra: { keyWord: keywords, local: 'en_US', countryCode: 'US', currency: 'USD', pageSize: '5', pageIndex: '1' },
