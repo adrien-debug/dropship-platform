@@ -128,18 +128,20 @@ function StoreCard({ store }: { store: StoreRow }) {
         </div>
 
         <div className="flex gap-2">
-          {store.status === 'active' ? (
+          <Link
+            href={`/admin/stores/${store.id}`}
+            className="flex-1 text-center text-xs py-2 rounded-lg border border-zinc-200 hover:bg-zinc-50 transition-colors font-medium"
+          >
+            Détails
+          </Link>
+          {store.status === 'active' && (
             <Link
               href={`/shop/${store.slug}`}
               target="_blank"
               className="flex-1 text-center text-xs py-2 rounded-lg border border-zinc-200 hover:bg-zinc-50 transition-colors font-medium"
             >
-              Voir le store →
+              Voir →
             </Link>
-          ) : (
-            <span className="flex-1 text-center text-xs py-2 rounded-lg bg-zinc-50 text-zinc-300">
-              Indisponible
-            </span>
           )}
           <StoreActions storeId={store.id} storeName={store.name} />
         </div>

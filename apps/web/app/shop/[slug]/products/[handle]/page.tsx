@@ -1,10 +1,33 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import { getStoreBySlug } from '@/lib/store-config';
 import { getProduct } from '@/lib/medusa-store';
 import { AddToCartButton } from '@/app/products/[handle]/AddToCartButton';
 
 export const dynamic = 'force-dynamic';
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string; handle: string }>;
+}): Promise<Metadata> {
+  const { slug, handle } = await params;
+  const store = await getStoreBySlug(slug);
+  if (!store) return {};
+  const product = await getProduct(handle, store.medusaPublishableKey).catch(() => null);
+  if (!product) return { title: store.name };
+  return {
+    title: `${product.title} — ${store.name}`,
+    description: product.description?.slice(0, 160) || '',
+    openGraph: {
+      title: product.title,
+      description: product.description?.slice(0, 200) || '',
+      images: product.thumbnail ? [{ url: product.thumbnail }] : [],
+      type: 'website',
+    },
+  };
+}
 
 export default async function ShopProductPage({
   params,
