@@ -3,7 +3,10 @@ import { AdminLogoutButton } from '../login/AdminLogoutButton';
 
 export default function AdminAppLayout({ children }: { children: React.ReactNode }) {
   /** Liens alignés sur les routes réellement présentes dans `app/admin`. */
-  const navItems = [{ href: '/admin/medusa', label: 'Medusa', badge: 'Railway' }];
+  const navItems = [
+    { href: '/admin/catalog', label: 'Catalogue', badge: 'Medusa' },
+    { href: '/admin/medusa', label: 'Pré-staging', badge: 'DB' },
+  ];
 
   return (
     <div className="flex min-h-screen">
