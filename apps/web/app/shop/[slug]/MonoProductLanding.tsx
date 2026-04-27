@@ -108,26 +108,26 @@ export function MonoProductLanding({ store, product }: Props) {
 
       {/* ================== TROIS RAISONS ================== */}
       <Section tone="light" padding="lg">
-        <SectionHeader kicker="Conception" title={<>Trois raisons. <em className="font-serif italic text-zinc-500">Aucun</em> compromis.</>} />
+        <SectionHeader kicker="Conception" title={<>Pourquoi on l’a fait <em className="font-serif italic text-zinc-500">comme ça</em>.</>} />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-zinc-200 mt-14 border border-zinc-200 rounded-2xl overflow-hidden">
           {[
             {
               num: '01',
-              title: 'Sans pales, sans risque',
+              title: 'Aucune pale qui tourne',
               body:
-                'Technologie bladeless avec micro-perforations latérales. Aucun cheveu pris, aucun doigt en danger. Sécurité totale, design épuré.',
+                'À la place des pales classiques, des micro-perforations sur le côté du collier. Vos cheveux ne risquent rien, vos doigts non plus. Plus besoin de faire attention.',
             },
             {
               num: '02',
-              title: 'Huit heures d’autonomie',
+              title: 'Une journée entière',
               body:
-                'Batterie 4 000 mAh, recharge complète en 2h via USB-C. Écran LED qui affiche le pourcentage restant comme un téléphone.',
+                'Batterie 4 000 mAh, qui tient huit heures à petite vitesse. Recharge complète en deux heures via USB-C. Un écran LED affiche le pourcentage exact, comme sur votre téléphone.',
             },
             {
               num: '03',
-              title: 'Silencieux, mains libres',
+              title: '35 décibels, vraiment',
               body:
-                'Moins de 35 dB en vitesse 1 — l’équivalent d’une bibliothèque. Posé sur le cou, il vous laisse vos deux mains entièrement libres.',
+                'À petite vitesse, on l’entend à peine. Le bruit d’une bibliothèque, posé autour du cou, qui laisse vos deux mains libres pour faire autre chose.',
             },
           ].map((u) => (
             <div
@@ -162,7 +162,7 @@ export function MonoProductLanding({ store, product }: Props) {
                   <em className="font-serif italic text-white/75">jamais</em> une rafale.
                 </>
               }
-              lede="Bladeless. Silencieux. Mains libres. 265 grammes, posés sur le cou."
+              lede="265 grammes posés sur le cou. Pas de pales apparentes, pas de bruit de moteur. On l’oublie au bout d’une minute."
               aspect="16/10"
             />
           </div>
@@ -225,7 +225,7 @@ export function MonoProductLanding({ store, product }: Props) {
       <Section tone="dark" padding="lg">
         <SectionHeader
           kicker="Mode d’emploi"
-          title={<>Trois gestes. <em className="font-serif italic text-white/60">C’est tout.</em></>}
+          title={<>Comment on <em className="font-serif italic text-white/60">s’en sert</em>.</>}
           tone="inverse"
         />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10 sm:gap-12 mt-16">
@@ -234,19 +234,19 @@ export function MonoProductLanding({ store, product }: Props) {
               num: '01',
               icon: 'charge' as const,
               title: 'Charger',
-              body: 'Branchez le câble USB-C fourni. La LED clignote pendant la charge, devient fixe à 100% (environ 2h).',
+              body: 'Branchez le câble USB-C fourni. La LED clignote pendant la charge, et devient fixe quand la batterie atteint 100 %. Comptez environ deux heures la première fois.',
             },
             {
               num: '02',
               icon: 'wear' as const,
               title: 'Porter',
-              body: 'Le collier flexible s’ouvre largement, se pose autour du cou, et se referme tout seul. Aucun réglage.',
+              body: 'Le collier s’ouvre, se pose autour du cou, et se referme tout seul. Aucun réglage à faire, il s’adapte à toutes les morphologies.',
             },
             {
               num: '03',
               icon: 'blow' as const,
               title: 'Souffler',
-              body: 'Bouton unique. Vitesse 1 brise discrète, 2 ventilation soutenue, 3 souffle puissant.',
+              body: 'Un seul bouton. Une pression pour la première vitesse, deux pour la seconde, trois pour le souffle puissant. Une quatrième pour éteindre.',
             },
           ].map((s) => (
             <div key={s.num} className="group relative pl-6 border-l border-white/15 transition-colors hover:border-white/30">
@@ -307,7 +307,7 @@ export function MonoProductLanding({ store, product }: Props) {
           </Heading>
           <div className="mt-6">
             <Lede tone="inverse" className="max-w-xl mx-auto">
-              Commandez maintenant, recevez sous 7 à 15 jours. Si ça ne vous plaît pas, on rembourse intégralement.
+              Commandez aujourd’hui, recevez votre Brisa sous sept à quinze jours. Trente jours pour l’essayer chez vous. Si ça ne vous plaît pas, on vous rembourse.
             </Lede>
           </div>
           {variant && (
@@ -416,7 +416,7 @@ function HeroSection({
 
           <div className="brisa-fade-2 mt-8 max-w-md">
             <Lede tone="inverse">
-              Un ventilateur de cou bladeless, ultra-silencieux, qui tient toute la journée. Aucun cheveu pris, aucune lame visible — juste un courant d&apos;air doux qui vous suit.
+              Un ventilateur de cou sans pales, presque inaudible, qui tient toute une journée. Aucun cheveu pris, aucune lame visible. Juste de l&apos;air frais, partout où vous allez.
             </Lede>
           </div>
 
