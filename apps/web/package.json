@@ -11,7 +11,8 @@
     "eslint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "go-live:check": "node scripts/check-go-live.mjs"
+    "go-live:check": "node scripts/check-go-live.mjs",
+    "vercel-build": "next build"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.1",
