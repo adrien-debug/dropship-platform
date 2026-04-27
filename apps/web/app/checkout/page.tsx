@@ -32,7 +32,8 @@ export default async function CheckoutPage() {
     shippingError = e instanceof Error ? e.message : 'Erreur';
   }
 
-  const stripeEnabled = !!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim();
+  const stripePublishableKey = (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '').trim();
+  const stripeEnabled = !!stripePublishableKey && !!process.env.STRIPE_SECRET_KEY?.trim();
 
   return (
     <StoreShell>
@@ -44,6 +45,7 @@ export default async function CheckoutPage() {
             shippingOptions={shippingOptions}
             shippingError={shippingError}
             stripeEnabled={stripeEnabled}
+            stripePublishableKey={stripePublishableKey}
           />
         </div>
         <aside className="border rounded-lg p-6 h-fit space-y-3 text-sm">

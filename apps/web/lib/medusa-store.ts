@@ -128,9 +128,23 @@ export async function storeFetch<T>(path: string, init: StoreFetchInit = {}): Pr
   return JSON.parse(text) as T;
 }
 
-export async function listProducts(params: { limit?: number; offset?: number; q?: string; handle?: string } = {}): Promise<{ products: StoreProduct[]; count: number }> {
+let _defaultRegionId: string | null = null;
+async function getDefaultRegionId(): Promise<string | null> {
+  if (_defaultRegionId) return _defaultRegionId;
+  try {
+    const { regions } = await listRegions();
+    _defaultRegionId = regions[0]?.id ?? null;
+    return _defaultRegionId;
+  } catch {
+    return null;
+  }
+}
+
+export async function listProducts(params: { limit?: number; offset?: number; q?: string; handle?: string; regionId?: string } = {}): Promise<{ products: StoreProduct[]; count: number }> {
   const qs = new URLSearchParams();
   qs.set('fields', '*variants.calculated_price,+variants.inventory_quantity,+thumbnail,+images.url,+tags.value');
+  const regionId = params.regionId ?? (await getDefaultRegionId());
+  if (regionId) qs.set('region_id', regionId);
   if (params.limit) qs.set('limit', String(params.limit));
   if (params.offset) qs.set('offset', String(params.offset));
   if (params.q) qs.set('q', params.q);
@@ -194,16 +208,24 @@ export async function setShippingMethod(cartId: string, optionId: string): Promi
   });
 }
 
-export async function initPaymentSession(cartId: string, providerId: string): Promise<{ payment_collection: { id: string; payment_sessions?: { id: string; provider_id: string; data?: Record<string, unknown> }[] } }> {
-  await storeFetch(`/store/payment-collections`, {
+interface PaymentCollection {
+  id: string;
+  payment_sessions?: { id: string; provider_id: string; data?: Record<string, unknown> }[];
+}
+
+export async function initPaymentSession(cartId: string, providerId: string): Promise<{ payment_collection: PaymentCollection }> {
+  const created = await storeFetch<{ payment_collection: PaymentCollection }>(`/store/payment-collections`, {
     method: 'POST',
     body: JSON.stringify({ cart_id: cartId }),
-  }).catch(() => {});
-
-  return storeFetch(`/store/payment-collections/${cartId}/payment-sessions`, {
-    method: 'POST',
-    body: JSON.stringify({ provider_id: providerId }),
   });
+
+  return storeFetch<{ payment_collection: PaymentCollection }>(
+    `/store/payment-collections/${created.payment_collection.id}/payment-sessions`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ provider_id: providerId }),
+    },
+  );
 }
 
 export async function completeCart(cartId: string): Promise<{ type: 'order' | 'cart'; order?: { id: string; display_id?: number }; cart?: StoreCart }> {
