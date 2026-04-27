@@ -304,6 +304,15 @@ export interface AliExpressPlaceOrderResult {
 }
 
 /**
+ * Deep-link to the AE order detail page, where the buyer pays a dropshipping
+ * order placed via `aliexpress.ds.order.create`. AE keeps the order in
+ * "Awaiting payment" for 20 days; this URL is what the merchant clicks.
+ */
+export function aliExpressOrderUrl(aeOrderId: string): string {
+  return `https://trade.aliexpress.com/order_detail.htm?orderId=${encodeURIComponent(aeOrderId)}`;
+}
+
+/**
  * Place a dropshipping order via aliexpress.ds.order.create.
  * Returns the raw AE response either way — caller should persist it.
  */

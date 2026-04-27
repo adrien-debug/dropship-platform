@@ -26,7 +26,10 @@ export function ForwardButton({ orderId, alreadySent }: Props) {
   async function call(dryRun: boolean) {
     if (!dryRun) {
       const ok = window.confirm(
-        'Cette action passe une VRAIE commande chez AliExpress, qui sera débitée sur ton compte AE.\n\nContinuer ?',
+        'Cette action passe une vraie commande chez AliExpress.\n\n' +
+          'AE crée la commande en statut « En attente de paiement ». ' +
+          'Tu devras ensuite te connecter sur aliexpress.com pour la payer.\n\n' +
+          'Continuer ?',
       );
       if (!ok) return;
     }
@@ -57,44 +60,44 @@ export function ForwardButton({ orderId, alreadySent }: Props) {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="flex flex-col items-end gap-1.5">
       <div className="flex gap-2">
         <button
           onClick={() => call(true)}
           disabled={busy !== null}
-          className="px-3 py-1.5 text-xs rounded-md border border-zinc-200 hover:bg-zinc-50 disabled:opacity-50 transition-colors"
+          className="px-3 py-1.5 text-xs rounded-md border border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          title="Sauve le payload AE sans rien envoyer"
         >
           {busy === 'dry' ? '…' : 'Dry-run'}
         </button>
         <button
           onClick={() => call(false)}
           disabled={busy !== null || alreadySent}
-          className="px-3 py-1.5 text-xs rounded-md bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="px-3 py-1.5 text-xs rounded-md bg-zinc-900 text-white hover:bg-zinc-800 disabled:bg-zinc-200 disabled:text-zinc-400 disabled:cursor-not-allowed transition-colors"
           title={alreadySent ? 'Déjà envoyée à AliExpress' : 'Place une vraie commande AE'}
         >
-          {busy === 'live' ? '…' : alreadySent ? 'Envoyée ✓' : 'Envoyer à AE'}
+          {busy === 'live' ? '…' : alreadySent ? 'Envoyée' : 'Envoyer à AE'}
         </button>
       </div>
 
       {result && (
         <div
-          className={`text-xs rounded-md p-2 border ${
+          className={`text-[11px] rounded-md px-2.5 py-1.5 border max-w-[280px] ${
             result.ok
               ? result.status === 'sent'
-                ? 'bg-green-50 border-green-200 text-green-800'
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
                 : 'bg-blue-50 border-blue-200 text-blue-800'
               : 'bg-red-50 border-red-200 text-red-800'
           }`}
         >
           <div className="font-medium">
-            {result.status === 'sent' && `✅ Envoyée à AE — order #${result.aeOrderId}`}
-            {result.status === 'dry_run' && '🧪 Dry-run OK — payload sauvegardée'}
-            {result.status === 'error' && `❌ ${result.error}`}
+            {result.status === 'sent' && `Envoyée — AE #${result.aeOrderId}`}
+            {result.status === 'dry_run' && 'Dry-run OK · payload sauvegardé'}
+            {result.status === 'error' && (result.error ?? 'Erreur inconnue')}
           </div>
           {result.unmappedItems && result.unmappedItems.length > 0 && (
-            <div className="mt-1 opacity-75">
-              {result.unmappedItems.length} item(s) non mappé(s) :{' '}
-              {result.unmappedItems.map((u) => u.title).join(', ')}
+            <div className="mt-1 opacity-75 text-[10px]">
+              {result.unmappedItems.length} item(s) non mappé(s) : {result.unmappedItems.map((u) => u.title).join(', ')}
             </div>
           )}
         </div>
