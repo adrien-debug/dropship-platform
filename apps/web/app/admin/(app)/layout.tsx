@@ -7,6 +7,7 @@ export default function AdminAppLayout({ children }: { children: React.ReactNode
     { href: '/admin/stores', label: '🤖 Stores IA', badge: 'Agent' },
     { href: '/admin/catalog', label: 'Catalogue', badge: 'Medusa' },
     { href: '/admin/medusa', label: 'Pré-staging', badge: 'DB' },
+    { href: '/admin/settings', label: '⚙️ API Settings', badge: '' },
   ];
 
   return (
