@@ -5,9 +5,9 @@ import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } from '@/lib/stripe-env';
 export const runtime = 'nodejs';
 
 /**
- * Receives Stripe events; the heavy lifting (capturing payments, finalizing carts)
- * is handled by the Medusa backend's own Stripe webhook. This route is a Next-side
- * convenience hook for analytics/notifications.
+ * Stub webhook receiver. Payment capture and order finalization are handled by
+ * the Medusa backend's own Stripe webhook — this route only verifies the
+ * signature so Stripe gets a clean 200 if it's configured to also call us.
  */
 export async function POST(request: NextRequest) {
   if (!STRIPE_SECRET_KEY || !STRIPE_WEBHOOK_SECRET) {
@@ -20,22 +20,10 @@ export async function POST(request: NextRequest) {
   const body = await request.text();
   const stripe = new Stripe(STRIPE_SECRET_KEY);
 
-  let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(body, sig, STRIPE_WEBHOOK_SECRET);
+    stripe.webhooks.constructEvent(body, sig, STRIPE_WEBHOOK_SECRET);
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'invalid' }, { status: 400 });
-  }
-
-  switch (event.type) {
-    case 'payment_intent.succeeded':
-      console.log('[Stripe] payment_intent.succeeded', event.data.object.id);
-      break;
-    case 'payment_intent.payment_failed':
-      console.log('[Stripe] payment_intent.payment_failed', event.data.object.id);
-      break;
-    default:
-      break;
   }
 
   return NextResponse.json({ received: true });

@@ -1,10 +1,9 @@
 /**
  * AliExpress Open Platform — DS API client
- * App: Hearstai | AppKey: 531346 | Category: Drop Shipping | Status: Online
+ * App: Hearstai | AppKey: 531346 | Category: Drop Shipping
  *
- * Auth: OAuth access_token obtained via /api/aliexpress/oauth/start
- * Primary search API: aliexpress.solution.product.list.get (requires access_token)
- * Fallback: aliexpress.ds.category.get (no token needed, for health checks)
+ * Auth: OAuth access_token obtained via /api/aliexpress/oauth/start.
+ * Search: `aliexpress.ds.text.search` (requires access_token).
  */
 
 import { createHash, createHmac } from 'crypto';
@@ -37,12 +36,6 @@ export interface AliExpressSearchResult {
   current_record_count: number;
   total_record_count: number;
   products: AliExpressProduct[];
-}
-
-export interface AliExpressCategory {
-  category_id: number;
-  category_name: string;
-  parent_category_id?: number;
 }
 
 // /sync (TOP gateway): MD5(secret + concat(sorted(k+v)) + secret), uppercase.
@@ -275,29 +268,4 @@ export async function searchProducts(params: {
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
-}
-
-/**
- * Health check — fetch DS categories (no token needed).
- */
-export async function getCategories(): Promise<{ success: boolean; data?: AliExpressCategory[]; error?: string }> {
-  if (!APP_KEY || !APP_SECRET) return { success: false, error: 'AliExpress credentials not configured' };
-  try {
-    const data = await callApi<{ aliexpress_ds_category_get_response?: { resp_result?: { result?: { categories?: { category?: AliExpressCategory[] } } } } }>(
-      'aliexpress.ds.category.get',
-      { language: 'en' },
-    );
-    const categories = data.aliexpress_ds_category_get_response?.resp_result?.result?.categories?.category ?? [];
-    return { success: true, data: categories };
-  } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : 'Unknown error' };
-  }
-}
-
-/**
- * Returns true if an access token is stored and not obviously expired.
- */
-export async function isAuthenticated(): Promise<boolean> {
-  const token = await getAccessToken();
-  return !!token;
 }

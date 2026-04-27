@@ -128,37 +128,3 @@ export async function searchProducts(params: {
     };
   }
 }
-
-/**
- * Récupère les détails d'un produit CJ
- */
-export async function getProduct(pid: string): Promise<{ success: boolean; data?: CJProduct; error?: string }> {
-  try {
-    const token = await authenticate();
-
-    const response = await fetch(`${API_BASE}/product/query`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'CJ-Access-Token': token,
-      },
-      body: JSON.stringify({ pid }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`CJ API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    if (data.code !== 200 || !data.result) {
-      throw new Error(data.message || 'CJ API error');
-    }
-
-    return { success: true, data: data.data };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    };
-  }
-}

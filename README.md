@@ -1,87 +1,52 @@
 # dropship-platform
 
-Application **Next.js** dans `apps/web` : admin, API Medusa, Supabase.
+Plateforme SaaS de dropshipping pilotée par un agent IA. À partir d'un mot-clé de niche, l'agent (Claude Haiku) :
 
-## Status intégrations fournisseurs
+1. Cherche des produits réels chez **AliExpress** (DS API), avec fallback **CJ Dropshipping**.
+2. Enrichit titres/descriptions, calcule un prix retail (×2.2 floor `.99`, min €9.99) et génère le branding du store dans le même call Claude.
+3. Crée un sales channel + publishable API key Medusa dédiés au store, importe les produits par batch parallèle.
+4. Sauve la config dans Postgres (Railway).
+5. Le storefront est immédiatement live à `/shop/{slug}`.
 
-### Clés récupérées et configurées
-- ✅ CJ Dropshipping API key ajoutée sur Vercel
-- ✅ AliExpress App Key + Secret ajoutés sur Vercel
-- ✅ Clients API créés (`lib/suppliers/cj.ts`, `lib/suppliers/aliexpress.ts`)
-- ✅ Route d'import `POST /api/suppliers/import` fonctionnelle
-- ✅ Catalogue admin : `GET /api/products` (table `dropship_products`, variable `DATABASE_URL` sur l’app Next)
+## Topologie
 
-### Actions requises (bloquantes)
-⚠️ **Les APIs nécessitent des permissions développeur :**
+| Service | Repo / sous-dossier | Hébergeur |
+|---|---|---|
+| Frontend Next.js + agent | `apps/web/` | Vercel |
+| Backend Medusa v2 | `apps/medusa/` | Railway |
+| Postgres (stores + tokens AE) | — | Railway |
 
-**CJ Dropshipping** : Erreur `APIkey is wrong` (code 1600005)
-- **Action** : Contacter support CJ via dashboard pour activer l'accès API développeur
-- Le compte CJ standard n'a pas l'API activée par défaut
-- Support : https://cjdropshipping.com/ → Contact Agent (chat en bas à droite)
+Le frontend peut aussi tourner sur Railway via `apps/web/railway.toml`.
 
-**AliExpress** : Erreur `App does not have permission to access this api`
-- **Action** : Demander l'accès à "Affiliate Product Query API"
-  1. Aller sur https://open.aliexpress.com/console
-  2. Ouvrir ton application Open Platform (Drop Shipping)
-  3. Section "API Access" → Request "Affiliate Product Query"
-  4. Attendre approbation (24-48h)
+## Variables d'environnement
 
-**Note** : Le code est prêt et fonctionnera dès l'activation des permissions
+Voir `apps/web/env.example`. Côté `apps/web` les principales :
 
-**Test local une fois les clés mises à jour :**
-```bash
-cd apps/web
-# Copier les nouvelles clés dans .env.local
-curl -X POST http://localhost:3063/api/suppliers/import \
-  -H "Content-Type: application/json" \
-  -d '{"source":"cj","keywords":"phone case","limit":3,"autoImport":true}'
-```
+- **Postgres** : `DATABASE_URL` (tables `dropship_stores`, `dropship_store_products`, `platform_settings`).
+- **Medusa** : `MEDUSA_URL`, `MEDUSA_ADMIN_API_TOKEN` (ou `MEDUSA_ADMIN_EMAIL` + `MEDUSA_ADMIN_PASSWORD`), `NEXT_PUBLIC_MEDUSA_URL` pour l'affichage.
+- **Anthropic** : `ANTHROPIC_API_KEY` (Claude Haiku, modèle `claude-haiku-4-5-20251001`).
+- **AliExpress** : `ALIEXPRESS_APP_KEY`, `ALIEXPRESS_APP_SECRET`. Token OAuth stocké en DB via `/api/aliexpress/oauth/start`.
+- **CJ Dropshipping** : `CJ_DROPSHIPPING_EMAIL`, `CJ_DROPSHIPPING_API_KEY` (la **vraie** API key, pas le mot de passe — voir `SUPPLIERS.md`).
+- **Stripe** : `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`.
 
-## Déploiement cloud (sans serveur local)
+Backend Medusa : voir `apps/medusa/README.md`.
 
-| Service    | Rôle |
-|-----------|------|
-| **Supabase** | Base Postgres + API ; créer un projet sur [supabase.com](https://supabase.com), récupérer l’URL et les clés. |
-| **Railway**  | Backend **Medusa** (template officiel ou repo Medusa) + Postgres/Redis si besoin. |
-| **Vercel**   | Frontend **Next** (`apps/web`) — recommandé pour Next.js. |
+## Schéma Postgres
 
-Tu peux aussi héberger le Next sur **Railway** (même repo, racine `apps/web`) au lieu de Vercel : voir `apps/web/railway.toml`.
+DDL idempotent dans `infra/postgres/` :
 
-### Variables d’environnement (Vercel ou Railway, projet `apps/web`)
+- `002_stores.sql` — `dropship_stores` + `dropship_store_products`
+- `003_platform_settings.sql` — `platform_settings` (token AliExpress)
 
-Copier depuis `apps/web/env.example` et renseigner dans le dashboard :
+(`001_dropship_products.sql` est conservé pour l'archive ; la table n'est plus écrite par le code.)
 
-- **Supabase** : `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (routes serveur uniquement ; ne pas exposer la service role au client).
-- **Postgres (produits dropship)** : `DATABASE_URL` (même base que celle où existe la table `dropship_products`).
-- **Medusa** : `MEDUSA_URL`, `MEDUSA_ADMIN_API_TOKEN` (ou email + mot de passe admin).
-- **Affichage** : `NEXT_PUBLIC_MEDUSA_URL` (URL publique du store Medusa, optionnel, pour l’UI).
+## Go-live
 
-### Vercel
+1. Postgres : exécuter `infra/postgres/002_stores.sql` puis `003_platform_settings.sql` sur la base pointée par `DATABASE_URL`.
+2. Variables : copier `apps/web/env.example` dans Vercel/Railway, renseigner au moins `DATABASE_URL`, `MEDUSA_URL`, l'auth admin Medusa, `ANTHROPIC_API_KEY`, et les credentials AliExpress.
+3. Vérification : `cd apps/web && npm run go-live:check` (avec `.env.local` rempli).
+4. Deploy : Root Directory `apps/web`, build par défaut.
+5. OAuth AliExpress : ouvrir `/api/aliexpress/oauth/start` une fois pour stocker le token en DB.
+6. Smoke : ouvrir `/admin/stores/new`, créer un store sur une niche test, vérifier que le storefront `/shop/{slug}` s'affiche.
 
-1. Importer le dépôt Git.
-2. **Root Directory** : `apps/web`.
-3. Framework : Next.js (détecté automatiquement).
-4. Ajouter les variables d’environnement ci-dessus → Deploy.
-
-### Railway (Medusa)
-
-Medusa est un **projet séparé** (souvent un autre repo). Sur Railway : nouveau service depuis le template Medusa ou ton backend, puis copier l’URL publique dans `MEDUSA_URL` côté Vercel.
-
-### Railway (Next, optionnel)
-
-1. New Project → Deploy from GitHub, même repo.
-2. Racine du service : **`apps/web`** (settings du service).
-3. Variables = même liste que Vercel.
-4. Railway injecte `PORT` ; `npm run start` est compatible Next 15.
-
-Détails locaux, Medusa et **tests/QA** : `apps/web/README.md`. CI : `.github/workflows/ci.yml` (`npm run lint` + `npm test` dans `apps/web`).
-
-## Go-live rapide (checklist)
-
-1. **Base Postgres** : sur l’instance visée par `DATABASE_URL`, exécuter **`infra/postgres/001_dropship_products.sql`** (création table + index).
-2. **Variables** : copier `apps/web/env.example` → Vercel (ou Railway) pour le service dont la racine est **`apps/web`**, renseigner au minimum `DATABASE_URL`, `MEDUSA_URL`, et `MEDUSA_ADMIN_API_TOKEN` *ou* `MEDUSA_ADMIN_EMAIL` + `MEDUSA_ADMIN_PASSWORD`.
-3. **Vérification locale** (avec `.env.local` rempli) : `cd apps/web && npm run go-live:check`.
-4. **Déployer** : importer le repo Git, **Root Directory** `apps/web`, build par défaut (`next build`), domaine production.
-5. **Smoke** : ouvrir `/admin/medusa`, vérifier `GET /api/medusa/status` et `GET /api/products` (liste vide ou produits).
-
-*(Le déploiement sur ton compte Vercel/Railway ne peut pas être exécuté depuis ce dépôt sans tes identifiants ; les étapes ci-dessus préparent tout le nécessaire.)*
+CI : `.github/workflows/ci.yml` (`npm run lint` + `npm test` dans `apps/web`).

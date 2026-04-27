@@ -1,6 +1,6 @@
 # @dropship/web
 
-Next.js 15.
+Frontend Next.js 15 (App Router). Contient l'agent IA de création de stores et les storefronts publics par boutique.
 
 ## Local
 
@@ -12,51 +12,62 @@ npm install
 npm run dev
 ```
 
-→ [http://localhost:3063](http://localhost:3063) (racine redirige vers `/admin/medusa`).
+→ [http://localhost:3063](http://localhost:3063). La racine `/admin` redirige vers `/admin/stores`.
 
-Après avoir rempli `.env.local`, vérifie les prérequis prod : `npm run go-live:check` (voir aussi checklist racine `README.md`).
+Vérifie les prérequis prod : `npm run go-live:check`.
 
-## Déploiement production
+## Pages clés
 
-Tout tourne sur les **variables d’environnement** de l’hébergeur : plus besoin de machine locale une fois le dépôt branché.
+| Chemin | Rôle |
+|---|---|
+| `/admin/stores` | Liste des stores créés par l'agent |
+| `/admin/stores/new` | Lance l'agent IA (niche → store complet) |
+| `/admin/stores/[id]` | Détails d'un store + suppression |
+| `/admin/catalog` | Vue catalogue Medusa global |
+| `/admin/settings` | Statut des intégrations (AliExpress OAuth, etc.) |
+| `/shop/[slug]` | Storefront public d'un store |
+| `/shop/[slug]/products/[handle]` | PDP |
 
-### Vercel (recommandé pour ce frontend)
+## Endpoints clés
 
-1. Projet Vercel → importer le repo Git.
+- `POST /api/agent/create-store` — endpoint SSE qui pilote l'agent (search supplier → enrich Claude → import Medusa). `maxDuration=300`.
+- `DELETE /api/agent/stores/[id]` — supprime un store + ses produits Medusa.
+- `GET /api/agent/stores` — liste des stores.
+- `GET /api/aliexpress/oauth/start` — flow OAuth AliExpress.
+- `GET /api/aliexpress/test-search?keywords=...` — diagnostic recherche AE.
+- `GET /api/medusa/health` — sonde le backend Medusa Railway (utile pour le réveiller).
+- `GET/POST /api/medusa/setup` — initialise stock locations, fulfillment, shipping options et payment providers Medusa.
+
+## Déploiement
+
+### Vercel (frontend)
+
+1. Vercel → importer le repo Git.
 2. **Root Directory** : `apps/web`.
-3. **Environment Variables** : reprendre toutes les clés de `env.example` (Supabase, Medusa, etc.).
-4. Deploy.
+3. Variables d'env : reprendre `apps/web/env.example` (Anthropic, Medusa, Postgres, Stripe, AliExpress).
+4. Deploy. `vercel.json` fournit la config build.
 
-Fichier `vercel.json` : commandes de build par défaut.
+### Railway (alternative)
 
-### Railway (alternative pour ce même app Next)
-
-1. Service Railway → source Git, **Root Directory** = `apps/web`.
+1. Service Railway → source Git, Root Directory `apps/web`.
 2. Mêmes variables que sur Vercel.
 3. `railway.toml` fixe `npm run start` (écoute `0.0.0.0` + `PORT`).
 
-### Medusa (backend commerce)
+### Backend Medusa
 
-À déployer **séparément** (autre repo / template Railway Medusa). Ensuite renseigner **`MEDUSA_URL`** + auth (`MEDUSA_ADMIN_API_TOKEN` ou email/mot de passe) dans Vercel ou Railway.
+Service séparé (`apps/medusa/`), déployé sur Railway. Renseigner `MEDUSA_URL` côté Vercel/Railway + auth (`MEDUSA_ADMIN_API_TOKEN` ou email/mot de passe).
 
-### Supabase
+## Connexion admin Medusa
 
-Créer un projet sur [supabase.com](https://supabase.com), activer la table `products` (schéma attendu par l’API publish), coller `NEXT_PUBLIC_SUPABASE_URL` et `SUPABASE_SERVICE_ROLE_KEY` dans l’hébergeur.
-
-## Medusa — connexion admin API
+Auth admin requise pour les routes `/admin/*` Medusa appelées par l'agent :
 
 - **`MEDUSA_ADMIN_API_TOKEN`** (clé secrète Admin) *ou*
 - **`MEDUSA_ADMIN_EMAIL`** + **`MEDUSA_ADMIN_PASSWORD`**
 
-En prod, **`MEDUSA_URL` est obligatoire** (pas de fallback). En `next dev` seulement, une URL de secours peut s’appliquer si la variable est vide.
-
-État connexion : `GET /api/medusa/status` (page `/admin/medusa`).
-
-Catalogue admin : `GET /api/products?status=all|draft|published&limit=50` (table `dropship_products`, `DATABASE_URL` requis). DDL à la racine du monorepo : `infra/postgres/001_dropship_products.sql`.
+`MEDUSA_URL` est obligatoire en prod (pas de fallback). En `next dev` un fallback s'applique si la variable est vide.
 
 ## Tests et QA
 
-- **Vitest** : `npm test` (CI), `npm test:watch` en local — couverture : `lib/medusa`, `lib/types/product`, routes API `products`, `suppliers/*`, `medusa/*` (health, status, publish GET/POST).
-- **Qualité** : `npm run lint` → `tsc --noEmit` puis **ESLint** (`next/core-web-vitals`, `next/typescript`). Seul le typage : `npm run typecheck`. Seul ESLint : `npm run eslint`.
-- **CI GitHub** : `.github/workflows/ci.yml` (`npm run lint` + `npm test` dans `apps/web`).
-- Vérifications manuelles fournisseurs : README racine du monorepo (curl import).
+- **Vitest** : `npm test` (run-once), `npm test:watch` en dev. Couverture actuelle : `lib/medusa-env`, `app/api/medusa/health`.
+- **Lint** : `npm run lint` (= `tsc --noEmit` + ESLint `next/core-web-vitals` + `next/typescript`). `npm run typecheck` ou `npm run eslint` pour l'un ou l'autre seul.
+- **CI** : `.github/workflows/ci.yml` (`npm run lint` + `npm test` dans `apps/web`).

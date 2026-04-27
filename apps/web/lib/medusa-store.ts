@@ -10,8 +10,7 @@ export function storefrontEnabled(): boolean {
   return !!getMedusaBaseUrl() && !!MEDUSA_PUBLISHABLE_KEY;
 }
 
-export interface StoreImage { id?: string; url: string }
-export interface StorePrice { currency_code: string; amount: number }
+interface StoreImage { id?: string; url: string }
 
 export interface StoreVariant {
   id: string;
