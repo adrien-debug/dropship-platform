@@ -323,6 +323,68 @@ class MedusaAPI {
     return data.order;
   }
 
+  /**
+   * Capture every authorized-but-not-yet-captured payment on an order.
+   *
+   * Medusa v2 leaves orders in `payment_status: 'authorized'` until someone
+   * explicitly captures — for a dropship business that forwards immediately
+   * to AliExpress, we want the funds in our account *now*. We call this
+   * straight after `/store/carts/{id}/complete` so the customer's checkout
+   * flow ends with `captured`, not a 7-day-expiring authorization.
+   *
+   * Best-effort: returns the per-payment outcome instead of throwing, so a
+   * capture failure doesn't roll back an otherwise-valid order.
+   */
+  async capturePayments(orderId: string): Promise<{
+    captured: string[];
+    skipped: string[];
+    errors: { paymentId: string; error: string }[];
+  }> {
+    const qs = new URLSearchParams();
+    qs.set('fields', 'id,*payment_collections,*payment_collections.payments');
+    const orderRes = await fetch(`${this.baseUrl}/admin/orders/${orderId}?${qs.toString()}`, {
+      headers: await this.adminJsonHeaders(),
+    });
+    if (!orderRes.ok) {
+      throw new Error(
+        `Failed to fetch order ${orderId} for capture: ${orderRes.status} — ${await readMedusaErrorMessage(orderRes)}`,
+      );
+    }
+    const { order } = (await orderRes.json()) as {
+      order: {
+        payment_collections?: {
+          payments?: { id: string; captured_at: string | null }[];
+        }[];
+      };
+    };
+
+    const captured: string[] = [];
+    const skipped: string[] = [];
+    const errors: { paymentId: string; error: string }[] = [];
+
+    for (const collection of order.payment_collections ?? []) {
+      for (const payment of collection.payments ?? []) {
+        if (payment.captured_at) {
+          skipped.push(payment.id);
+          continue;
+        }
+        const headers = await this.adminJsonHeaders();
+        const captureRes = await fetch(`${this.baseUrl}/admin/payments/${payment.id}/capture`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({}),
+        });
+        if (captureRes.ok) {
+          captured.push(payment.id);
+        } else {
+          errors.push({ paymentId: payment.id, error: await readMedusaErrorMessage(captureRes) });
+        }
+      }
+    }
+
+    return { captured, skipped, errors };
+  }
+
   async getProduct(productId: string): Promise<MedusaProduct> {
     const response = await fetch(`${this.baseUrl}/admin/products/${productId}`, {
       headers: await this.adminJsonHeaders(),

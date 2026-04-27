@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCartId, clearCartId } from '@/lib/cart-cookie';
 import { completeCart, initPaymentSession } from '@/lib/medusa-store';
+import { medusa } from '@/lib/medusa';
 import { stripeEnabled, STRIPE_PROVIDER_ID } from '@/lib/stripe-env';
 
 export async function POST(request: NextRequest) {
@@ -33,6 +34,17 @@ export async function POST(request: NextRequest) {
     const result = await completeCart(cartId);
     if (result.type === 'order' && result.order) {
       await clearCartId();
+
+      // Auto-capture: dropship business needs funds in-hand to forward to AE.
+      // Best-effort — a capture failure (already captured, network blip) must
+      // not roll back an otherwise-valid order. The merchant can retry from
+      // /admin/orders if needed.
+      try {
+        await medusa.capturePayments(result.order.id);
+      } catch (err) {
+        console.error(`[checkout/complete] capture failed for ${result.order.id}:`, err);
+      }
+
       return NextResponse.json({ success: true, orderId: result.order.id, displayId: result.order.display_id });
     }
 
