@@ -229,7 +229,8 @@ export async function POST(request: NextRequest) {
             provider_id: manualProvider!.id,
             price_type: 'flat',
             type: { label: 'Standard', description: 'Livraison standard 3-5 jours', code: 'standard' },
-            prices: [{ currency_code: 'eur', amount: 500 }],
+            // Medusa v2 stores money in major units (EUR with decimals), not minor units.
+            prices: [{ currency_code: 'eur', amount: 5 }],
             rules: [
               { attribute: 'enabled_in_store', value: 'true', operator: 'eq' },
               { attribute: 'is_return', value: 'false', operator: 'eq' },
