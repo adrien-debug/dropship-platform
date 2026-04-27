@@ -68,6 +68,50 @@ export interface MedusaProduct {
   updated_at: string;
 }
 
+export interface MedusaOrderShippingAddress {
+  first_name?: string;
+  last_name?: string;
+  company?: string;
+  address_1?: string;
+  address_2?: string;
+  city?: string;
+  province?: string;
+  postal_code?: string;
+  country_code?: string;
+  phone?: string;
+}
+
+export interface MedusaOrderItem {
+  id: string;
+  product_id: string;
+  variant_id: string;
+  title: string;
+  quantity: number;
+  unit_price: number;
+  total: number;
+  variant?: {
+    id: string;
+    title?: string;
+    sku?: string | null;
+    options?: { value: string; option?: { title: string } }[];
+  };
+}
+
+export interface MedusaOrder {
+  id: string;
+  display_id?: number;
+  email?: string;
+  status?: string;
+  payment_status?: string;
+  fulfillment_status?: string;
+  total: number;
+  currency_code: string;
+  created_at: string;
+  sales_channel_id?: string;
+  items?: MedusaOrderItem[];
+  shipping_address?: MedusaOrderShippingAddress;
+}
+
 export interface MedusaProductVariant {
   id: string;
   title: string;
@@ -243,6 +287,40 @@ class MedusaAPI {
       products: data.products || [],
       count: data.count || 0,
     };
+  }
+
+  async getOrders(params?: {
+    limit?: number;
+    offset?: number;
+    salesChannelId?: string;
+  }): Promise<{ orders: MedusaOrder[]; count: number }> {
+    const qs = new URLSearchParams();
+    qs.set('fields', 'id,display_id,email,status,payment_status,fulfillment_status,total,currency_code,created_at,sales_channel_id,*items,*shipping_address');
+    if (params?.limit) qs.set('limit', String(params.limit));
+    if (params?.offset) qs.set('offset', String(params.offset));
+    if (params?.salesChannelId) qs.set('sales_channel_id', params.salesChannelId);
+
+    const response = await fetch(`${this.baseUrl}/admin/orders?${qs.toString()}`, {
+      headers: await this.adminJsonHeaders(),
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch orders: ${response.status} — ${await readMedusaErrorMessage(response)}`);
+    }
+    const data = await response.json();
+    return { orders: data.orders || [], count: data.count || 0 };
+  }
+
+  async getOrder(orderId: string): Promise<MedusaOrder> {
+    const qs = new URLSearchParams();
+    qs.set('fields', 'id,display_id,email,status,payment_status,fulfillment_status,total,currency_code,created_at,sales_channel_id,*items,*items.variant,*shipping_address');
+    const response = await fetch(`${this.baseUrl}/admin/orders/${orderId}?${qs.toString()}`, {
+      headers: await this.adminJsonHeaders(),
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch order ${orderId}: ${response.status} — ${await readMedusaErrorMessage(response)}`);
+    }
+    const data = await response.json();
+    return data.order;
   }
 
   async getProduct(productId: string): Promise<MedusaProduct> {

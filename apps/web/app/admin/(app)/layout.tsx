@@ -5,6 +5,7 @@ export default function AdminAppLayout({ children }: { children: React.ReactNode
   /** Liens alignés sur les routes réellement présentes dans `app/admin`. */
   const navItems = [
     { href: '/admin/stores', label: '🤖 Stores IA', badge: 'Agent' },
+    { href: '/admin/orders', label: '📦 Commandes', badge: 'AE' },
     { href: '/admin/catalog', label: 'Catalogue', badge: 'Medusa' },
     { href: '/admin/settings', label: '⚙️ API Settings', badge: '' },
   ];

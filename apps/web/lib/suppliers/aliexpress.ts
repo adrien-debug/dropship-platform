@@ -269,3 +269,93 @@ export async function searchProducts(params: {
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
+
+export interface AliExpressLogisticsAddress {
+  address: string;
+  city: string;
+  contact_person: string;
+  country: string;            // ISO-2 (e.g. "FR")
+  full_name: string;
+  mobile_no: string;
+  phone_country: string;      // dial code without "+", e.g. "33"
+  province: string;
+  zip: string;
+  address2?: string;
+}
+
+export interface AliExpressOrderItem {
+  product_count: number;
+  product_id: string;         // AE itemId
+  sku_attr?: string;          // optional SKU selector (e.g. "14:175;5:100")
+  logistics_service_name?: string;
+}
+
+export interface AliExpressPlaceOrderInput {
+  logistics_address: AliExpressLogisticsAddress;
+  product_items: AliExpressOrderItem[];
+  out_order_id: string;       // our id, used for idempotency
+}
+
+export interface AliExpressPlaceOrderResult {
+  success: boolean;
+  ae_order_id?: string;
+  raw: unknown;
+  error?: string;
+}
+
+/**
+ * Place a dropshipping order via aliexpress.ds.order.create.
+ * Returns the raw AE response either way — caller should persist it.
+ */
+export async function placeOrder(input: AliExpressPlaceOrderInput): Promise<AliExpressPlaceOrderResult> {
+  if (!APP_KEY || !APP_SECRET) {
+    return { success: false, raw: null, error: 'AliExpress credentials not configured' };
+  }
+
+  const accessToken = await getAccessToken();
+  if (!accessToken) {
+    return { success: false, raw: null, error: 'AliExpress OAuth token missing — re-authorize via /api/aliexpress/oauth/start' };
+  }
+
+  try {
+    type DsOrderCreateResponse = {
+      aliexpress_ds_order_create_response?: {
+        result?: {
+          is_success?: boolean;
+          error_code?: string;
+          error_msg?: string;
+          order_list?: { number?: (string | number)[] };
+        };
+      };
+      error_response?: { code: string; msg: string; sub_msg?: string };
+    };
+
+    const data = await callApi<DsOrderCreateResponse>(
+      'aliexpress.ds.order.create',
+      { param_place_order_request4_open_api_d_t_o: JSON.stringify(input) },
+      accessToken,
+    );
+
+    if (data.error_response) {
+      return {
+        success: false,
+        raw: data,
+        error: `${data.error_response.code} — ${data.error_response.sub_msg || data.error_response.msg}`,
+      };
+    }
+
+    const result = data.aliexpress_ds_order_create_response?.result;
+    if (!result?.is_success) {
+      return {
+        success: false,
+        raw: data,
+        error: result ? `${result.error_code} — ${result.error_msg}` : 'AE returned no result',
+      };
+    }
+
+    const aeOrderId = String(result.order_list?.number?.[0] ?? '');
+    return { success: true, ae_order_id: aeOrderId, raw: data };
+  } catch (e) {
+    return { success: false, raw: null, error: e instanceof Error ? e.message : 'Unknown error' };
+  }
+}
