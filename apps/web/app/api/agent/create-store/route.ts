@@ -9,7 +9,9 @@ export const maxDuration = 300;
 const schema = z.object({
   niche: z.string().min(2).max(100),
   storeName: z.string().min(2).max(80),
-  maxProducts: z.number().int().min(3).max(25).optional().default(12),
+  // 1 = mono-product store (one hero SKU, landing-page style).
+  // 3-25 = niche-brand store with a curated catalogue.
+  maxProducts: z.number().int().min(1).max(25).optional().default(12),
   language: z.enum(['fr', 'en']).optional().default('fr'),
 });
 
