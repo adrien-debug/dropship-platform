@@ -69,10 +69,28 @@ export async function loadCart(): Promise<StoreCart | null> {
   if (!id) return null;
   try {
     const { cart } = await getCart(id);
-    return cart;
+    return normalizeCartTotals(cart);
   } catch {
     return null;
   }
+}
+
+/**
+ * Medusa v2 sometimes returns line items without `total`/`subtotal` populated
+ * when the storefront fetch doesn't request the totals expansion. The unit
+ * price + quantity are always present, so derive the line totals locally
+ * rather than re-querying with `?fields=...,*items.total,...`.
+ */
+function normalizeCartTotals(cart: StoreCart): StoreCart {
+  const items = cart.items.map((item) => {
+    const computed = item.unit_price * item.quantity;
+    return {
+      ...item,
+      subtotal: item.subtotal ?? computed,
+      total: item.total ?? computed,
+    };
+  });
+  return { ...cart, items };
 }
 
 export async function addToCart(variantId: string, quantity: number, slug?: string): Promise<StoreCart> {

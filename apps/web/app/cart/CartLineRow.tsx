@@ -23,45 +23,51 @@ export function CartLineRow({ item, currency }: { item: StoreLineItem; currency:
 
   return (
     <tr>
-      <td className="p-4">
-        <div className="flex items-center gap-3">
+      <td className="p-6">
+        <div className="flex items-center gap-5">
           {item.thumbnail ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={item.thumbnail} alt={item.title} className="w-14 h-14 rounded object-cover bg-zinc-100" />
+            <img
+              src={item.thumbnail}
+              alt={item.title}
+              className="w-20 h-20 rounded-lg object-cover bg-zinc-100"
+            />
           ) : (
-            <div className="w-14 h-14 rounded bg-zinc-100" />
+            <div className="w-20 h-20 rounded-lg bg-zinc-100" />
           )}
           <div>
-            <p className="font-medium text-sm">{item.title}</p>
-            <p className="text-xs text-zinc-500">{formatMoney(item.unit_price, currency)} / unité</p>
+            <p className="font-medium text-base text-zinc-900">{item.title}</p>
+            <p className="text-sm text-zinc-500 mt-1">{formatMoney(item.unit_price, currency)} / unité</p>
           </div>
         </div>
       </td>
-      <td className="p-4">
-        <div className="inline-flex items-center border rounded">
+      <td className="p-6">
+        <div className="inline-flex items-center border border-zinc-200 rounded-full">
           <button
             onClick={() => update(Math.max(0, qty - 1))}
             disabled={pending}
-            className="px-2 py-1 hover:bg-zinc-100"
+            aria-label="Diminuer la quantité"
+            className="h-10 w-10 rounded-full flex items-center justify-center text-lg font-light hover:bg-zinc-100 transition-colors disabled:opacity-40"
           >
             −
           </button>
-          <span className="px-3 text-sm">{qty}</span>
+          <span className="px-4 text-base font-medium tabular-nums">{qty}</span>
           <button
             onClick={() => update(qty + 1)}
             disabled={pending}
-            className="px-2 py-1 hover:bg-zinc-100"
+            aria-label="Augmenter la quantité"
+            className="h-10 w-10 rounded-full flex items-center justify-center text-lg font-light hover:bg-zinc-100 transition-colors disabled:opacity-40"
           >
             +
           </button>
         </div>
       </td>
-      <td className="p-4 text-right text-sm">{formatMoney(item.total, currency)}</td>
-      <td className="p-4 text-right">
+      <td className="p-6 text-right text-base font-medium text-zinc-900">{formatMoney(item.total, currency)}</td>
+      <td className="p-6 text-right">
         <button
           onClick={() => update(0)}
           disabled={pending}
-          className="text-xs text-red-600 hover:underline"
+          className="text-sm text-zinc-500 hover:text-red-600 transition-colors"
         >
           Retirer
         </button>

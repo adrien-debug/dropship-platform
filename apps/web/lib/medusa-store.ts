@@ -265,7 +265,9 @@ export async function completeCart(cartId: string): Promise<{ type: 'order' | 'c
  */
 export function formatMoney(amount: number | null | undefined, currency: string): string {
   if (amount == null || Number.isNaN(amount)) {
-    return `— ${currency.toUpperCase()}`;
+    // Show a discreet placeholder rather than "— EUR", which leaks both an
+    // em-dash and a raw ISO code into the UI.
+    return '';
   }
   try {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: currency.toUpperCase() }).format(amount);
