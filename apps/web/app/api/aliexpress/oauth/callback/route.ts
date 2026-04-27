@@ -34,28 +34,33 @@ export async function GET(req: NextRequest) {
   params.sign = sign(params);
 
   const qs = new URLSearchParams(params).toString();
-  const res = await fetch(`https://api-sg.aliexpress.com/rest/auth/token/create?${qs}`, {
-    method: 'POST',
-  });
+  const tokenUrl = `https://api-sg.aliexpress.com/rest/auth/token/create?${qs}`;
+  const res = await fetch(tokenUrl, { method: 'POST' });
+  const rawBody = await res.text();
 
-  const data = await res.json() as {
+  let data: {
     access_token?: string;
     refresh_token?: string;
     expire_time?: number;
     refresh_token_valid_time?: number;
     user_nick?: string;
-    error_response?: { msg: string; sub_msg?: string };
-  };
+    error_response?: { msg: string; sub_msg?: string; code?: string };
+  } = {};
+  try { data = JSON.parse(rawBody); } catch { /* keep rawBody for display */ }
 
   if (data.error_response || !data.access_token) {
-    const msg = data.error_response?.sub_msg || data.error_response?.msg || 'Token exchange failed';
+    const escape = (s: string) => s.replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]!));
     return new NextResponse(
-      `<html><body style="font-family:sans-serif;padding:2rem">
+      `<html><body style="font-family:ui-monospace,monospace;padding:2rem;max-width:900px;margin:0 auto">
         <h2>❌ AliExpress OAuth Error</h2>
-        <p>${msg}</p>
+        <p>HTTP <strong>${res.status}</strong></p>
+        <h3>Response body</h3>
+        <pre style="background:#f4f4f4;padding:1rem;border-radius:6px;white-space:pre-wrap;word-break:break-all">${escape(rawBody)}</pre>
+        <h3>Request (debug)</h3>
+        <pre style="background:#f4f4f4;padding:1rem;border-radius:6px;white-space:pre-wrap;word-break:break-all">POST ${escape(tokenUrl.replace(APP_SECRET || 'XXX', '<secret>'))}</pre>
         <a href="/admin/settings">← Back</a>
       </body></html>`,
-      { headers: { 'Content-Type': 'text/html' } },
+      { headers: { 'Content-Type': 'text/html' }, status: 500 },
     );
   }
 
