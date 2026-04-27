@@ -45,7 +45,7 @@ export async function GET() {
   const [pubKeys, channels, regions, fulfillmentProviders, stockLocations, shippingProfiles, shippingOptions] = await Promise.all([
     admin<{ api_keys: PublishableKey[] }>('/admin/api-keys?type=publishable', auth),
     admin<{ sales_channels: SalesChannel[] }>('/admin/sales-channels', auth),
-    admin<{ regions: Region[] }>('/admin/regions', auth),
+    admin<{ regions: Region[] }>('/admin/regions?fields=*payment_providers', auth),
     admin<{ fulfillment_providers: FulfillmentProvider[] }>('/admin/fulfillment-providers', auth),
     admin<{ stock_locations: (StockLocation & { fulfillment_sets?: (FulfillmentSet & { service_zones?: ServiceZone[] })[] })[] }>('/admin/stock-locations?fields=id,name,fulfillment_sets.id,fulfillment_sets.name,fulfillment_sets.service_zones.id,fulfillment_sets.service_zones.name', auth),
     admin<{ shipping_profiles: ShippingProfile[] }>('/admin/shipping-profiles', auth),
@@ -133,6 +133,16 @@ export async function POST(request: NextRequest) {
         }),
       );
       if (!linked.ok) log.push(`(warn) link sales_channel: ${linked.error}`);
+    }
+
+    if (stockLocation && !dryRun) {
+      const linkedFp = await step('link fulfillment_provider manual_manual to stock_location', () =>
+        admin<unknown>(`/admin/stock-locations/${stockLocation!.id}/fulfillment-providers`, auth, {
+          method: 'POST',
+          body: { add: ['manual_manual'] },
+        }),
+      );
+      if (!linkedFp.ok) log.push(`(warn) link fulfillment_provider: ${linkedFp.error}`);
     }
 
     let fulfillmentSet = stockLocation?.fulfillment_sets?.[0];
@@ -231,6 +241,36 @@ export async function POST(request: NextRequest) {
       shippingOption = created.data!.shipping_option;
     }
     log.push(`shippingOption=${shippingOption?.id ?? '(dry)'}`);
+
+    if (!dryRun) {
+      const providersList = await admin<{ payment_providers: { id: string }[] }>(
+        '/admin/payments/payment-providers',
+        auth,
+      );
+      const knownProviders = providersList.data?.payment_providers?.map((p) => p.id) ?? [];
+      log.push(`globalProviders=${JSON.stringify(knownProviders)}`);
+
+      const desired = ['pp_system_default', ...(knownProviders.includes('pp_stripe_stripe') ? ['pp_stripe_stripe'] : [])];
+
+      for (const pp of desired) {
+        const linkPp = await step(`enable ${pp} on region`, () =>
+          admin<unknown>(`/admin/regions/${region.id}/payment-providers`, auth, {
+            method: 'POST',
+            body: { add: [pp] },
+          }),
+        );
+        if (!linkPp.ok) {
+          const patchRegion = await step(`patch region payment_providers (${pp}) fallback`, () =>
+            admin<unknown>(`/admin/regions/${region.id}`, auth, {
+              method: 'POST',
+              body: { payment_providers: desired },
+            }),
+          );
+          if (!patchRegion.ok) log.push(`(warn) enable ${pp}: ${linkPp.error} | fallback: ${patchRegion.error}`);
+          break;
+        }
+      }
+    }
 
     return NextResponse.json({
       success: true,
