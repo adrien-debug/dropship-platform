@@ -97,19 +97,23 @@ export interface StoreShippingOption {
 
 interface StoreFetchInit extends Omit<RequestInit, 'headers'> {
   headers?: Record<string, string>;
+  publishableKey?: string;
 }
 
 export async function storeFetch<T>(path: string, init: StoreFetchInit = {}): Promise<T> {
-  if (!storefrontEnabled()) {
+  const key = init.publishableKey || MEDUSA_PUBLISHABLE_KEY;
+  const baseUrl = getMedusaBaseUrl();
+  if (!baseUrl || !key) {
     throw new Error(
       'Storefront indisponible : MEDUSA_URL et/ou NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY non défini.',
     );
   }
-  const url = `${getMedusaBaseUrl()}${path}`;
+  const { publishableKey: _, ...fetchInit } = init;
+  const url = `${baseUrl}${path}`;
   const res = await fetch(url, {
-    ...init,
+    ...fetchInit,
     headers: {
-      'x-publishable-api-key': MEDUSA_PUBLISHABLE_KEY,
+      'x-publishable-api-key': key,
       'Content-Type': 'application/json',
       ...(init.headers ?? {}),
     },
@@ -140,7 +144,9 @@ async function getDefaultRegionId(): Promise<string | null> {
   }
 }
 
-export async function listProducts(params: { limit?: number; offset?: number; q?: string; handle?: string; regionId?: string } = {}): Promise<{ products: StoreProduct[]; count: number }> {
+export async function listProducts(
+  params: { limit?: number; offset?: number; q?: string; handle?: string; regionId?: string; publishableKey?: string } = {},
+): Promise<{ products: StoreProduct[]; count: number }> {
   const qs = new URLSearchParams();
   qs.set('fields', '*variants.calculated_price,+variants.inventory_quantity,+thumbnail,+images.url,+tags.value');
   const regionId = params.regionId ?? (await getDefaultRegionId());
@@ -149,12 +155,16 @@ export async function listProducts(params: { limit?: number; offset?: number; q?
   if (params.offset) qs.set('offset', String(params.offset));
   if (params.q) qs.set('q', params.q);
   if (params.handle) qs.set('handle', params.handle);
-  return storeFetch(`/store/products?${qs.toString()}`);
+  return storeFetch(`/store/products?${qs.toString()}`, { publishableKey: params.publishableKey });
+}
+
+export async function getProduct(handle: string, publishableKey?: string): Promise<StoreProduct | null> {
+  const { products } = await listProducts({ handle, limit: 1, publishableKey });
+  return products[0] ?? null;
 }
 
 export async function getProductByHandle(handle: string): Promise<StoreProduct | null> {
-  const { products } = await listProducts({ handle, limit: 1 });
-  return products[0] ?? null;
+  return getProduct(handle);
 }
 
 export async function listRegions(): Promise<{ regions: StoreRegion[] }> {

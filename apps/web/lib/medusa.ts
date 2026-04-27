@@ -439,6 +439,55 @@ class MedusaAPI {
     const text = await response.text();
     return { status: text };
   }
+
+  async createSalesChannel(name: string, description?: string): Promise<{ id: string; name: string }> {
+    const response = await fetch(`${this.baseUrl}/admin/sales-channels`, {
+      method: 'POST',
+      headers: await this.adminJsonHeaders(),
+      body: JSON.stringify({ name, description: description || name }),
+    });
+    if (!response.ok) throw new Error(`createSalesChannel: ${await readMedusaErrorMessage(response)}`);
+    const data = await response.json();
+    return data.sales_channel;
+  }
+
+  async addProductsToSalesChannel(salesChannelId: string, productIds: string[]): Promise<void> {
+    const response = await fetch(`${this.baseUrl}/admin/sales-channels/${salesChannelId}/products/batch`, {
+      method: 'POST',
+      headers: await this.adminJsonHeaders(),
+      body: JSON.stringify({ product_ids: productIds.map(id => ({ id })) }),
+    });
+    if (!response.ok) throw new Error(`addProductsToChannel: ${await readMedusaErrorMessage(response)}`);
+  }
+
+  async createPublishableApiKey(title: string): Promise<{ id: string; token: string; title: string }> {
+    const response = await fetch(`${this.baseUrl}/admin/publishable-api-keys`, {
+      method: 'POST',
+      headers: await this.adminJsonHeaders(),
+      body: JSON.stringify({ title }),
+    });
+    if (!response.ok) throw new Error(`createPublishableKey: ${await readMedusaErrorMessage(response)}`);
+    const data = await response.json();
+    return data.publishable_api_key;
+  }
+
+  async addSalesChannelsToPublishableKey(keyId: string, salesChannelIds: string[]): Promise<void> {
+    const response = await fetch(`${this.baseUrl}/admin/publishable-api-keys/${keyId}/sales-channels/batch`, {
+      method: 'POST',
+      headers: await this.adminJsonHeaders(),
+      body: JSON.stringify({ sales_channel_ids: salesChannelIds.map(id => ({ id })) }),
+    });
+    if (!response.ok) throw new Error(`addChannelsToKey: ${await readMedusaErrorMessage(response)}`);
+  }
+
+  async createProductWithChannel(
+    product: Parameters<typeof this.createProduct>[0],
+    salesChannelId: string,
+  ): Promise<MedusaProduct> {
+    const created = await this.createProduct({ ...product, status: 'published' });
+    await this.addProductsToSalesChannel(salesChannelId, [created.id]);
+    return created;
+  }
 }
 
 export const medusa = new MedusaAPI();
