@@ -1,9 +1,25 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import { getStoreBySlug } from '@/lib/store-config';
 import { listProducts } from '@/lib/medusa-store';
 
 export const dynamic = 'force-dynamic';
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const store = await getStoreBySlug(slug);
+  if (!store) return {};
+  return {
+    title: `${store.name} — ${store.tagline || store.niche}`,
+    description: store.description || `Découvrez ${store.productCount} produits ${store.niche} soigneusement sélectionnés.`,
+    openGraph: {
+      title: store.name,
+      description: store.tagline || store.description || '',
+      type: 'website',
+    },
+  };
+}
 
 export default async function ShopPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 interface AgentEvent {
@@ -29,7 +30,8 @@ const NICHE_PRESETS = [
   { label: '✈️ Voyage', value: 'travel accessories' },
 ];
 
-export default function NewStorePage() {
+function NewStoreForm() {
+  const searchParams = useSearchParams();
   const [niche, setNiche] = useState('');
   const [storeName, setStoreName] = useState('');
   const [maxProducts, setMaxProducts] = useState(10);
@@ -43,12 +45,18 @@ export default function NewStorePage() {
   const logsEndRef = useRef<HTMLDivElement>(null);
   const startTimeRef = useRef(0);
 
+  useEffect(() => {
+    const n = searchParams.get('niche');
+    const s = searchParams.get('name');
+    if (n) setNiche(n);
+    if (s) setStoreName(s);
+  }, [searchParams]);
+
   const addLog = (event: AgentEvent) => {
     const line: LogLine = { id: counterRef.current++, type: event.type, message: event.message, ts: new Date().toLocaleTimeString() };
     setLogs(prev => [...prev, line]);
     setTimeout(() => logsEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 30);
 
-    // Update progress bar
     if (event.type === 'step') setProgress(p => Math.min(p + 15, 85));
     if (event.type === 'progress' && event.data?.imported && event.data?.total) {
       const pct = Math.round((Number(event.data.imported) / Number(event.data.total)) * 100);
@@ -126,7 +134,6 @@ export default function NewStorePage() {
       </div>
 
       <div className="border rounded-xl p-6 space-y-5 bg-white shadow-sm">
-        {/* Niche presets */}
         <div>
           <label className="block text-sm font-medium text-zinc-700 mb-2">Niche / mot-clé</label>
           <div className="flex flex-wrap gap-2 mb-2">
@@ -199,7 +206,6 @@ export default function NewStorePage() {
         </button>
       </div>
 
-      {/* Progress bar */}
       {(running || result) && (
         <div className="space-y-1">
           <div className="flex justify-between text-xs text-zinc-500">
@@ -215,7 +221,6 @@ export default function NewStorePage() {
         </div>
       )}
 
-      {/* Terminal */}
       {logs.length > 0 && (
         <div className="border rounded-xl overflow-hidden shadow-sm">
           <div className="bg-zinc-900 px-4 py-2 flex items-center gap-2">
@@ -240,13 +245,12 @@ export default function NewStorePage() {
         </div>
       )}
 
-      {/* Success */}
       {result && (
         <div className="border border-green-200 bg-green-50 rounded-xl p-6 text-center space-y-4">
           <div className="text-4xl">🎉</div>
           <h3 className="text-xl font-bold text-green-900">Store créé !</h3>
           <p className="text-green-700 text-sm"><strong>{result.productCount} produits</strong> dans <strong>{result.storeName}</strong></p>
-          <div className="flex gap-3 justify-center">
+          <div className="flex gap-3 justify-center flex-wrap">
             <Link href={`/shop/${result.slug}`} target="_blank"
               className="bg-green-700 text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-green-800">
               Voir le store →
@@ -270,5 +274,13 @@ export default function NewStorePage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function NewStorePage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-zinc-400">Chargement...</div>}>
+      <NewStoreForm />
+    </Suspense>
   );
 }
