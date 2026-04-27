@@ -3,6 +3,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { getStoreBySlug } from '@/lib/store-config';
 import { formatMoney, listProducts } from '@/lib/medusa-store';
+import { MonoProductLanding } from './MonoProductLanding';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,6 +35,13 @@ export default async function ShopPage({ params }: { params: Promise<{ slug: str
     products = result.products;
   } catch (e) {
     error = e instanceof Error ? e.message : 'Erreur chargement produits';
+  }
+
+  // Mono-product mode: a store with exactly one product gets the long-form
+  // conversion-optimized landing page instead of the niche-brand grid. This
+  // is the default for paid-traffic dropship stores.
+  if (!error && products.length === 1) {
+    return <MonoProductLanding store={store} product={products[0]} />;
   }
 
   return (
