@@ -98,13 +98,21 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
           </div>
           <div className="ml-auto flex items-center gap-3">
             {store.status === 'active' && (
-              <Link
-                href={`/shop/${store.slug}`}
-                target="_blank"
-                className="bg-white/20 hover:bg-white/30 text-white text-sm px-4 py-1.5 rounded-lg transition-colors"
-              >
-                Voir le store →
-              </Link>
+              <>
+                <Link
+                  href={`/admin/stores/${store.id}/analytics`}
+                  className="bg-white/20 hover:bg-white/30 text-white text-sm px-4 py-1.5 rounded-lg transition-colors"
+                >
+                  Analytics
+                </Link>
+                <Link
+                  href={`/shop/${store.slug}`}
+                  target="_blank"
+                  className="bg-white/20 hover:bg-white/30 text-white text-sm px-4 py-1.5 rounded-lg transition-colors"
+                >
+                  Voir le store →
+                </Link>
+              </>
             )}
             <StoreActions storeId={store.id} storeName={store.name} />
           </div>

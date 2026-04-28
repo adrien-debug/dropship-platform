@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCartId, clearCartId } from '@/lib/cart-cookie';
+import { getCartId, clearCartId, getLastStoreSlug } from '@/lib/cart-cookie';
 import { completeCart, initPaymentSession } from '@/lib/medusa-store';
 import { medusa } from '@/lib/medusa';
 import { stripeEnabled, STRIPE_PROVIDER_ID } from '@/lib/stripe-env';
 import { checkRateLimit, enforceRateLimit } from '@/lib/rate-limit';
+import { getStoreBySlug } from '@/lib/store-config';
+import { trackEvent } from '@/lib/analytics/track';
 
 export async function POST(request: NextRequest) {
   try {
@@ -70,6 +72,27 @@ export async function POST(request: NextRequest) {
           await medusa.capturePayments(result.order.id);
         } catch (err) {
           console.error(`[checkout/complete] capture failed for ${result.order.id}:`, err);
+        }
+      }
+
+      // Purchase conversion — fire AFTER capture so we only count
+      // money-in-hand. Fetch the full order for email/total/currency;
+      // a fetch failure is non-fatal, the order is already created.
+      const slug = await getLastStoreSlug();
+      if (slug) {
+        const store = await getStoreBySlug(slug).catch(() => null);
+        const fullOrder = await medusa.getOrder(result.order.id).catch(() => null);
+        if (store && fullOrder) {
+          await trackEvent({
+            store,
+            request,
+            eventName: 'purchase',
+            valueMinor: typeof fullOrder.total === 'number' ? Math.round(fullOrder.total * 100) : undefined,
+            currencyCode: fullOrder.currency_code,
+            email: fullOrder.email ?? undefined,
+            phone: fullOrder.shipping_address?.phone ?? undefined,
+            medusaOrderId: result.order.id,
+          });
         }
       }
 

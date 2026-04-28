@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCartId } from '@/lib/cart-cookie';
+import { getCartId, getLastStoreSlug } from '@/lib/cart-cookie';
 import { getCart, storeFetch } from '@/lib/medusa-store';
 import { STRIPE_PROVIDER_ID, stripeEnabled } from '@/lib/stripe-env';
 import { enforceRateLimit } from '@/lib/rate-limit';
+import { getStoreBySlug } from '@/lib/store-config';
+import { trackEvent } from '@/lib/analytics/track';
 
 interface PaymentSession {
   id: string;
@@ -54,12 +56,33 @@ export async function POST(request: NextRequest) {
         { status: 500 },
       );
     }
+    // InitiateCheckout — fired when the visitor reaches the payment screen.
+    // Best-effort: a tracking failure must not block the payment session.
+    let eventId: string | null = null;
+    const slug = await getLastStoreSlug();
+    if (slug) {
+      const store = await getStoreBySlug(slug).catch(() => null);
+      if (store) {
+        const result = await trackEvent({
+          store,
+          request,
+          eventName: 'initiate_checkout',
+          valueMinor: Math.round(cart.total * 100),
+          currencyCode: cart.currency_code,
+          email: cart.email ?? undefined,
+          phone: cart.shipping_address?.phone ?? undefined,
+        });
+        eventId = result.eventId;
+      }
+    }
+
     return NextResponse.json({
       success: true,
       clientSecret,
       paymentCollectionId: created.payment_collection.id,
       amount: cart.total,
       currency: cart.currency_code,
+      eventId,
     });
   } catch (e) {
     return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Erreur' }, { status: 500 });
