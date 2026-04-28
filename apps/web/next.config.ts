@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next';
+import { withSentryConfig } from '@sentry/nextjs';
 
 /**
  * Security headers applied site-wide. Notes:
@@ -54,4 +55,19 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  // Sentry build plugin: uploads source maps so stack traces in the
+  // dashboard point at original TS, and tunnels client events through
+  // /monitoring on our own domain to bypass ad blockers.
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: !process.env.CI,
+  widenClientFileUpload: true,
+  // Sentry v10 deletes source maps after upload by default, so they
+  // never end up served from /_next/static — no need for an explicit
+  // hideSourceMaps flag.
+  disableLogger: true,
+  tunnelRoute: '/monitoring',
+  automaticVercelMonitors: false,
+});

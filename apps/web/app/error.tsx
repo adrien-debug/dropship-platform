@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
+import * as Sentry from '@sentry/nextjs';
 
 /**
  * Route-level error boundary. Caught by Next.js whenever a server or client
@@ -11,9 +12,7 @@ import Link from 'next/link';
  */
 export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
-    // Best-effort: log to console so Vercel runtime logs capture it.
-    // Replace with Sentry/Datadog when monitoring is wired up.
-    console.error('[app/error]', error);
+    Sentry.captureException(error);
   }, [error]);
 
   return (
