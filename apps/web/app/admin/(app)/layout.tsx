@@ -24,7 +24,7 @@ export default function AdminAppLayout({ children }: { children: React.ReactNode
           <ul className="space-y-2">
             {navItems.map((item) => (
               <li key={item.href}>
-                <Link href={item.href} className="block px-4 py-2 rounded transition-colors hover:bg-gray-800">
+                <Link href={item.href} className="block px-4 py-2 rounded transition-colors hover:bg-zinc-800">
                   {item.label}
                   {item.badge ? (
                     <span className="ml-2 text-[10px] uppercase text-zinc-400">({item.badge})</span>

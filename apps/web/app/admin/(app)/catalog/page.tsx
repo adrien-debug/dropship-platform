@@ -21,7 +21,7 @@ export default async function CatalogPage() {
       {error && <div className="border border-red-200 bg-red-50 text-red-800 p-4 rounded">{error}</div>}
       <div className="border rounded-lg overflow-hidden">
         <table className="w-full">
-          <thead className="bg-gray-50 text-sm">
+          <thead className="bg-zinc-50 text-sm">
             <tr>
               <th className="text-left p-3">Image</th>
               <th className="text-left p-3">Titre</th>
@@ -45,7 +45,7 @@ export default async function CatalogPage() {
                 <td className="p-3 font-medium text-sm">{p.title}</td>
                 <td className="p-3 text-xs text-zinc-500">{p.handle}</td>
                 <td className="p-3">
-                  <span className={`px-2 py-1 rounded text-xs ${p.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'}`}>{p.status}</span>
+                  <span className={`px-2 py-1 rounded text-xs ${p.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-zinc-100 text-zinc-700'}`}>{p.status}</span>
                 </td>
                 <td className="p-3 text-sm">{p.variants?.length ?? 0}</td>
                 <td className="p-3 text-right">

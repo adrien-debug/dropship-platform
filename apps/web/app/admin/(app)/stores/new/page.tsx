@@ -214,7 +214,7 @@ function NewStoreForm() {
           </div>
           <div className="h-2 bg-zinc-100 rounded-full overflow-hidden">
             <div
-              className="h-full bg-black rounded-full transition-all duration-500"
+              className="h-full bg-black rounded-full transition-[width] duration-500"
               style={{ width: `${progress}%` }}
             />
           </div>

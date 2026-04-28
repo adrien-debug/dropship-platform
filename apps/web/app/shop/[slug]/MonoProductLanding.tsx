@@ -132,7 +132,7 @@ export function MonoProductLanding({ store, product }: Props) {
           ].map((u) => (
             <div
               key={u.num}
-              className="bg-white p-10 transition-all duration-300 hover:bg-zinc-50/60 hover:-translate-y-0.5"
+              className="bg-white p-10 transition-[background-color,transform] duration-300 hover:bg-zinc-50/60 hover:-translate-y-0.5"
             >
               <NumberMark value={u.num} color={store.primaryColor} size="lg" />
               <Heading as="h3" size="sm" className="mt-6 mb-3">
@@ -282,7 +282,7 @@ export function MonoProductLanding({ store, product }: Props) {
             ].map((i) => (
               <div
                 key={i.label}
-                className="border border-zinc-200 rounded-xl p-6 text-center transition-all duration-300 hover:border-zinc-300 hover:-translate-y-0.5 hover:shadow-[0_18px_30px_-20px_rgba(0,0,0,0.25)]"
+                className="border border-zinc-200 rounded-xl p-6 text-center transition-[border-color,transform,box-shadow] duration-300 hover:border-zinc-300 hover:-translate-y-0.5 hover:shadow-card-hover"
               >
                 <NumberMark value={i.qty} color={store.primaryColor} size="md" />
                 <div className="mt-3 text-sm text-zinc-700 leading-snug">{i.label}</div>

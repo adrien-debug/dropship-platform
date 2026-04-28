@@ -145,7 +145,7 @@ export function CheckoutForm({ cart, shippingOptions, shippingError, stripeEnabl
               !form.province ||
               !form.phone
             }
-            className="bg-black text-white px-6 py-3 rounded-md hover:bg-zinc-800 disabled:opacity-60"
+            className="bg-black text-white px-6 py-3 rounded-full hover:bg-zinc-800 disabled:opacity-60"
           >
             {pending ? '…' : 'Continuer'}
           </button>
@@ -193,7 +193,7 @@ export function CheckoutForm({ cart, shippingOptions, shippingError, stripeEnabl
               <button
                 onClick={complete}
                 disabled={pending}
-                className="bg-black text-white px-6 py-3 rounded-md hover:bg-zinc-800 disabled:opacity-60 w-full"
+                className="bg-black text-white px-6 py-3 rounded-full hover:bg-zinc-800 disabled:opacity-60 w-full"
               >
                 {pending ? '…' : `Confirmer la commande (${formatMoney(cart.total, cart.currency_code)})`}
               </button>

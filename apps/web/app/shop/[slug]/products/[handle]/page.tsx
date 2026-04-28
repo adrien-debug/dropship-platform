@@ -51,18 +51,18 @@ export default async function ShopProductPage({
   const imageUrl = product.thumbnail || product.images?.[0]?.url;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <nav className="mb-8 text-sm text-gray-500">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-12">
+      <nav className="mb-8 text-sm text-zinc-500">
         <Link href={`/shop/${slug}`} className="hover:underline" style={{ color: store.accentColor }}>
           {store.logoEmoji} {store.name}
         </Link>
         <span className="mx-2">›</span>
-        <span className="text-gray-900">{product.title}</span>
+        <span className="text-zinc-900">{product.title}</span>
       </nav>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
         {/* Image */}
-        <div className="aspect-square rounded-2xl overflow-hidden bg-gray-100 shadow-md">
+        <div className="aspect-square rounded-2xl overflow-hidden bg-zinc-100 shadow-md">
           {imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={imageUrl} alt={product.title} className="w-full h-full object-cover" />
@@ -75,7 +75,7 @@ export default async function ShopProductPage({
 
         {/* Details */}
         <div className="flex flex-col">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">{product.title}</h1>
+          <h1 className="text-3xl font-bold text-zinc-900 mb-4">{product.title}</h1>
 
           {price !== undefined && (
             <div className="text-4xl font-bold mb-6" style={{ color: store.accentColor }}>
@@ -84,21 +84,21 @@ export default async function ShopProductPage({
           )}
 
           {product.description && (
-            <div className="prose prose-sm text-gray-600 mb-8 leading-relaxed">
+            <div className="prose prose-sm text-zinc-600 mb-8 leading-relaxed">
               {product.description}
             </div>
           )}
 
           <div className="space-y-3 mb-8">
-            <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className="flex items-center gap-2 text-sm text-zinc-600">
               <span>✅</span>
               <span>Livraison internationale disponible</span>
             </div>
-            <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className="flex items-center gap-2 text-sm text-zinc-600">
               <span>🔒</span>
               <span>Paiement 100% sécurisé</span>
             </div>
-            <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className="flex items-center gap-2 text-sm text-zinc-600">
               <span>↩️</span>
               <span>Retours faciles sous 30 jours</span>
             </div>
@@ -108,7 +108,7 @@ export default async function ShopProductPage({
             <AddToCartButton variantId={variant.id} storeSlug={slug} showQuantity />
           )}
 
-          <p className="text-xs text-gray-400 mt-4 text-center">
+          <p className="text-xs text-zinc-400 mt-4 text-center">
             Article ajouté au panier global — checkout sécurisé par Stripe
           </p>
         </div>

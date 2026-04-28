@@ -69,14 +69,14 @@ export default async function ShopPage({ params }: { params: Promise<{ slug: str
 
       {/* Products grid */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <h2 className="text-2xl font-bold mb-8 text-gray-900">Nos produits</h2>
+        <h2 className="text-2xl font-bold mb-8 text-zinc-900">Nos produits</h2>
 
         {error && (
           <div className="border border-red-200 bg-red-50 text-red-800 p-4 rounded mb-6">{error}</div>
         )}
 
         {!error && products.length === 0 && (
-          <p className="text-gray-500 text-center py-20">Aucun produit disponible pour le moment.</p>
+          <p className="text-zinc-500 text-center py-20">Aucun produit disponible pour le moment.</p>
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -89,9 +89,9 @@ export default async function ShopPage({ params }: { params: Promise<{ slug: str
               <Link
                 key={product.id}
                 href={`/shop/${slug}/products/${product.handle}`}
-                className="group bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden border border-gray-100"
+                className="group bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden border border-zinc-100"
               >
-                <div className="aspect-square overflow-hidden bg-gray-100">
+                <div className="aspect-square overflow-hidden bg-zinc-100">
                   {imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -106,7 +106,7 @@ export default async function ShopPage({ params }: { params: Promise<{ slug: str
                   )}
                 </div>
                 <div className="p-4">
-                  <h3 className="font-semibold text-gray-900 text-sm line-clamp-2 mb-2">
+                  <h3 className="font-semibold text-zinc-900 text-sm line-clamp-2 mb-2">
                     {product.title}
                   </h3>
                   {price !== undefined && (

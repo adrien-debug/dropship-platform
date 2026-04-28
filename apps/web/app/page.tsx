@@ -68,7 +68,7 @@ function Hero() {
         </p>
         <Link
           href="/products"
-          className="mt-8 inline-flex items-center gap-2 bg-black text-white px-6 py-3 rounded-md hover:bg-zinc-800"
+          className="mt-8 inline-flex items-center gap-2 bg-black text-white px-6 py-3 rounded-full hover:bg-zinc-800"
         >
           Voir la sélection
         </Link>

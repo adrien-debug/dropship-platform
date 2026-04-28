@@ -31,7 +31,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
           <button
             type="button"
             onClick={reset}
-            className="inline-flex items-center justify-center bg-zinc-950 text-white px-7 py-3.5 rounded-full text-sm font-medium uppercase tracking-[0.18em] transition-all hover:-translate-y-0.5 hover:bg-black"
+            className="inline-flex items-center justify-center bg-zinc-950 text-white px-7 py-3.5 rounded-full text-sm font-medium uppercase tracking-[0.18em] transition-colors hover:-translate-y-0.5 hover:bg-black"
           >
             Réessayer
           </button>

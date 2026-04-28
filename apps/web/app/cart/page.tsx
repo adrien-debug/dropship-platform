@@ -33,7 +33,8 @@ export default async function CartPage() {
       <section className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-12 py-14 sm:py-20">
         <h1 className="font-serif text-4xl sm:text-5xl mb-12 text-zinc-900">Panier</h1>
         <div className="border border-zinc-200 rounded-2xl overflow-hidden">
-          <table className="w-full">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[600px]">
             <thead className="bg-zinc-50 text-xs uppercase tracking-[0.18em] text-zinc-500 font-medium">
               <tr>
                 <th className="text-left p-6">Produit</th>
@@ -48,6 +49,7 @@ export default async function CartPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
         <div className="mt-10 flex flex-col gap-3 max-w-md ml-auto text-base">
           <Row label="Sous-total" value={formatMoney(cart.subtotal, currency)} />

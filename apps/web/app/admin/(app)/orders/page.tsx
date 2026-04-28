@@ -210,7 +210,8 @@ export default async function OrdersPage() {
               <strong>20 jours</strong> sans paiement.
             </p>
           </div>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[700px] text-sm">
             <thead className="bg-amber-50/40 text-[10px] uppercase tracking-[0.14em] text-amber-900/60">
               <tr>
                 <th className="text-left px-5 py-3 font-medium">Commande</th>
@@ -268,6 +269,7 @@ export default async function OrdersPage() {
               })}
             </tbody>
           </table>
+          </div>
         </section>
       )}
 
@@ -290,7 +292,8 @@ export default async function OrdersPage() {
               · {orders.length} affichée{orders.length > 1 ? 's' : ''}
             </span>
           </div>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[700px] text-sm">
             <thead className="bg-zinc-50/60 text-[10px] uppercase tracking-[0.14em] text-zinc-500">
               <tr>
                 <th className="text-left px-5 py-3 font-medium">Commande</th>
@@ -387,6 +390,7 @@ export default async function OrdersPage() {
               })}
             </tbody>
           </table>
+          </div>
         </section>
       )}
     </div>
