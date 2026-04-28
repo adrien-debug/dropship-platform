@@ -8,6 +8,17 @@ interface ImageEntry {
   url: string;
   bytes: number;
   mtime: number;
+  kind: 'image' | 'video' | 'audio';
+}
+
+const MEDIA_RE = /\.(png|jpe?g|webp|mp4|webm|mov|wav|mp3|ogg)$/i;
+function classify(filename: string): ImageEntry['kind'] | null {
+  const m = filename.toLowerCase().match(/\.([a-z0-9]+)$/);
+  if (!m) return null;
+  if (['png', 'jpg', 'jpeg', 'webp'].includes(m[1])) return 'image';
+  if (['mp4', 'webm', 'mov'].includes(m[1])) return 'video';
+  if (['wav', 'mp3', 'ogg'].includes(m[1])) return 'audio';
+  return null;
 }
 
 interface RunEntry {
@@ -51,13 +62,15 @@ async function listStores(): Promise<StoreEntry[]> {
         const files = await fs.readdir(runAbs);
         const images: ImageEntry[] = [];
         for (const f of files) {
-          if (!/\.(png|jpe?g|webp)$/i.test(f)) continue;
+          const kind = classify(f);
+          if (!kind) continue;
           const stat = await fs.stat(path.join(runAbs, f));
           images.push({
             filename: f,
             url: `/generated/${store}/${child.name}/${f}`,
             bytes: stat.size,
             mtime: stat.mtimeMs,
+            kind,
           });
         }
         if (images.length > 0) {
@@ -68,13 +81,16 @@ async function listStores(): Promise<StoreEntry[]> {
             latestMtime: Math.max(...images.map((i) => i.mtime)),
           });
         }
-      } else if (/\.(png|jpe?g|webp)$/i.test(child.name)) {
+      } else if (MEDIA_RE.test(child.name)) {
+        const kind = classify(child.name);
+        if (!kind) continue;
         const stat = await fs.stat(path.join(storeAbs, child.name));
         orphanImages.push({
           filename: child.name,
           url: `/generated/${store}/${child.name}`,
           bytes: stat.size,
           mtime: stat.mtimeMs,
+          kind,
         });
       }
     }
@@ -166,26 +182,39 @@ export default async function GeneratedImagesPage() {
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                   {r.images.map((img) => (
-                    <a
+                    <div
                       key={img.url}
-                      href={img.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group block border border-zinc-200 rounded-lg overflow-hidden hover:border-zinc-400 transition-colors"
+                      className="group block border border-zinc-200 rounded-lg overflow-hidden hover:border-zinc-400 transition-colors bg-zinc-50"
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={img.url}
-                        alt={img.filename}
-                        className="w-full aspect-square object-cover bg-zinc-100"
-                      />
+                      {img.kind === 'video' ? (
+                        <video
+                          src={img.url}
+                          controls
+                          preload="metadata"
+                          className="w-full aspect-[9/16] bg-black object-cover"
+                        />
+                      ) : img.kind === 'audio' ? (
+                        <div className="aspect-square flex flex-col items-center justify-center p-4 bg-gradient-to-br from-zinc-100 to-zinc-200">
+                          <span className="text-3xl mb-3">🎵</span>
+                          <audio src={img.url} controls className="w-full" />
+                        </div>
+                      ) : (
+                        <a href={img.url} target="_blank" rel="noopener noreferrer">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={img.url}
+                            alt={img.filename}
+                            className="w-full aspect-square object-cover bg-zinc-100"
+                          />
+                        </a>
+                      )}
                       <div className="px-2.5 py-1.5 flex items-center justify-between text-[11px]">
                         <span className="font-mono text-zinc-700 truncate">{img.filename}</span>
                         <span className="text-zinc-400 shrink-0 ml-2">
                           {(img.bytes / 1024).toFixed(0)} KB
                         </span>
                       </div>
-                    </a>
+                    </div>
                   ))}
                 </div>
               </div>
