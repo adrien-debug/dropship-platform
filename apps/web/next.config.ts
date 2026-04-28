@@ -67,7 +67,14 @@ export default withSentryConfig(nextConfig, {
   // Sentry v10 deletes source maps after upload by default, so they
   // never end up served from /_next/static — no need for an explicit
   // hideSourceMaps flag.
-  disableLogger: true,
   tunnelRoute: '/monitoring',
-  automaticVercelMonitors: false,
+  // v10 moved bundler-related toggles under `webpack`. Keeping the old
+  // top-level `disableLogger` / `automaticVercelMonitors` triggers a
+  // deprecation warning on every build.
+  webpack: {
+    treeshake: {
+      removeDebugLogging: true,
+    },
+    automaticVercelMonitors: false,
+  },
 });

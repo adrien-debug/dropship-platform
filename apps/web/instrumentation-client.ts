@@ -55,3 +55,8 @@ Sentry.init({
   debug: false,
   sendDefaultPii: false,
 });
+
+// Hook the App Router's transition start into Sentry's tracing so client
+// navigations show up as their own transactions in the dashboard. Required
+// since v10 — without it the SDK warns at boot.
+export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
