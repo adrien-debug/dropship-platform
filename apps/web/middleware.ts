@@ -1,16 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * Edge middleware that locks down every admin surface behind HTTP Basic auth.
+ * Edge middleware. Two distinct responsibilities:
  *
- * Why: until now anyone who guessed the URLs could DELETE a store, place a
- * real AliExpress order, or list every paid Medusa order. With ADMIN_USERNAME
- * / ADMIN_PASSWORD set, the browser handles the prompt natively and any
- * unauthenticated request — page or API — gets a 401.
+ *  1. **Admin auth**: every admin surface (`/admin/*`, `/api/agent/*`, AE
+ *     OAuth start, AE diagnostics, Medusa setup) sits behind HTTP Basic
+ *     auth. Public exceptions (AE OAuth callback, Medusa health) are
+ *     explicitly carved out.
  *
- * Public routes that look admin-shaped (the AE OAuth callback, Stripe webhook,
- * Medusa health probe) are explicitly carved out below so the relevant external
- * services keep working.
+ *  2. **UTM capture**: every visit to `/shop/:path*` checks for utm_*,
+ *     fbclid, ttclid query params and stashes them in a 1st-party cookie
+ *     so the checkout / order pipeline can attribute the conversion. No
+ *     auth, no redirect — fully transparent to the visitor.
+ *
+ * Both flows share this middleware because Next.js only allows one. The
+ * matcher list maps each route bucket to the logic it should run.
  */
 
 const ADMIN_USERNAME = (process.env.ADMIN_USERNAME ?? '').trim();
@@ -21,6 +25,10 @@ const PUBLIC_EXCEPTIONS = new Set<string>([
   '/api/aliexpress/oauth/callback',  // AliExpress redirects browsers here
   '/api/medusa/health',              // GH Actions warm-up + storefront health
 ]);
+
+const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'fbclid', 'ttclid'] as const;
+const UTM_COOKIE = 'utm_attribution';
+const UTM_TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
 
 function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
@@ -60,16 +68,48 @@ function challenge(): NextResponse {
   });
 }
 
+/**
+ * Read utm_* / fbclid / ttclid from the URL. If at least one is present,
+ * pin them to a 1st-party cookie that lives 30 days. Last touch wins —
+ * a fresh ad click overwrites any prior attribution.
+ */
+function captureUtm(req: NextRequest, res: NextResponse): NextResponse {
+  const params = req.nextUrl.searchParams;
+  const captured: Record<string, string> = {};
+  for (const key of UTM_KEYS) {
+    const v = params.get(key);
+    if (v && v.length > 0 && v.length <= 256) {
+      captured[key] = v;
+    }
+  }
+  if (Object.keys(captured).length === 0) return res;
+  captured.captured_at = new Date().toISOString();
+
+  res.cookies.set(UTM_COOKIE, JSON.stringify(captured), {
+    httpOnly: false,         // The client-side pixel needs to read it for dedup.
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: UTM_TTL_SECONDS,
+    path: '/',
+  });
+  return res;
+}
+
 export function middleware(req: NextRequest) {
-  if (PUBLIC_EXCEPTIONS.has(req.nextUrl.pathname)) {
+  const path = req.nextUrl.pathname;
+
+  // Storefront: capture UTMs, never block.
+  if (path.startsWith('/shop/')) {
+    return captureUtm(req, NextResponse.next());
+  }
+
+  // Admin: enforce Basic auth (with carved-out public exceptions).
+  if (PUBLIC_EXCEPTIONS.has(path)) {
     return NextResponse.next();
   }
   return hasValidBasicAuth(req) ? NextResponse.next() : challenge();
 }
 
-// All paths below require Basic auth. Public storefront, cart, checkout,
-// products, legal, stripe webhook, AE OAuth callback, Medusa health, and
-// /shop/[slug] never enter this matcher and stay open.
 export const config = {
   matcher: [
     '/admin/:path*',
@@ -80,5 +120,7 @@ export const config = {
     '/api/aliexpress/probe-order',
     '/api/medusa/setup',
     '/api/medusa/health',
+    // Storefront — UTM capture only, no auth.
+    '/shop/:path*',
   ],
 };

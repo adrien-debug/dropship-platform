@@ -1,7 +1,10 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { getStoreBySlug } from '@/lib/store-config';
+import { getStoreBySlug, publicAnalytics } from '@/lib/store-config';
 import { BrandLogo } from '@/components/ui';
+import { getConsent } from '@/lib/consent';
+import { StoreAnalytics } from '@/components/analytics/StoreAnalytics';
+import { CookieBanner } from '@/components/analytics/CookieBanner';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,9 +18,12 @@ export default async function ShopLayout({
   const { slug } = await params;
   const store = await getStoreBySlug(slug);
   if (!store) notFound();
+  const consent = await getConsent();
 
   return (
     <div style={{ '--primary': store.primaryColor, '--accent': store.accentColor } as React.CSSProperties}>
+      <StoreAnalytics ids={publicAnalytics(store)} consent={consent} />
+      <CookieBanner />
       <header className="absolute top-0 left-0 right-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">

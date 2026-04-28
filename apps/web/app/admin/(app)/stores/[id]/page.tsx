@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getDb } from '@/lib/db';
 import { StoreActions } from '../StoreActions';
+import { StoreAnalyticsForm } from './StoreAnalyticsForm';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +23,12 @@ interface StoreDetailRow {
   error_message: string | null;
   created_at: string;
   updated_at: string;
+  ga4_measurement_id: string | null;
+  meta_pixel_id: string | null;
+  meta_capi_token: string | null;
+  tiktok_pixel_id: string | null;
+  tiktok_events_token: string | null;
+  clarity_id: string | null;
 }
 
 interface ProductRow {
@@ -44,7 +51,9 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
   const storeRes = await db.query<StoreDetailRow>(
     `SELECT id, slug, name, niche, tagline, description, logo_emoji, primary_color, accent_color,
             status, product_count, medusa_sales_channel_id, medusa_publishable_key,
-            error_message, created_at, updated_at
+            error_message, created_at, updated_at,
+            ga4_measurement_id, meta_pixel_id, meta_capi_token,
+            tiktok_pixel_id, tiktok_events_token, clarity_id
      FROM dropship_stores WHERE id = $1 LIMIT 1`,
     [id],
   );
@@ -142,6 +151,18 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
           </div>
         </div>
       </div>
+
+      <StoreAnalyticsForm
+        storeId={store.id}
+        initial={{
+          ga4MeasurementId: store.ga4_measurement_id ?? '',
+          metaPixelId: store.meta_pixel_id ?? '',
+          metaCapiToken: store.meta_capi_token ?? '',
+          tiktokPixelId: store.tiktok_pixel_id ?? '',
+          tiktokEventsToken: store.tiktok_events_token ?? '',
+          clarityId: store.clarity_id ?? '',
+        }}
+      />
 
       {/* Products list */}
       <div>
