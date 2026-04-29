@@ -84,7 +84,7 @@ export function AddToCartButton({ variantId, storeSlug, tone = 'dark', label = '
         type="button"
         onClick={submit}
         disabled={pending}
-        className={`group relative w-full overflow-hidden rounded-full ${buttonBase} px-7 py-4 text-sm font-medium uppercase tracking-[0.18em] transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 active:translate-y-0 hover:shadow-cta disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none`}
+        className={`group relative w-full overflow-hidden rounded-full ${buttonBase} px-7 py-4 text-sm font-medium uppercase tracking-cta transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 active:translate-y-0 hover:shadow-cta disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none`}
       >
         <span className="inline-flex items-center justify-center gap-3">
           {pending ? (

@@ -213,7 +213,7 @@ export function MonoProductLanding({ store, product }: Props) {
               ['Compatibilité', 'Tour de cou 28 à 48 cm'],
             ].map(([k, v]) => (
               <div key={k} className="bg-white p-5 flex items-baseline justify-between gap-4">
-                <span className="text-xs uppercase tracking-[0.18em] text-zinc-500 font-medium">{k}</span>
+                <span className="text-xs uppercase tracking-cta text-zinc-500 font-medium">{k}</span>
                 <span className="text-sm text-zinc-900 font-medium text-right">{v}</span>
               </div>
             ))}
@@ -356,22 +356,6 @@ function HeroSection({
 
   return (
     <section className="relative min-h-[100svh] overflow-hidden bg-zinc-950">
-      <style>{`
-        @keyframes brisaSlowZoom {
-          0%, 100% { transform: scale(1.04) translateX(0); }
-          50%      { transform: scale(1.12) translateX(-1.5%); }
-        }
-        @keyframes brisaFadeUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        .brisa-hero-img { animation: brisaSlowZoom 22s ease-in-out infinite; }
-        .brisa-fade-1 { animation: brisaFadeUp 0.9s ease-out 0.1s backwards; }
-        .brisa-fade-2 { animation: brisaFadeUp 0.9s ease-out 0.3s backwards; }
-        .brisa-fade-3 { animation: brisaFadeUp 0.9s ease-out 0.5s backwards; }
-        .brisa-fade-4 { animation: brisaFadeUp 0.9s ease-out 0.7s backwards; }
-      `}</style>
-
       {heroImage && (
         <Parallax speed={-0.22} className="absolute inset-0 -top-[6%] -bottom-[6%]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -394,7 +378,7 @@ function HeroSection({
         <Parallax speed={0.08} className="max-w-xl text-white">
           <div className="brisa-fade-1 inline-flex items-center gap-3 mb-8">
             <span className="h-px w-10 bg-white/60" aria-hidden="true" />
-            <span className="text-[10px] uppercase tracking-[0.3em] font-medium">
+            <span className="text-kicker uppercase tracking-kicker font-medium">
               Nouveau · Été 2026
             </span>
           </div>
@@ -426,7 +410,7 @@ function HeroSection({
               {compareAtPrice && (
                 <span className="text-xl text-white/50 line-through">{compareAtPrice}</span>
               )}
-              <span className="text-[10px] uppercase tracking-wider bg-white text-zinc-900 px-2.5 py-1 rounded-full font-bold">
+              <span className="text-kicker uppercase tracking-wider bg-white text-zinc-900 px-2.5 py-1 rounded-full font-bold">
                 -38%
               </span>
             </div>
@@ -446,7 +430,7 @@ function HeroSection({
         </Parallax>
       </div>
 
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/60 text-[10px] uppercase tracking-[0.3em] flex flex-col items-center gap-2">
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/60 text-kicker uppercase tracking-kicker flex flex-col items-center gap-2">
         <span>Découvrir</span>
         <svg width="14" height="20" viewBox="0 0 14 20" fill="none">
           <path d="M7 0v18m0 0l-6-6m6 6l6-6" stroke="currentColor" strokeWidth="1.4" />

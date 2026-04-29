@@ -96,7 +96,7 @@ export function ForwardButton({ orderId, alreadySent }: Props) {
             {result.status === 'error' && (result.error ?? 'Erreur inconnue')}
           </div>
           {result.unmappedItems && result.unmappedItems.length > 0 && (
-            <div className="mt-1 opacity-75 text-[10px]">
+            <div className="mt-1 opacity-75 text-kicker">
               {result.unmappedItems.length} item(s) non mappé(s) : {result.unmappedItems.map((u) => u.title).join(', ')}
             </div>
           )}

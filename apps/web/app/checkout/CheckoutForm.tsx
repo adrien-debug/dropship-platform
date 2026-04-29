@@ -211,7 +211,7 @@ export function CheckoutForm({ cart, shippingOptions, shippingError, stripeEnabl
 function Step({ n, active, done, children }: { n: number; active: boolean; done: boolean; children: React.ReactNode }) {
   return (
     <li className={`flex items-center gap-2 ${active ? 'text-black font-medium' : done ? 'text-green-700' : ''}`}>
-      <span className={`w-5 h-5 rounded-full inline-flex items-center justify-center text-[10px] ${active ? 'bg-black text-white' : done ? 'bg-green-600 text-white' : 'bg-zinc-200'}`}>{n}</span>
+      <span className={`w-5 h-5 rounded-full inline-flex items-center justify-center text-kicker ${active ? 'bg-black text-white' : done ? 'bg-green-600 text-white' : 'bg-zinc-200'}`}>{n}</span>
       {children}
     </li>
   );

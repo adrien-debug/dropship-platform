@@ -4,7 +4,7 @@ interface Props {
   size?: number;
 }
 
-export function Stars({ count = 5, color = '#0087BE', size = 14 }: Props) {
+export function Stars({ count = 5, color = 'currentColor', size = 14 }: Props) {
   return (
     <div className="flex gap-1" aria-label={`${count} étoiles sur 5`}>
       {Array.from({ length: count }).map((_, i) => (

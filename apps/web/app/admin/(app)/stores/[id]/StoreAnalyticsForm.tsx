@@ -147,7 +147,7 @@ export function StoreAnalyticsForm({ storeId, initial }: Props) {
           type="button"
           onClick={submit}
           disabled={pending}
-          className="bg-zinc-950 text-white px-6 py-2.5 rounded-full text-xs uppercase tracking-[0.18em] font-medium hover:bg-black transition-colors disabled:opacity-60"
+          className="bg-zinc-950 text-white px-6 py-2.5 rounded-full text-xs uppercase tracking-cta font-medium hover:bg-black transition-colors disabled:opacity-60"
         >
           {pending ? 'Enregistrement…' : 'Enregistrer'}
         </button>
@@ -170,7 +170,7 @@ function Group({
   return (
     <section>
       <div className="mb-4">
-        <h4 className={`text-xs uppercase tracking-[0.22em] font-medium ${tone === 'warn' ? 'text-amber-700' : 'text-zinc-500'}`}>
+        <h4 className={`text-xs uppercase tracking-label font-medium ${tone === 'warn' ? 'text-amber-700' : 'text-zinc-500'}`}>
           {title}
         </h4>
         {hint && <p className="text-xs text-zinc-400 mt-1">{hint}</p>}

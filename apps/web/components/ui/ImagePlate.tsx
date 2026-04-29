@@ -69,7 +69,7 @@ export function ImagePlate({
         />
       )}
       {tag && (
-        <span className="absolute top-4 left-4 z-10 inline-flex items-center gap-2 rounded-full bg-black/35 backdrop-blur-md px-3 py-1.5 text-[10px] uppercase tracking-[0.22em] text-white font-medium">
+        <span className="absolute top-4 left-4 z-10 inline-flex items-center gap-2 rounded-full bg-black/35 backdrop-blur-md px-3 py-1.5 text-kicker uppercase tracking-label text-white font-medium">
           {tag}
         </span>
       )}

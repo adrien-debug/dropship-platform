@@ -47,7 +47,7 @@ function StatCard({
   };
   return (
     <div className="border border-zinc-200 bg-white rounded-xl px-5 py-4">
-      <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-zinc-400 font-medium">
+      <div className="flex items-center gap-2 text-kicker uppercase tracking-cta text-zinc-400 font-medium">
         <span className="inline-block w-1 h-1 rounded-full bg-zinc-300" />
         {label}
       </div>
@@ -149,7 +149,7 @@ export default async function OrdersPage() {
     <div className="space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.22em] text-zinc-400 font-medium">
+          <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">
             Production · Dropship
           </p>
           <h2 className="mt-1 text-3xl font-serif">
@@ -212,7 +212,7 @@ export default async function OrdersPage() {
           </div>
           <div className="overflow-x-auto">
           <table className="w-full min-w-[700px] text-sm">
-            <thead className="bg-amber-50/40 text-[10px] uppercase tracking-[0.14em] text-amber-900/60">
+            <thead className="bg-amber-50/40 text-kicker uppercase tracking-header text-amber-900/60">
               <tr>
                 <th className="text-left px-5 py-3 font-medium">Commande</th>
                 <th className="text-left px-5 py-3 font-medium">Client</th>
@@ -235,7 +235,7 @@ export default async function OrdersPage() {
                       <div className="font-medium">
                         #{row.display_id ?? row.medusa_order_id.slice(0, 8)}
                       </div>
-                      <div className="text-[10px] text-zinc-400 font-mono mt-0.5">{row.medusa_order_id}</div>
+                      <div className="text-kicker text-zinc-400 font-mono mt-0.5">{row.medusa_order_id}</div>
                     </td>
                     <td className="px-5 py-4 text-zinc-700">{row.customer_email ?? '—'}</td>
                     <td className="px-5 py-4 font-serif text-base">
@@ -259,7 +259,7 @@ export default async function OrdersPage() {
                         <StatusDot tone={stale ? 'red' : 'amber'} />
                         il y a {ageLabel}
                       </div>
-                      {stale && <div className="mt-0.5 text-[10px] font-medium">proche annulation AE</div>}
+                      {stale && <div className="mt-0.5 text-kicker font-medium">proche annulation AE</div>}
                     </td>
                     <td className="px-5 py-4 text-right">
                       <MarkPaidButton orderId={row.medusa_order_id} />
@@ -294,7 +294,7 @@ export default async function OrdersPage() {
           </div>
           <div className="overflow-x-auto">
           <table className="w-full min-w-[700px] text-sm">
-            <thead className="bg-zinc-50/60 text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+            <thead className="bg-zinc-50/60 text-kicker uppercase tracking-header text-zinc-500">
               <tr>
                 <th className="text-left px-5 py-3 font-medium">Commande</th>
                 <th className="text-left px-5 py-3 font-medium">Client</th>
@@ -314,7 +314,7 @@ export default async function OrdersPage() {
                   <tr key={order.id} className="hover:bg-zinc-50/60 transition-colors">
                     <td className="px-5 py-4">
                       <div className="font-medium">#{order.display_id ?? order.id.slice(0, 8)}</div>
-                      <div className="text-[10px] text-zinc-400 mt-0.5">
+                      <div className="text-kicker text-zinc-400 mt-0.5">
                         {new Date(order.created_at).toLocaleDateString('fr-FR', {
                           day: '2-digit',
                           month: 'short',
@@ -353,7 +353,7 @@ export default async function OrdersPage() {
                               href={aliExpressOrderUrl(forward.ae_order_id)}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="font-mono text-[10px] text-zinc-500 hover:text-orange-700 hover:underline underline-offset-2"
+                              className="font-mono text-kicker text-zinc-500 hover:text-orange-700 hover:underline underline-offset-2"
                             >
                               {forward.ae_order_id}
                             </a>
@@ -370,7 +370,7 @@ export default async function OrdersPage() {
                               erreur
                             </span>
                             {forward.error_message && (
-                              <span className="text-[10px] text-red-600/80 line-clamp-2" title={forward.error_message}>
+                              <span className="text-kicker text-red-600/80 line-clamp-2" title={forward.error_message}>
                                 {forward.error_message}
                               </span>
                             )}

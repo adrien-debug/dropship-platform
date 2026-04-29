@@ -146,7 +146,7 @@ function StoreCard({ store }: { store: StoreRow }) {
           <StoreActions storeId={store.id} storeName={store.name} />
         </div>
 
-        <p className="text-[10px] text-zinc-300 mt-2 truncate">/shop/{store.slug}</p>
+        <p className="text-kicker text-zinc-300 mt-2 truncate">/shop/{store.slug}</p>
       </div>
     </div>
   );

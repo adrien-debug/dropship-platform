@@ -43,7 +43,7 @@ export function CookieBanner() {
   return (
     <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:max-w-md z-[60]">
       <div className="bg-white rounded-2xl shadow-2xl border border-zinc-200 p-5 sm:p-6">
-        <p className="text-[10px] uppercase tracking-[0.3em] text-zinc-400 font-medium mb-3">
+        <p className="text-kicker uppercase tracking-kicker text-zinc-400 font-medium mb-3">
           Cookies
         </p>
         <p className="text-sm text-zinc-700 leading-relaxed mb-5">
@@ -55,7 +55,7 @@ export function CookieBanner() {
             type="button"
             onClick={() => choose('denied')}
             disabled={pending}
-            className="flex-1 border border-zinc-200 text-zinc-700 px-4 py-2.5 rounded-full text-xs uppercase tracking-[0.16em] font-medium hover:bg-zinc-50 transition-colors disabled:opacity-50"
+            className="flex-1 border border-zinc-200 text-zinc-700 px-4 py-2.5 rounded-full text-xs uppercase tracking-cta font-medium hover:bg-zinc-50 transition-colors disabled:opacity-50"
           >
             Refuser
           </button>
@@ -63,7 +63,7 @@ export function CookieBanner() {
             type="button"
             onClick={() => choose('granted')}
             disabled={pending}
-            className="flex-1 bg-zinc-950 text-white px-4 py-2.5 rounded-full text-xs uppercase tracking-[0.16em] font-medium hover:bg-black transition-colors disabled:opacity-50"
+            className="flex-1 bg-zinc-950 text-white px-4 py-2.5 rounded-full text-xs uppercase tracking-cta font-medium hover:bg-black transition-colors disabled:opacity-50"
           >
             Accepter
           </button>

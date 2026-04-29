@@ -216,7 +216,7 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
                     <div className="text-xs text-zinc-400">coût {(product.cost_cents / 100).toFixed(2)} €</div>
                     <div className="text-xs text-green-600 font-medium">+{margin} € ({marginPct}%)</div>
                     {product.medusa_product_id && (
-                      <div className="text-[10px] text-zinc-300 font-mono">{product.medusa_product_id.slice(0, 12)}…</div>
+                      <div className="text-kicker text-zinc-300 font-mono">{product.medusa_product_id.slice(0, 12)}…</div>
                     )}
                   </div>
                 </div>

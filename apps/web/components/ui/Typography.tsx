@@ -65,7 +65,7 @@ interface KickerProps {
 export function Kicker({ children, className, tone = 'default' }: KickerProps) {
   const colorClass = tone === 'inverse' ? 'text-white/60' : 'text-zinc-400';
   return (
-    <p className={cn('text-[10px] uppercase tracking-[0.3em] font-medium', colorClass, className)}>
+    <p className={cn('text-kicker uppercase tracking-kicker font-medium', colorClass, className)}>
       {children}
     </p>
   );

@@ -35,7 +35,7 @@ export default async function CartPage() {
         <div className="border border-zinc-200 rounded-2xl overflow-hidden">
           <div className="overflow-x-auto">
           <table className="w-full min-w-[600px]">
-            <thead className="bg-zinc-50 text-xs uppercase tracking-[0.18em] text-zinc-500 font-medium">
+            <thead className="bg-zinc-50 text-xs uppercase tracking-cta text-zinc-500 font-medium">
               <tr>
                 <th className="text-left p-6">Produit</th>
                 <th className="text-left p-6">Qté</th>
@@ -60,7 +60,7 @@ export default async function CartPage() {
         <div className="mt-12 flex justify-end">
           <Link
             href="/checkout"
-            className="group inline-flex items-center gap-3 bg-zinc-950 text-white px-10 py-5 rounded-full text-sm font-medium uppercase tracking-[0.18em] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_22px_40px_-18px_rgba(0,0,0,0.55)] hover:bg-black"
+            className="group inline-flex items-center gap-3 bg-zinc-950 text-white px-10 py-5 rounded-full text-sm font-medium uppercase tracking-cta transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_22px_40px_-18px_rgba(0,0,0,0.55)] hover:bg-black"
           >
             Passer au paiement
             <svg

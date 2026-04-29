@@ -127,7 +127,7 @@ export default async function GeneratedImagesPage() {
   return (
     <div className="space-y-8">
       <header>
-        <p className="text-[10px] uppercase tracking-[0.22em] text-zinc-400 font-medium">
+        <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">
           Production · GPU Pipeline
         </p>
         <h2 className="mt-1 text-3xl font-serif">
@@ -166,11 +166,11 @@ export default async function GeneratedImagesPage() {
                 <div className="mb-3 flex items-baseline justify-between gap-3">
                   <div className="flex items-baseline gap-2 min-w-0">
                     <span className="font-mono text-xs text-zinc-700 truncate">{formatRunId(r.runId)}</span>
-                    <span className="text-[10px] uppercase tracking-wider text-zinc-400 shrink-0">
+                    <span className="text-kicker uppercase tracking-wider text-zinc-400 shrink-0">
                       · {r.images.length} img · {(r.totalBytes / 1024 / 1024).toFixed(1)} MB
                     </span>
                   </div>
-                  <span className="text-[10px] text-zinc-400 shrink-0">
+                  <span className="text-kicker text-zinc-400 shrink-0">
                     {new Date(r.latestMtime).toLocaleString('fr-FR', {
                       day: '2-digit',
                       month: 'short',

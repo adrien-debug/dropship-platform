@@ -113,7 +113,7 @@ export default async function StoreAnalyticsPage({ params, searchParams }: Props
 
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.22em] text-zinc-400 font-medium">
+          <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">
             Analytics · {store.name}
           </p>
           <h2 className="mt-1 text-3xl font-serif">
@@ -127,7 +127,7 @@ export default async function StoreAnalyticsPage({ params, searchParams }: Props
               key={key}
               href={`?range=${key}`}
               className={
-                'px-4 py-1.5 rounded-full text-xs uppercase tracking-[0.16em] font-medium transition-colors ' +
+                'px-4 py-1.5 rounded-full text-xs uppercase tracking-cta font-medium transition-colors ' +
                 (key === range ? 'bg-zinc-950 text-white' : 'text-zinc-500 hover:text-zinc-900')
               }
             >
@@ -219,7 +219,7 @@ export default async function StoreAnalyticsPage({ params, searchParams }: Props
           </div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-zinc-50/60 text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+            <thead className="bg-zinc-50/60 text-kicker uppercase tracking-header text-zinc-500">
               <tr>
                 <th className="text-left px-5 py-3 font-medium">Source</th>
                 <th className="text-left px-5 py-3 font-medium">Campagne</th>
@@ -243,7 +243,7 @@ export default async function StoreAnalyticsPage({ params, searchParams }: Props
                     <td className="px-5 py-3 text-right tabular-nums">
                       <span className="font-medium">{r.purchases}</span>
                       {r.adds_to_cart > 0 && (
-                        <span className="text-[10px] text-zinc-400 ml-1.5">{conv.toFixed(0)} %</span>
+                        <span className="text-kicker text-zinc-400 ml-1.5">{conv.toFixed(0)} %</span>
                       )}
                     </td>
                     <td className="px-5 py-3 text-right font-serif">
@@ -259,7 +259,7 @@ export default async function StoreAnalyticsPage({ params, searchParams }: Props
 
       {/* Pixel/CAPI status */}
       <section className="border border-dashed border-zinc-200 rounded-2xl bg-zinc-50/40 px-6 py-5">
-        <h4 className="text-xs uppercase tracking-[0.22em] text-zinc-500 font-medium mb-3">
+        <h4 className="text-xs uppercase tracking-label text-zinc-500 font-medium mb-3">
           Plomberie connectée
         </h4>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
@@ -296,7 +296,7 @@ function Kpi({
   };
   return (
     <div className="border border-zinc-200 bg-white rounded-xl px-5 py-4">
-      <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-400 font-medium">{label}</div>
+      <div className="text-kicker uppercase tracking-cta text-zinc-400 font-medium">{label}</div>
       <div className={`mt-2 text-3xl font-serif ${cls[tone]}`}>{value}</div>
     </div>
   );
@@ -310,7 +310,7 @@ function ConnState({ label, set }: { label: string; set: boolean }) {
         aria-hidden="true"
       />
       <span className={set ? 'text-zinc-900 font-medium' : 'text-zinc-500'}>{label}</span>
-      <span className="text-[10px] uppercase tracking-[0.18em] text-zinc-400 ml-auto">
+      <span className="text-kicker uppercase tracking-cta text-zinc-400 ml-auto">
         {set ? 'connecté' : 'inactif'}
       </span>
     </div>

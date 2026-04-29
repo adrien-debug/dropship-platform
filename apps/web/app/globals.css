@@ -1,3 +1,36 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@keyframes brisaSlowZoom {
+  0%, 100% { transform: scale(1.04) translateX(0); }
+  50%      { transform: scale(1.12) translateX(-1.5%); }
+}
+
+@keyframes brisaFadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.brisa-hero-img { animation: brisaSlowZoom 22s ease-in-out infinite; }
+.brisa-fade-1 { animation: brisaFadeUp 0.9s ease-out 0.1s backwards; }
+.brisa-fade-2 { animation: brisaFadeUp 0.9s ease-out 0.3s backwards; }
+.brisa-fade-3 { animation: brisaFadeUp 0.9s ease-out 0.5s backwards; }
+.brisa-fade-4 { animation: brisaFadeUp 0.9s ease-out 0.7s backwards; }
+
+@keyframes brisaShowcaseFloat {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50%      { transform: translate3d(0, -6px, 0); }
+}
+
+@keyframes brisaShowcaseHalo {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50%      { opacity: 0.72; transform: scale(1.025); }
+}
+
+.brisa-showcase-product { animation: brisaShowcaseFloat 6.5s ease-in-out infinite; }
+.brisa-showcase-halo    { animation: brisaShowcaseHalo 7s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .brisa-showcase-product, .brisa-showcase-halo { animation: none; }
+}

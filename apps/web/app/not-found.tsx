@@ -8,7 +8,7 @@ export default function NotFound() {
   return (
     <main className="min-h-[80vh] flex items-center justify-center px-6 bg-white text-zinc-900">
       <div className="max-w-md text-center">
-        <p className="text-[10px] uppercase tracking-[0.3em] text-zinc-400 font-medium mb-5">
+        <p className="text-kicker uppercase tracking-kicker text-zinc-400 font-medium mb-5">
           404
         </p>
         <h1 className="font-serif text-4xl sm:text-5xl leading-[1.05] tracking-tight mb-5">
@@ -19,7 +19,7 @@ export default function NotFound() {
         </p>
         <Link
           href="/"
-          className="inline-flex items-center justify-center bg-zinc-950 text-white px-7 py-3.5 rounded-full text-sm font-medium uppercase tracking-[0.18em] transition-colors hover:-translate-y-0.5 hover:bg-black"
+          className="inline-flex items-center justify-center bg-zinc-950 text-white px-7 py-3.5 rounded-full text-sm font-medium uppercase tracking-cta transition-colors hover:-translate-y-0.5 hover:bg-black"
         >
           Retour
         </Link>

@@ -43,7 +43,7 @@ export function Pullquote({
       {attribution && (
         <figcaption
           className={cn(
-            'mt-6 text-[10px] uppercase tracking-[0.3em] font-medium',
+            'mt-6 text-kicker uppercase tracking-kicker font-medium',
             attribClass,
           )}
         >

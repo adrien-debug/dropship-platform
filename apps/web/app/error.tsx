@@ -18,7 +18,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
   return (
     <main className="min-h-[80vh] flex items-center justify-center px-6 bg-white text-zinc-900">
       <div className="max-w-md text-center">
-        <p className="text-[10px] uppercase tracking-[0.3em] text-zinc-400 font-medium mb-5">
+        <p className="text-kicker uppercase tracking-kicker text-zinc-400 font-medium mb-5">
           Erreur
         </p>
         <h1 className="font-serif text-4xl sm:text-5xl leading-[1.05] tracking-tight mb-5">
@@ -31,19 +31,19 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
           <button
             type="button"
             onClick={reset}
-            className="inline-flex items-center justify-center bg-zinc-950 text-white px-7 py-3.5 rounded-full text-sm font-medium uppercase tracking-[0.18em] transition-colors hover:-translate-y-0.5 hover:bg-black"
+            className="inline-flex items-center justify-center bg-zinc-950 text-white px-7 py-3.5 rounded-full text-sm font-medium uppercase tracking-cta transition-colors hover:-translate-y-0.5 hover:bg-black"
           >
             Réessayer
           </button>
           <Link
             href="/"
-            className="inline-flex items-center justify-center border border-zinc-200 text-zinc-900 px-7 py-3.5 rounded-full text-sm font-medium uppercase tracking-[0.18em] transition-colors hover:bg-zinc-50"
+            className="inline-flex items-center justify-center border border-zinc-200 text-zinc-900 px-7 py-3.5 rounded-full text-sm font-medium uppercase tracking-cta transition-colors hover:bg-zinc-50"
           >
             Retour
           </Link>
         </div>
         {error.digest && (
-          <p className="mt-10 text-[10px] uppercase tracking-[0.22em] text-zinc-400">
+          <p className="mt-10 text-kicker uppercase tracking-label text-zinc-400">
             Référence · {error.digest}
           </p>
         )}

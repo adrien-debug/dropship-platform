@@ -47,21 +47,6 @@ export function ProductShowcase({
 
   return (
     <div className={cn('relative w-full', className)}>
-      <style>{`
-        @keyframes brisaShowcaseFloat {
-          0%, 100% { transform: translate3d(0, 0, 0); }
-          50%      { transform: translate3d(0, -6px, 0); }
-        }
-        @keyframes brisaShowcaseHalo {
-          0%, 100% { opacity: 0.55; transform: scale(1); }
-          50%      { opacity: 0.72; transform: scale(1.025); }
-        }
-        .brisa-showcase-product { animation: brisaShowcaseFloat 6.5s ease-in-out infinite; }
-        .brisa-showcase-halo    { animation: brisaShowcaseHalo 7s ease-in-out infinite; }
-        @media (prefers-reduced-motion: reduce) {
-          .brisa-showcase-product, .brisa-showcase-halo { animation: none; }
-        }
-      `}</style>
       <div
         className={cn(
           'relative mx-auto w-full overflow-hidden rounded-[28px]',
@@ -90,7 +75,7 @@ export function ProductShowcase({
           <div className="relative h-full grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-10 items-center px-6 sm:px-10 lg:px-16 py-8 sm:py-12">
             <div className="md:col-span-5 lg:col-span-5 text-white max-w-md md:max-w-none">
               {kicker && (
-                <p className="text-[10px] uppercase tracking-[0.3em] font-medium text-white/55 mb-4 sm:mb-5">
+                <p className="text-kicker uppercase tracking-kicker font-medium text-white/55 mb-4 sm:mb-5">
                   {kicker}
                 </p>
               )}

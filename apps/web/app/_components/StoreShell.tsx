@@ -16,12 +16,8 @@ export function StoreShell({ children, store }: Props) {
   return (
     <div className="min-h-screen flex flex-col">
       <header
-        className="sticky top-0 z-30 shadow-sm"
-        style={{
-          backgroundColor: store?.primaryColor ?? '#ffffff',
-          color: store ? '#ffffff' : '#111827',
-          borderBottom: store ? 'none' : '1px solid #e4e4e7',
-        }}
+        className={`sticky top-0 z-30 shadow-sm${store ? ' text-white' : ' bg-white text-zinc-900 border-b border-zinc-200'}`}
+        style={store ? { backgroundColor: store.primaryColor } : undefined}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link href={homeHref} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
@@ -51,11 +47,8 @@ export function StoreShell({ children, store }: Props) {
       <main className="flex-1">{children}</main>
 
       <footer
-        style={{
-          backgroundColor: store?.primaryColor ?? '#ffffff',
-          color: store ? '#ffffff' : '#52525b',
-          borderTop: store ? 'none' : '1px solid #e4e4e7',
-        }}
+        className={store ? 'text-white' : 'bg-white text-zinc-600 border-t border-zinc-200'}
+        style={store ? { backgroundColor: store.primaryColor } : undefined}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-sm flex flex-wrap items-center justify-between gap-3">
           <p className={store ? 'opacity-75' : ''}>

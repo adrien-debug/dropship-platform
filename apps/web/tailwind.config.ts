@@ -14,6 +14,10 @@ const config: Config = {
         kicker: '0.30em',
         label:  '0.22em',
         cta:    '0.18em',
+        header: '0.14em',
+      },
+      fontSize: {
+        kicker: ['10px', { lineHeight: '1.5' }],
       },
       boxShadow: {
         'cta':        '0 22px 40px -18px rgba(0,0,0,0.55)',

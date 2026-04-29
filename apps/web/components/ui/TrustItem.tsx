@@ -9,7 +9,7 @@ export function TrustItem({ label, tone = 'default' }: Props) {
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-2 text-xs uppercase tracking-[0.18em] font-medium',
+        'inline-flex items-center gap-2 text-xs uppercase tracking-cta font-medium',
         tone === 'inverse' ? 'text-white/85' : 'text-zinc-600',
       )}
     >

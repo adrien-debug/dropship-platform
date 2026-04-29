@@ -27,7 +27,7 @@ export default function AdminAppLayout({ children }: { children: React.ReactNode
                 <Link href={item.href} className="block px-4 py-2 rounded transition-colors hover:bg-zinc-800">
                   {item.label}
                   {item.badge ? (
-                    <span className="ml-2 text-[10px] uppercase text-zinc-400">({item.badge})</span>
+                    <span className="ml-2 text-kicker uppercase text-zinc-400">({item.badge})</span>
                   ) : null}
                 </Link>
               </li>
