@@ -92,7 +92,7 @@ export default async function StoreAnalyticsPage({ params, searchParams }: Props
      WHERE store_slug = $1 AND created_at >= now() - ${intervalSql}
        AND event_name = ANY($2::text[])
      GROUP BY event_name`,
-    [store.slug, FUNNEL_ORDER as unknown as string[]],
+    [store.slug, [...FUNNEL_ORDER]],
   );
   const funnelByName = new Map(funnelRes.rows.map((r) => [r.event_name, r]));
 

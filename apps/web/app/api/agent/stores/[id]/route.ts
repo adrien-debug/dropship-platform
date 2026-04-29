@@ -46,13 +46,23 @@ export async function DELETE(
  * explicit empty string clears a previously-set value, an absent key
  * leaves it untouched.
  */
+// Loose but safe: allow empty string (clears the field) or known safe formats.
+// These values are embedded in inline <script> tags — reject anything that
+// could break out of a JS string literal.
+const safeId = (pattern: RegExp) =>
+  z
+    .string()
+    .trim()
+    .refine((v) => v === '' || pattern.test(v), { message: 'Format invalide' })
+    .optional();
+
 const analyticsSchema = z.object({
-  ga4MeasurementId: z.string().trim().optional(),
-  metaPixelId: z.string().trim().optional(),
-  metaCapiToken: z.string().trim().optional(),
-  tiktokPixelId: z.string().trim().optional(),
-  tiktokEventsToken: z.string().trim().optional(),
-  clarityId: z.string().trim().optional(),
+  ga4MeasurementId: safeId(/^G-[A-Z0-9]{4,12}$/),
+  metaPixelId: safeId(/^\d{10,20}$/),
+  metaCapiToken: z.string().trim().max(512).optional(),
+  tiktokPixelId: safeId(/^C[A-Z0-9]{10,25}$/),
+  tiktokEventsToken: z.string().trim().max(512).optional(),
+  clarityId: safeId(/^[a-z0-9]{6,20}$/),
 });
 
 const patchSchema = z.object({ analytics: analyticsSchema });

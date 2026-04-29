@@ -17,10 +17,20 @@ interface Props {
  * vendor's official template — do not "simplify" them, the order of the
  * init() / track() calls matters for first-page-view attribution.
  */
+// Validate ID formats before embedding in inline scripts. Defence-in-depth:
+// the PATCH endpoint validates on write, but this catches stale DB values too.
+function safeGa4(v: string | null) { return v && /^G-[A-Z0-9]{4,12}$/.test(v) ? v : null; }
+function safeMeta(v: string | null) { return v && /^\d{10,20}$/.test(v) ? v : null; }
+function safeTiktok(v: string | null) { return v && /^C[A-Z0-9]{10,25}$/.test(v) ? v : null; }
+function safeClarity(v: string | null) { return v && /^[a-z0-9]{6,20}$/.test(v) ? v : null; }
+
 export function StoreAnalytics({ ids, consent }: Props) {
   if (consent !== 'granted') return null;
 
-  const { ga4MeasurementId, metaPixelId, tiktokPixelId, clarityId } = ids;
+  const ga4MeasurementId = safeGa4(ids.ga4MeasurementId);
+  const metaPixelId = safeMeta(ids.metaPixelId);
+  const tiktokPixelId = safeTiktok(ids.tiktokPixelId);
+  const clarityId = safeClarity(ids.clarityId);
 
   return (
     <>

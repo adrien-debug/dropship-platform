@@ -47,7 +47,10 @@ export async function checkRateLimit(
 /** Best-effort client IP extraction. Vercel sets x-forwarded-for. */
 export function clientIp(req: Request): string {
   const xff = req.headers.get('x-forwarded-for');
-  if (xff) return xff.split(',')[0]!.trim();
+  if (xff) {
+    const ip = xff.split(',')[0]?.trim();
+    if (ip) return ip.substring(0, 45); // cap at IPv6 max length
+  }
   return req.headers.get('x-real-ip')?.trim() || 'unknown';
 }
 

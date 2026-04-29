@@ -76,12 +76,15 @@ export async function trackEvent(input: TrackInput): Promise<{ eventId: string |
 
     const sourceUrl = input.request.headers.get('referer') ?? undefined;
 
-    // Fire all three in parallel. Each one swallows its own errors.
-    await Promise.allSettled([
+    const labels = ['funnel', 'meta-capi', 'tiktok-events'];
+    const results = await Promise.allSettled([
       logFunnelEvent(event),
       sendMetaConversion(input.store, event, { eventSourceUrl: sourceUrl }),
       sendTiktokConversion(input.store, event, { eventSourceUrl: sourceUrl }),
     ]);
+    results.forEach((r, i) => {
+      if (r.status === 'rejected') console.error(`[trackEvent] ${labels[i]} failed`, r.reason);
+    });
 
     return { eventId: event.eventId ?? null };
   } catch (e) {
