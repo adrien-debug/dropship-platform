@@ -1,4 +1,5 @@
 import { getDb } from '@/lib/db';
+import { tryDecryptSecret } from '@/lib/secrets';
 
 export interface StoreConfig {
   id: string;
@@ -53,8 +54,12 @@ interface StoreRow {
   ga4_measurement_id: string | null;
   meta_pixel_id: string | null;
   meta_capi_token: string | null;
+  meta_capi_token_enc: Buffer | null;
+  meta_capi_token_nonce: Buffer | null;
   tiktok_pixel_id: string | null;
   tiktok_events_token: string | null;
+  tiktok_events_token_enc: Buffer | null;
+  tiktok_events_token_nonce: Buffer | null;
   clarity_id: string | null;
   mode: 'mono' | 'collection';
   hero_image_url: string | null;
@@ -69,12 +74,24 @@ const STORE_COLUMNS = `
   primary_color, secondary_color, accent_color, logo_emoji,
   medusa_sales_channel_id, medusa_publishable_key, status, product_count,
   ga4_measurement_id, meta_pixel_id, meta_capi_token,
-  tiktok_pixel_id, tiktok_events_token, clarity_id,
+  meta_capi_token_enc, meta_capi_token_nonce,
+  tiktok_pixel_id, tiktok_events_token,
+  tiktok_events_token_enc, tiktok_events_token_nonce,
+  clarity_id,
   mode, hero_image_url, cutout_image_url, lifestyle_images,
   promo_video_url, assets_status
 `;
 
 function rowToStore(r: StoreRow): StoreConfig {
+  // QW4: prefer the encrypted column when present (new writes), fall back
+  // to the plain column for legacy rows that predate the migration. A
+  // single corrupt cipher row degrades to null rather than crashing the
+  // storefront — see `tryDecryptSecret`.
+  const metaCapiToken =
+    tryDecryptSecret(r.meta_capi_token_enc, r.meta_capi_token_nonce) ?? r.meta_capi_token;
+  const tiktokEventsToken =
+    tryDecryptSecret(r.tiktok_events_token_enc, r.tiktok_events_token_nonce) ?? r.tiktok_events_token;
+
   return {
     id: r.id,
     slug: r.slug,
@@ -92,9 +109,9 @@ function rowToStore(r: StoreRow): StoreConfig {
     productCount: r.product_count,
     ga4MeasurementId: r.ga4_measurement_id,
     metaPixelId: r.meta_pixel_id,
-    metaCapiToken: r.meta_capi_token,
+    metaCapiToken,
     tiktokPixelId: r.tiktok_pixel_id,
-    tiktokEventsToken: r.tiktok_events_token,
+    tiktokEventsToken,
     clarityId: r.clarity_id,
     mode: r.mode,
     heroImageUrl: r.hero_image_url,
