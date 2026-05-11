@@ -28,6 +28,7 @@ export interface UtmAttribution {
   utm_content?: string;
   fbclid?: string;
   ttclid?: string;
+  gclid?: string;
   captured_at?: string;
 }
 
@@ -48,6 +49,8 @@ export interface FunnelEvent {
   email?: string;
   phone?: string;
   medusaOrderId?: string;
+  /** Google Click ID — present when visitor arrived via a Google Ads click. */
+  gclid?: string;
 }
 
 /** Lower-case + trim before hashing — Meta's match algo expects normalised input. */
