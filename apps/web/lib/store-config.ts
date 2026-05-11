@@ -27,6 +27,9 @@ export interface StoreConfig {
   tiktokPixelId: string | null;
   tiktokEventsToken: string | null;
   clarityId: string | null;
+  // Google Ads Click Conversions + Merchant Center. Per-store, optional.
+  googleAdsConversionAction: string | null;
+  googleAdsMerchantId: string | null;
   // Mono-product mode + auto-generated assets. heroImageUrl etc. are web
   // paths starting with /generated/{slug}/run-... or null when generation
   // hasn't run / failed for that asset.
@@ -70,6 +73,8 @@ interface StoreRow {
   tiktok_events_token_enc: Buffer | null;
   tiktok_events_token_nonce: Buffer | null;
   clarity_id: string | null;
+  google_ads_conversion_action: string | null;
+  google_merchant_id: string | null;
   mode: 'mono' | 'collection';
   hero_image_url: string | null;
   cutout_image_url: string | null;
@@ -90,6 +95,7 @@ const STORE_COLUMNS = `
   tiktok_pixel_id, tiktok_events_token,
   tiktok_events_token_enc, tiktok_events_token_nonce,
   clarity_id,
+  google_ads_conversion_action, google_merchant_id,
   mode, hero_image_url, cutout_image_url, lifestyle_images,
   promo_video_url, assets_status, template
 `;
@@ -128,6 +134,8 @@ function rowToStore(r: StoreRow): StoreConfig {
     tiktokPixelId: r.tiktok_pixel_id,
     tiktokEventsToken,
     clarityId: r.clarity_id,
+    googleAdsConversionAction: r.google_ads_conversion_action,
+    googleAdsMerchantId: r.google_merchant_id,
     mode: r.mode,
     heroImageUrl: r.hero_image_url,
     cutoutImageUrl: r.cutout_image_url,

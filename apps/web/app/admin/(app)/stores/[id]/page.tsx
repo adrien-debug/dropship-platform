@@ -31,6 +31,8 @@ interface StoreDetailRow {
   tiktok_pixel_id: string | null;
   tiktok_events_token: string | null;
   clarity_id: string | null;
+  google_ads_conversion_action: string | null;
+  google_merchant_id: string | null;
   template: 'auto' | 'mono' | 'collection-grid' | 'collection-editorial';
 }
 
@@ -58,6 +60,7 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
             ga4_measurement_id, ga4_api_secret,
             meta_pixel_id, meta_capi_token,
             tiktok_pixel_id, tiktok_events_token, clarity_id,
+            google_ads_conversion_action, google_merchant_id,
             template
      FROM dropship_stores WHERE id = $1 LIMIT 1`,
     [id],
@@ -181,6 +184,8 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
           tiktokPixelId: store.tiktok_pixel_id ?? '',
           tiktokEventsToken: store.tiktok_events_token ?? '',
           clarityId: store.clarity_id ?? '',
+          googleAdsConversionAction: store.google_ads_conversion_action ?? '',
+          googleAdsMerchantId: store.google_merchant_id ?? '',
         }}
       />
 

@@ -5,6 +5,7 @@ import { logFunnelEvent, ensureSessionId, parseUtmCookie, newEventId, type Funne
 import { sendMetaConversion } from './meta-capi';
 import { sendTiktokConversion } from './tiktok-events';
 import { sendGa4Conversion } from './ga4-mp';
+import { sendGoogleAdsConversion } from './google-ads';
 import { clientIp } from '@/lib/rate-limit';
 
 /**
@@ -74,16 +75,18 @@ export async function trackEvent(input: TrackInput): Promise<{ eventId: string |
       email: input.email,
       phone: input.phone,
       medusaOrderId: input.medusaOrderId,
+      gclid: utm?.gclid,
     };
 
     const sourceUrl = input.request.headers.get('referer') ?? undefined;
 
-    const labels = ['funnel', 'meta-capi', 'tiktok-events', 'ga4-mp'];
+    const labels = ['funnel', 'meta-capi', 'tiktok-events', 'ga4-mp', 'google-ads'];
     const results = await Promise.allSettled([
       logFunnelEvent(event),
       sendMetaConversion(input.store, event, { eventSourceUrl: sourceUrl }),
       sendTiktokConversion(input.store, event, { eventSourceUrl: sourceUrl }),
       sendGa4Conversion(input.store, event, { eventSourceUrl: sourceUrl }),
+      sendGoogleAdsConversion(input.store, event, { eventSourceUrl: sourceUrl }),
     ]);
     results.forEach((r, i) => {
       if (r.status === 'rejected') console.error(`[trackEvent] ${labels[i]} failed`, r.reason);

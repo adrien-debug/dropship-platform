@@ -11,6 +11,8 @@ interface InitialValues {
   tiktokPixelId: string;
   tiktokEventsToken: string;
   clarityId: string;
+  googleAdsConversionAction: string;
+  googleAdsMerchantId: string;
 }
 
 interface Props {
@@ -139,6 +141,25 @@ export function StoreAnalyticsForm({ storeId, initial }: Props) {
             value={values.clarityId}
             onChange={set('clarityId')}
             help="clarity.microsoft.com → projet → Settings → Setup."
+          />
+        </Group>
+
+        <Group title="Google Ads" hint="Remontée des conversions offline — contourne les bloqueurs côté client.">
+          <Field
+            label="Conversion Action"
+            id="google-ads-conversion-action"
+            placeholder="customers/2877134493/conversionActions/…"
+            value={values.googleAdsConversionAction}
+            onChange={set('googleAdsConversionAction')}
+            help="Google Ads → Objectifs → Conversions → sélectionne l'action → champ Nom de ressource."
+          />
+          <Field
+            label="Merchant Center ID"
+            id="google-merchant-id"
+            placeholder="5784865611"
+            value={values.googleAdsMerchantId}
+            onChange={set('googleAdsMerchantId')}
+            help="Merchant Center → Paramètres du compte → Numéro d'ID."
           />
         </Group>
       </div>

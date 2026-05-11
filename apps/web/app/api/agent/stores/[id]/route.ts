@@ -67,6 +67,9 @@ const analyticsSchema = z.object({
   tiktokPixelId: safeId(/^C[A-Z0-9]{10,25}$/),
   tiktokEventsToken: z.string().trim().max(512).optional(),
   clarityId: safeId(/^[a-z0-9]{6,20}$/),
+  // Google Ads: plain fields, not secrets — no encryption needed.
+  googleAdsConversionAction: z.string().trim().max(256).optional(),
+  googleAdsMerchantId: safeId(/^\d{6,20}$/),
 });
 
 const templateSchema = z.enum(['auto', 'mono', 'collection-grid', 'collection-editorial']);
@@ -95,6 +98,8 @@ const PLAIN_FIELD_TO_COLUMN: Record<
   metaPixelId: 'meta_pixel_id',
   tiktokPixelId: 'tiktok_pixel_id',
   clarityId: 'clarity_id',
+  googleAdsConversionAction: 'google_ads_conversion_action',
+  googleAdsMerchantId: 'google_merchant_id',
 };
 
 // Secret fields — encrypted at rest. Each field maps to three columns:
