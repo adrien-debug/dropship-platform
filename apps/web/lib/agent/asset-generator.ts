@@ -194,8 +194,21 @@ function contentTypeFor(filename: string): string {
   return 'application/octet-stream';
 }
 
+/**
+ * Resolve a per-asset deployment pool from env. The raw value may be a
+ * single id (`dep_a`) or a comma-separated round-robin list
+ * (`dep_a,dep_b,dep_c`). Falls back to the global `COMFY_DEPLOYMENT_IDS` /
+ * legacy `COMFY_DEPLOYMENT_ID` resolution inside the client when this key
+ * is unset, so callers don't have to know the override chain.
+ */
+function envPool(deploymentEnvKey: string): string | undefined {
+  const raw = process.env[deploymentEnvKey];
+  if (!raw || !raw.trim()) return undefined;
+  return raw;
+}
+
 async function runImage(deploymentEnvKey: string, prompt: string, refImageUrl: string) {
-  const deploymentId = process.env[deploymentEnvKey];
+  const deploymentId = envPool(deploymentEnvKey);
   if (!deploymentId) throw new Error(`${deploymentEnvKey} not set`);
   const result = await runWorkflow({
     deploymentId,
@@ -210,10 +223,16 @@ async function runImage(deploymentEnvKey: string, prompt: string, refImageUrl: s
 }
 
 async function runVideo(deploymentEnvKey: string, motionPrompt: string, sourceImageUrl: string) {
-  const deploymentId = process.env[deploymentEnvKey];
+  const deploymentId = envPool(deploymentEnvKey);
   if (!deploymentId) throw new Error(`${deploymentEnvKey} not set`);
+  // Video is the heaviest workflow (60-180s on a beefier GPU profile).
+  // `COMFY_DEPLOYMENT_VIDEO_PIN`, when set, pins every video run to one
+  // specific deployment regardless of the round-robin rotation — useful
+  // when only one of your N deployments has the larger VRAM budget.
+  const override = process.env.COMFY_DEPLOYMENT_VIDEO_PIN?.trim();
   const result = await runWorkflow({
     deploymentId,
+    deploymentIdOverride: override || undefined,
     inputs: {
       prompt: motionPrompt,
       source_image: sourceImageUrl,
