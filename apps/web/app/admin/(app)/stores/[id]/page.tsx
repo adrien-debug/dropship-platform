@@ -25,6 +25,7 @@ interface StoreDetailRow {
   created_at: string;
   updated_at: string;
   ga4_measurement_id: string | null;
+  ga4_api_secret: string | null;
   meta_pixel_id: string | null;
   meta_capi_token: string | null;
   tiktok_pixel_id: string | null;
@@ -54,7 +55,8 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
     `SELECT id, slug, name, niche, tagline, description, logo_emoji, primary_color, accent_color,
             status, product_count, medusa_sales_channel_id, medusa_publishable_key,
             error_message, created_at, updated_at,
-            ga4_measurement_id, meta_pixel_id, meta_capi_token,
+            ga4_measurement_id, ga4_api_secret,
+            meta_pixel_id, meta_capi_token,
             tiktok_pixel_id, tiktok_events_token, clarity_id,
             template
      FROM dropship_stores WHERE id = $1 LIMIT 1`,
@@ -173,6 +175,7 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
         storeId={store.id}
         initial={{
           ga4MeasurementId: store.ga4_measurement_id ?? '',
+          ga4ApiSecret: store.ga4_api_secret ?? '',
           metaPixelId: store.meta_pixel_id ?? '',
           metaCapiToken: store.meta_capi_token ?? '',
           tiktokPixelId: store.tiktok_pixel_id ?? '',

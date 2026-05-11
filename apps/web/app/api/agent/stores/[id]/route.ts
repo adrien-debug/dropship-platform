@@ -59,6 +59,9 @@ const safeId = (pattern: RegExp) =>
 
 const analyticsSchema = z.object({
   ga4MeasurementId: safeId(/^G-[A-Z0-9]{4,12}$/),
+  // GA4 Measurement Protocol api_secret: short alphanum + - _ token Google
+  // exposes once in the Admin → Data Streams → Measurement Protocol UI.
+  ga4ApiSecret: safeId(/^[A-Za-z0-9_-]{1,100}$/),
   metaPixelId: safeId(/^\d{10,20}$/),
   metaCapiToken: z.string().trim().max(512).optional(),
   tiktokPixelId: safeId(/^C[A-Z0-9]{10,25}$/),
@@ -82,7 +85,10 @@ const patchSchema = z
 
 // Plain text fields — written as-is to a single column.
 const PLAIN_FIELD_TO_COLUMN: Record<
-  Exclude<keyof z.infer<typeof analyticsSchema>, 'metaCapiToken' | 'tiktokEventsToken'>,
+  Exclude<
+    keyof z.infer<typeof analyticsSchema>,
+    'metaCapiToken' | 'tiktokEventsToken' | 'ga4ApiSecret'
+  >,
   string
 > = {
   ga4MeasurementId: 'ga4_measurement_id',
@@ -96,7 +102,7 @@ const PLAIN_FIELD_TO_COLUMN: Record<
 // pair. The read path (lib/store-config.ts) prefers the encrypted columns
 // and falls back to the plain one for legacy rows.
 const SECRET_FIELD_TO_COLUMNS: Record<
-  'metaCapiToken' | 'tiktokEventsToken',
+  'metaCapiToken' | 'tiktokEventsToken' | 'ga4ApiSecret',
   { plain: string; enc: string; nonce: string }
 > = {
   metaCapiToken: {
@@ -108,6 +114,11 @@ const SECRET_FIELD_TO_COLUMNS: Record<
     plain: 'tiktok_events_token',
     enc: 'tiktok_events_token_enc',
     nonce: 'tiktok_events_token_nonce',
+  },
+  ga4ApiSecret: {
+    plain: 'ga4_api_secret',
+    enc: 'ga4_api_secret_enc',
+    nonce: 'ga4_api_secret_nonce',
   },
 };
 

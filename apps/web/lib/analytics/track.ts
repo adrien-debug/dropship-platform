@@ -4,12 +4,14 @@ import { CONSENT_COOKIE } from '@/lib/consent-shared';
 import { logFunnelEvent, ensureSessionId, parseUtmCookie, newEventId, type FunnelEvent, type FunnelEventName } from './funnel';
 import { sendMetaConversion } from './meta-capi';
 import { sendTiktokConversion } from './tiktok-events';
+import { sendGa4Conversion } from './ga4-mp';
 import { clientIp } from '@/lib/rate-limit';
 
 /**
  * One-call composer used by route handlers. Resolves session/UTM/consent
  * from the request cookies, writes the event to `dropship_funnel_events`,
- * and (in parallel) forwards to Meta CAPI + TikTok Events API.
+ * and (in parallel) forwards to Meta CAPI + TikTok Events API + GA4
+ * Measurement Protocol.
  *
  * Consent gate: nothing is logged or forwarded unless the visitor's
  * `consent_analytics` cookie is `granted`. We track once, properly.
@@ -76,11 +78,12 @@ export async function trackEvent(input: TrackInput): Promise<{ eventId: string |
 
     const sourceUrl = input.request.headers.get('referer') ?? undefined;
 
-    const labels = ['funnel', 'meta-capi', 'tiktok-events'];
+    const labels = ['funnel', 'meta-capi', 'tiktok-events', 'ga4-mp'];
     const results = await Promise.allSettled([
       logFunnelEvent(event),
       sendMetaConversion(input.store, event, { eventSourceUrl: sourceUrl }),
       sendTiktokConversion(input.store, event, { eventSourceUrl: sourceUrl }),
+      sendGa4Conversion(input.store, event, { eventSourceUrl: sourceUrl }),
     ]);
     results.forEach((r, i) => {
       if (r.status === 'rejected') console.error(`[trackEvent] ${labels[i]} failed`, r.reason);

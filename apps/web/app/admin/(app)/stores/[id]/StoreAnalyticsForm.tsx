@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 
 interface InitialValues {
   ga4MeasurementId: string;
+  ga4ApiSecret: string;
   metaPixelId: string;
   metaCapiToken: string;
   tiktokPixelId: string;
@@ -118,6 +119,15 @@ export function StoreAnalyticsForm({ storeId, initial }: Props) {
             value={values.tiktokEventsToken}
             onChange={set('tiktokEventsToken')}
             help="Ads Manager → Events → Web Events → Settings → Manage Events API."
+          />
+          <Field
+            label="GA4 Measurement Protocol API secret"
+            id="ga4-api-secret"
+            type="password"
+            placeholder="abcDEF123..."
+            value={values.ga4ApiSecret}
+            onChange={set('ga4ApiSecret')}
+            help="GA4 Admin → Data Streams → ton stream Web → Measurement Protocol API secrets → Create."
           />
         </Group>
 
