@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { firePixels } from '@/lib/analytics/pixel-client';
 
 interface Props {
   variantId: string;
@@ -17,9 +18,21 @@ interface Props {
    * page where qty selection in-context makes sense.
    */
   showQuantity?: boolean;
+  /** Product id for pixel content_ids / content_id dedup. */
+  productId?: string;
+  /** Product title for pixel content_name. */
+  productTitle?: string;
 }
 
-export function AddToCartButton({ variantId, storeSlug, tone = 'dark', label = 'Ajouter au panier', showQuantity = false }: Props) {
+export function AddToCartButton({
+  variantId,
+  storeSlug,
+  tone = 'dark',
+  label = 'Ajouter au panier',
+  showQuantity = false,
+  productId,
+  productTitle,
+}: Props) {
   const [qty, setQty] = useState(1);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -34,8 +47,31 @@ export function AddToCartButton({ variantId, storeSlug, tone = 'dark', label = '
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ variantId, quantity: qty, ...(storeSlug ? { slug: storeSlug } : {}) }),
         });
-        const data = await res.json();
+        const data = (await res.json()) as {
+          success?: boolean;
+          error?: string;
+          eventId?: string | null;
+          unitPriceMinor?: number;
+          currencyCode?: string;
+        };
         if (!res.ok || !data.success) throw new Error(data.error || 'Erreur ajout panier');
+
+        // Pair the server-side CAPI / Events API fire with a client-side
+        // pixel fire carrying the same eventID so Meta and TikTok dedup the
+        // conversion into one.
+        if (data.eventId) {
+          firePixels(
+            'add_to_cart',
+            {
+              value: data.unitPriceMinor !== undefined ? (data.unitPriceMinor * qty) / 100 : undefined,
+              currency: data.currencyCode,
+              contentIds: productId ? [productId] : undefined,
+              contentName: productTitle,
+            },
+            data.eventId,
+          );
+        }
+
         router.push('/cart');
         router.refresh();
       } catch (e) {

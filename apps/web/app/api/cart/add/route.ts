@@ -23,26 +23,36 @@ export async function POST(request: NextRequest) {
     const cart = await addToCart(variantId, quantity, slug);
 
     // AddToCart conversion event — fire-and-forget, never blocks the response.
+    // We also surface the unit price + currency so the client can fire the
+    // matching pixel call with the same eventID (CAPI / Events API dedup).
     let eventId: string | null = null;
+    let unitPriceMinor: number | undefined;
+    const line = cart.items.find((i) => i.variant_id === variantId);
+    if (line) unitPriceMinor = Math.round(line.unit_price * 100);
     if (slug) {
       const store = await getStoreBySlug(slug).catch(() => null);
       if (store) {
-        // Find the just-added line so we know the unit price for value attribution.
-        const line = cart.items.find((i) => i.variant_id === variantId);
         const result = await trackEvent({
           store,
           request,
           eventName: 'add_to_cart',
           productId: line?.product_id,
           variantId,
-          valueMinor: line ? line.unit_price * quantity * 100 : undefined,
+          valueMinor: unitPriceMinor !== undefined ? unitPriceMinor * quantity : undefined,
           currencyCode: cart.currency_code,
         });
         eventId = result.eventId;
       }
     }
 
-    return NextResponse.json({ success: true, cartId: cart.id, items: cart.items.length, eventId });
+    return NextResponse.json({
+      success: true,
+      cartId: cart.id,
+      items: cart.items.length,
+      eventId,
+      unitPriceMinor,
+      currencyCode: cart.currency_code,
+    });
   } catch (e) {
     if (e instanceof z.ZodError) {
       return NextResponse.json({ success: false, error: 'Invalid params', details: e.errors }, { status: 400 });

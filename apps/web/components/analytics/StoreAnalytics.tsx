@@ -13,9 +13,14 @@ interface Props {
  * corresponding scripts when consent is `granted` AND the ID is set.
  *
  * Each tag is loaded with `strategy="afterInteractive"` so they don't
- * delay the LCP. The Meta Pixel + TikTok Pixel snippets follow each
- * vendor's official template — do not "simplify" them, the order of the
- * init() / track() calls matters for first-page-view attribution.
+ * delay the LCP.
+ *
+ * Note on PageView / Pageview auto-fire: we **deliberately** do not call
+ * `fbq('track', 'PageView')` or `ttq.page()` from the snippet. The
+ * `<TrackPageView>` client component fires those AFTER getting the shared
+ * `eventID` from /api/analytics/track, so the client fire and the server
+ * CAPI fire dedup into a single conversion. Auto-firing here would create
+ * a third un-deduped event and inflate ROAS by 30 to 60%.
  */
 // Validate ID formats before embedding in inline scripts. Defence-in-depth:
 // the PATCH endpoint validates on write, but this catches stale DB values too.
@@ -61,7 +66,6 @@ export function StoreAnalytics({ ids, consent }: Props) {
             t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
             document,'script','https://connect.facebook.net/en_US/fbevents.js');
             fbq('init', '${metaPixelId}');
-            fbq('track', 'PageView');
           `}
         </Script>
       )}
@@ -80,7 +84,6 @@ export function StoreAnalytics({ ids, consent }: Props) {
               n=document.createElement("script");n.type="text/javascript",n.async=!0,n.src=r+"?sdkid="+e+"&lib="+t;
               e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(n,e)};
               ttq.load('${tiktokPixelId}');
-              ttq.page();
             }(window, document, 'ttq');
           `}
         </Script>
