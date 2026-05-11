@@ -4,6 +4,8 @@ import type { Metadata } from 'next';
 import { getStoreBySlug } from '@/lib/store-config';
 import { formatMoney, getProduct } from '@/lib/medusa-store';
 import { AddToCartButton } from '@/app/products/[handle]/AddToCartButton';
+import { breadcrumbList, productSchema, productUrl, storeUrl, withCanonical } from '@/lib/seo';
+import { TrackPageView } from '@/components/analytics/TrackPageView';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,16 +19,29 @@ export async function generateMetadata({
   if (!store) return {};
   const product = await getProduct(handle, store.medusaPublishableKey).catch(() => null);
   if (!product) return { title: store.name };
-  return {
-    title: `${product.title} — ${store.name}`,
-    description: product.description?.slice(0, 160) || '',
-    openGraph: {
-      title: product.title,
-      description: product.description?.slice(0, 200) || '',
-      images: product.thumbnail ? [{ url: product.thumbnail }] : [],
-      type: 'website',
+  const image = product.thumbnail || product.images?.[0]?.url || undefined;
+  const description = product.description?.slice(0, 200) || `${product.title} disponible chez ${store.name}.`;
+  return withCanonical(
+    {
+      title: `${product.title} — ${store.name}`,
+      description: description.slice(0, 160),
+      openGraph: {
+        title: product.title,
+        description,
+        url: productUrl(slug, handle),
+        siteName: store.name,
+        images: image ? [{ url: image }] : [],
+        type: 'website',
+      },
+      twitter: {
+        card: image ? 'summary_large_image' : 'summary',
+        title: product.title,
+        description,
+        images: image ? [image] : undefined,
+      },
     },
-  };
+    `/shop/${slug}/products/${handle}`,
+  );
 }
 
 export default async function ShopProductPage({
@@ -48,10 +63,38 @@ export default async function ShopProductPage({
 
   const variant = product.variants?.[0];
   const price = variant?.calculated_price?.calculated_amount;
+  const currency = variant?.calculated_price?.currency_code || 'eur';
   const imageUrl = product.thumbnail || product.images?.[0]?.url;
+
+  const productJsonLd = JSON.stringify(
+    productSchema({
+      storeSlug: slug,
+      storeName: store.name,
+      productTitle: product.title,
+      productDescription: product.description,
+      productHandle: product.handle,
+      imageUrl,
+      priceMinor: price,
+      currency,
+    }),
+  );
+  const breadcrumbJsonLd = JSON.stringify(
+    breadcrumbList([
+      { name: store.name, url: storeUrl(slug) },
+      { name: product.title, url: productUrl(slug, product.handle) },
+    ]),
+  );
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-12">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: productJsonLd }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: breadcrumbJsonLd }} />
+      <TrackPageView
+        slug={slug}
+        eventName="view_content"
+        productId={product.id}
+        variantId={variant?.id}
+      />
       <nav className="mb-8 text-sm text-zinc-500">
         <Link href={`/shop/${slug}`} className="hover:underline" style={{ color: store.accentColor }}>
           {store.logoEmoji} {store.name}

@@ -2,6 +2,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import Anthropic from '@anthropic-ai/sdk';
 import { runWorkflow, isComfyConfigured } from './comfy-client';
+import { extractJson } from './json';
 
 /**
  * Auto-generates hero/cutout/lifestyle/promo-video assets for a mono-product
@@ -108,9 +109,8 @@ Return ONLY this JSON:
     });
 
     const text = res.content[0]?.type === 'text' ? res.content[0].text : '';
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return FALLBACK_PROMPTS;
-    const parsed = JSON.parse(jsonMatch[0]) as Partial<PromptBundle>;
+    const parsed = extractJson<Partial<PromptBundle>>(text);
+    if (!parsed) return FALLBACK_PROMPTS;
 
     return {
       hero: parsed.hero || FALLBACK_PROMPTS.hero,

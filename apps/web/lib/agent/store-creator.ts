@@ -5,6 +5,7 @@ import * as aliexpress from '@/lib/suppliers/aliexpress';
 import * as cj from '@/lib/suppliers/cj';
 import { filterByImageQuality, type ImageQualityVerdict } from './image-quality';
 import { generateMonoAssets } from './asset-generator';
+import { extractJson } from './json';
 
 export interface StoreCreationInput {
   niche: string;
@@ -188,10 +189,7 @@ Return ONLY valid JSON:
   });
 
   const text = response.content[0].type === 'text' ? response.content[0].text : '';
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error('Claude returned invalid JSON for product generation');
-
-  const parsed = JSON.parse(jsonMatch[0]) as {
+  const parsed = extractJson<{
     products: Array<{
       id: string;
       originalTitle: string;
@@ -203,7 +201,8 @@ Return ONLY valid JSON:
       supplierUrl: string;
     }>;
     branding: BrandingResult;
-  };
+  }>(text);
+  if (!parsed) throw new Error('Claude returned invalid JSON for product generation');
 
   if (!parsed.products?.length || !parsed.branding) {
     throw new Error(`Claude returned incomplete payload (products=${parsed.products?.length ?? 0}, branding=${!!parsed.branding})`);
@@ -304,10 +303,7 @@ Return ONLY valid JSON:
   });
 
   const text = response.content[0].type === 'text' ? response.content[0].text : '';
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error('Claude returned invalid JSON');
-
-  const parsed = JSON.parse(jsonMatch[0]) as {
+  const parsed = extractJson<{
     products: Array<{
       index: number;
       enrichedTitle: string;
@@ -316,7 +312,8 @@ Return ONLY valid JSON:
       costCents: number;
     }>;
     branding: BrandingResult;
-  };
+  }>(text);
+  if (!parsed) throw new Error('Claude returned invalid JSON');
 
   const enriched: EnrichedProduct[] = parsed.products.map(ep => {
     const raw = rawProducts[ep.index];

@@ -3,6 +3,8 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { getStoreBySlug } from '@/lib/store-config';
 import { formatMoney, listProducts } from '@/lib/medusa-store';
+import { breadcrumbList, organizationSchema, storeUrl, withCanonical } from '@/lib/seo';
+import { TrackPageView } from '@/components/analytics/TrackPageView';
 import { MonoProductLanding } from './MonoProductLanding';
 
 export const dynamic = 'force-dynamic';
@@ -11,15 +13,31 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const store = await getStoreBySlug(slug);
   if (!store) return {};
-  return {
-    title: `${store.name} — ${store.tagline || store.niche}`,
-    description: store.description || `Découvrez ${store.productCount} produits ${store.niche} soigneusement sélectionnés.`,
-    openGraph: {
-      title: store.name,
-      description: store.tagline || store.description || '',
-      type: 'website',
+  const description =
+    store.description ||
+    `Découvrez ${store.productCount} produit${store.productCount > 1 ? 's' : ''} ${store.niche} soigneusement sélectionnés.`;
+  const ogImage = store.heroImageUrl || store.cutoutImageUrl || undefined;
+  return withCanonical(
+    {
+      title: `${store.name} — ${store.tagline || store.niche}`,
+      description,
+      openGraph: {
+        title: store.name,
+        description: store.tagline || description,
+        type: 'website',
+        url: storeUrl(slug),
+        siteName: store.name,
+        images: ogImage ? [{ url: ogImage }] : [],
+      },
+      twitter: {
+        card: ogImage ? 'summary_large_image' : 'summary',
+        title: store.name,
+        description: store.tagline || description,
+        images: ogImage ? [ogImage] : undefined,
+      },
     },
-  };
+    `/shop/${slug}`,
+  );
 }
 
 export default async function ShopPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -37,15 +55,35 @@ export default async function ShopPage({ params }: { params: Promise<{ slug: str
     error = e instanceof Error ? e.message : 'Erreur chargement produits';
   }
 
+  const orgJsonLd = JSON.stringify(organizationSchema(store));
+  const breadcrumbJsonLd = JSON.stringify(
+    breadcrumbList([{ name: store.name, url: storeUrl(slug) }]),
+  );
+
   // Mono-product mode: a store with exactly one product gets the long-form
   // conversion-optimized landing page instead of the niche-brand grid. This
   // is the default for paid-traffic dropship stores.
   if (!error && products.length === 1) {
-    return <MonoProductLanding store={store} product={products[0]} />;
+    return (
+      <>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: orgJsonLd }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: breadcrumbJsonLd }} />
+        <TrackPageView
+          slug={slug}
+          eventName="view_content"
+          productId={products[0].id}
+          variantId={products[0].variants?.[0]?.id}
+        />
+        <MonoProductLanding store={store} product={products[0]} />
+      </>
+    );
   }
 
   return (
     <div>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: orgJsonLd }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: breadcrumbJsonLd }} />
+      <TrackPageView slug={slug} eventName="page_view" />
       {/* Hero */}
       <section
         className="text-white py-20 text-center"

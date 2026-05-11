@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { extractJson } from './json';
 
 /**
  * Claude Vision filter for supplier product images.
@@ -85,12 +86,11 @@ Return ONLY this JSON, no preamble:
     });
 
     const text = response.content[0]?.type === 'text' ? response.content[0].text : '';
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
+    const parsed = extractJson<Partial<ImageQualityVerdict>>(text);
+    if (!parsed) {
       return { score: 0, issues: ['low_quality'], reason: 'Réponse vision invalide' };
     }
 
-    const parsed = JSON.parse(jsonMatch[0]) as Partial<ImageQualityVerdict>;
     const score = typeof parsed.score === 'number' ? Math.max(0, Math.min(1, parsed.score)) : 0;
     const issues = Array.isArray(parsed.issues)
       ? parsed.issues.filter((i): i is string => typeof i === 'string' && (ISSUE_TAXONOMY as readonly string[]).includes(i))
