@@ -6,6 +6,7 @@ import * as cj from '@/lib/suppliers/cj';
 import { filterByImageQuality, type ImageQualityVerdict } from './image-quality';
 import { generateMonoAssets } from './asset-generator';
 import { extractJson } from './json';
+import { rankAndKeepTop } from './product-scorer';
 
 export interface StoreCreationInput {
   niche: string;
@@ -55,6 +56,12 @@ type RawProduct = {
   price: number;
   imageUrl: string;
   supplierUrl: string;
+  // Optional supplier signals used by the deterministic product scorer
+  // (P0.5). Populated from AE search response when available. Missing for
+  // CJ (the v1 client doesn't expose these), which is fine — scorer
+  // treats them as neutral.
+  orders?: number;
+  evaluateRate?: string;
 };
 
 function slugify(text: string): string {
@@ -93,6 +100,7 @@ async function searchSuppliers(
 
   if (aliRes.status === 'fulfilled' && aliRes.value.success && aliRes.value.data) {
     for (const p of aliRes.value.data.products) {
+      const ordersParsed = parseInt(p.thirty_days_sold_count || '0', 10);
       results.push({
         supplier: 'aliexpress',
         externalId: p.product_id,
@@ -100,6 +108,8 @@ async function searchSuppliers(
         price: parseFloat(p.sale_price || p.original_price || '0'),
         imageUrl: p.product_main_image_url,
         supplierUrl: p.product_url,
+        orders: Number.isFinite(ordersParsed) ? ordersParsed : undefined,
+        evaluateRate: p.evaluate_rate || undefined,
       });
     }
     aliCount = aliRes.value.data.products.length;
@@ -385,6 +395,30 @@ export async function* createStore(input: StoreCreationInput): AsyncGenerator<Ag
       emit({ type: 'step', message: 'Recherche produits chez AliExpress & CJ Dropshipping...' });
 
       const rawProducts = await searchSuppliers(input.niche, 25, emit);
+
+      // ── P0.5 Deterministic pre-vision scorer ────────────────────────
+      // Before paying Haiku Vision $0.001/image to score every supplier
+      // result, rank with a pure formula (cost / orders / rating / margin
+      // / image-presence) and keep top 25. Cuts the vision token bill
+      // ~50% and stops asking the model to look at obvious junk.
+      const PRE_VISION_TOP_N = 25;
+      const initialCount = rawProducts.length;
+      if (initialCount > PRE_VISION_TOP_N) {
+        const ranked = rankAndKeepTop(rawProducts, PRE_VISION_TOP_N);
+        // Decorated items keep all original RawProduct fields + _score +
+        // _scoreReasons. We strip the underscore fields when re-assigning
+        // so the rest of the pipeline sees the same shape, but we log
+        // a debug breakdown via the SSE event.
+        const topScore = ranked[0]?._score ?? 0;
+        const bottomScore = ranked[ranked.length - 1]?._score ?? 0;
+        rawProducts.length = 0;
+        rawProducts.push(...ranked.map(({ _score: _s, _scoreReasons: _r, ...p }) => p));
+        emit({
+          type: 'step',
+          message: `${ranked.length} candidats retenus par score (top ${PRE_VISION_TOP_N} sur ${initialCount})`,
+          data: { kept: ranked.length, total: initialCount, topScore, bottomScore },
+        });
+      }
 
       // Vision filter: rejects supplier images with text overlays, prices,
       // discount badges, watermarks, collages, human models. Mandatory for
