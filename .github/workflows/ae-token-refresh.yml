@@ -1,0 +1,127 @@
+name: AliExpress OAuth token refresh
+
+# QW7 — Daily refresh of the AE access_token. The token persists in
+# `platform_settings` (key `aliexpress_access_token`) and expires after
+# 24h-ish. Without this cron, a quiet day means the first customer order
+# the next morning fails to forward to AE.
+#
+# Required repo secrets:
+#   APP_URL          — e.g. https://dropship-platform-amber.vercel.app
+#   ADMIN_USERNAME   — Basic auth user (same as ADMIN_USERNAME env on Vercel)
+#   ADMIN_PASSWORD   — Basic auth password
+#
+# Auth: the endpoint sits behind the admin Basic auth middleware (see
+# `apps/web/middleware.ts`). We build the header manually with base64 so
+# we don't depend on `curl --user` quoting.
+#
+# Retry strategy: 3 attempts with exponential backoff (5s, 15s, 45s). The
+# AE refresh endpoint sometimes 5xx transiently. If all 3 attempts fail we
+# open a GitHub issue tagged `ae-token-expired` and exit non-zero so the
+# run is visible in the dashboard. Sentry will already have the exception
+# captured server-side.
+
+on:
+  schedule:
+    - cron: '0 6 * * *'      # 06:00 UTC daily
+  workflow_dispatch: {}
+
+permissions:
+  issues: write              # needed to open the failure issue
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Refresh AE OAuth token
+        id: refresh
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          ADMIN_USERNAME: ${{ secrets.ADMIN_USERNAME }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+        run: |
+          set -u
+          if [ -z "${APP_URL:-}" ] || [ -z "${ADMIN_USERNAME:-}" ] || [ -z "${ADMIN_PASSWORD:-}" ]; then
+            echo "::error::Missing required secrets (APP_URL / ADMIN_USERNAME / ADMIN_PASSWORD)"
+            exit 1
+          fi
+
+          AUTH=$(printf '%s:%s' "$ADMIN_USERNAME" "$ADMIN_PASSWORD" | base64 -w0 2>/dev/null || \
+                 printf '%s:%s' "$ADMIN_USERNAME" "$ADMIN_PASSWORD" | base64)
+          URL="${APP_URL%/}/api/aliexpress/oauth/refresh"
+
+          delays=(5 15 45)
+          last_code=000
+          last_body=""
+
+          for i in 1 2 3; do
+            echo "--- attempt $i / 3 ---"
+            response=$(curl -s -o /tmp/ae-refresh.body -w "%{http_code}" \
+              --max-time 60 \
+              -X POST \
+              -H "Authorization: Basic $AUTH" \
+              -H "Content-Type: application/json" \
+              "$URL" || echo 000)
+            last_code="$response"
+            last_body="$(cat /tmp/ae-refresh.body 2>/dev/null || echo '')"
+            echo "HTTP $last_code"
+            echo "Body: $last_body"
+
+            if [ "$last_code" = "200" ]; then
+              echo "Refresh OK."
+              echo "ok=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            # 412 = no refresh_token in DB. Retrying won't help — surface
+            # immediately so the operator re-runs the OAuth flow.
+            if [ "$last_code" = "412" ]; then
+              echo "::error::AE refresh token missing — re-authorize via /api/aliexpress/oauth/start"
+              break
+            fi
+
+            if [ "$i" -lt 3 ]; then
+              sleep "${delays[$((i-1))]}"
+            fi
+          done
+
+          echo "::error::All refresh attempts failed (last HTTP $last_code)"
+          {
+            echo "code=$last_code"
+            echo "body<<EOF"
+            echo "$last_body"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+          exit 1
+
+      - name: Open issue on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const code = `${{ steps.refresh.outputs.code }}` || 'unknown';
+            const body = `${{ steps.refresh.outputs.body }}` || '(no body)';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const title = `[AE] OAuth token refresh failed (${new Date().toISOString().slice(0, 10)})`;
+            const issueBody = [
+              `The daily AliExpress OAuth refresh job failed.`,
+              ``,
+              `- Last HTTP status: \`${code}\``,
+              `- Run: ${runUrl}`,
+              ``,
+              `**Response body**:`,
+              '```',
+              body.slice(0, 1500),
+              '```',
+              ``,
+              `Action: re-authorize via \`/api/aliexpress/oauth/start\` if the refresh_token is gone, otherwise investigate the AE side.`,
+            ].join('\n');
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body: issueBody,
+              labels: ['ae-token-expired'],
+            });
