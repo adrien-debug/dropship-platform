@@ -24,6 +24,15 @@ export interface StoreConfig {
   tiktokPixelId: string | null;
   tiktokEventsToken: string | null;
   clarityId: string | null;
+  // Mono-product mode + auto-generated assets. heroImageUrl etc. are web
+  // paths starting with /generated/{slug}/run-... or null when generation
+  // hasn't run / failed for that asset.
+  mode: 'mono' | 'collection';
+  heroImageUrl: string | null;
+  cutoutImageUrl: string | null;
+  lifestyleImages: string[];
+  promoVideoUrl: string | null;
+  assetsStatus: 'none' | 'pending' | 'generating' | 'ready' | 'error';
 }
 
 interface StoreRow {
@@ -47,6 +56,12 @@ interface StoreRow {
   tiktok_pixel_id: string | null;
   tiktok_events_token: string | null;
   clarity_id: string | null;
+  mode: 'mono' | 'collection';
+  hero_image_url: string | null;
+  cutout_image_url: string | null;
+  lifestyle_images: unknown; // JSONB — array of strings; pg returns parsed
+  promo_video_url: string | null;
+  assets_status: 'none' | 'pending' | 'generating' | 'ready' | 'error';
 }
 
 const STORE_COLUMNS = `
@@ -54,7 +69,9 @@ const STORE_COLUMNS = `
   primary_color, secondary_color, accent_color, logo_emoji,
   medusa_sales_channel_id, medusa_publishable_key, status, product_count,
   ga4_measurement_id, meta_pixel_id, meta_capi_token,
-  tiktok_pixel_id, tiktok_events_token, clarity_id
+  tiktok_pixel_id, tiktok_events_token, clarity_id,
+  mode, hero_image_url, cutout_image_url, lifestyle_images,
+  promo_video_url, assets_status
 `;
 
 function rowToStore(r: StoreRow): StoreConfig {
@@ -79,6 +96,14 @@ function rowToStore(r: StoreRow): StoreConfig {
     tiktokPixelId: r.tiktok_pixel_id,
     tiktokEventsToken: r.tiktok_events_token,
     clarityId: r.clarity_id,
+    mode: r.mode,
+    heroImageUrl: r.hero_image_url,
+    cutoutImageUrl: r.cutout_image_url,
+    lifestyleImages: Array.isArray(r.lifestyle_images)
+      ? (r.lifestyle_images as unknown[]).filter((u): u is string => typeof u === 'string')
+      : [],
+    promoVideoUrl: r.promo_video_url,
+    assetsStatus: r.assets_status,
   };
 }
 

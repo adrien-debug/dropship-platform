@@ -3,12 +3,21 @@ import { medusa } from '@/lib/medusa';
 import { getDb } from '@/lib/db';
 import * as aliexpress from '@/lib/suppliers/aliexpress';
 import * as cj from '@/lib/suppliers/cj';
+import { filterByImageQuality, type ImageQualityVerdict } from './image-quality';
+import { generateMonoAssets } from './asset-generator';
 
 export interface StoreCreationInput {
   niche: string;
   storeName: string;
   maxProducts?: number;
   language?: 'fr' | 'en';
+  /**
+   * mono = single hero SKU + auto-generated hero/lifestyle/video assets.
+   * collection = 3-25 SKUs catalogue, no asset generation (current behaviour).
+   */
+  mode?: 'mono' | 'collection';
+  /** Skip the 5s promo video (faster + cheaper). Only relevant when mode='mono'. */
+  skipVideo?: boolean;
 }
 
 export interface AgentEvent {
@@ -357,7 +366,10 @@ export async function* createStore(input: StoreCreationInput): AsyncGenerator<Ag
     }
   };
 
-  const maxProducts = input.maxProducts ?? 12;
+  const mode = input.mode ?? 'collection';
+  // Mono mode is locked to a single SKU regardless of maxProducts. Collection
+  // mode uses the requested count (default 12).
+  const maxProducts = mode === 'mono' ? 1 : input.maxProducts ?? 12;
   const language = input.language ?? 'fr';
 
   const run = async () => {
@@ -368,14 +380,52 @@ export async function* createStore(input: StoreCreationInput): AsyncGenerator<Ag
       emit({ type: 'step', message: `Démarrage de l'agent pour "${input.storeName}" (niche: ${input.niche})` });
 
       const insertRes = await db.query<{ id: string }>(
-        `INSERT INTO dropship_stores (slug, name, niche, status) VALUES ($1, $2, $3, 'creating') RETURNING id`,
-        [slug, input.storeName, input.niche],
+        `INSERT INTO dropship_stores (slug, name, niche, mode, status) VALUES ($1, $2, $3, $4, 'creating') RETURNING id`,
+        [slug, input.storeName, input.niche, mode],
       );
       const storeId = insertRes.rows[0]!.id;
 
       emit({ type: 'step', message: 'Recherche produits chez AliExpress & CJ Dropshipping...' });
 
       const rawProducts = await searchSuppliers(input.niche, 25, emit);
+
+      // Vision filter: rejects supplier images with text overlays, prices,
+      // discount badges, watermarks, collages, human models. Mandatory for
+      // mono (the hero IS the brand) — for collection we still rank but don't
+      // fail the run if everything fails.
+      const visionVerdicts = new Map<string, ImageQualityVerdict>();
+      if (rawProducts.length > 0) {
+        emit({
+          type: 'step',
+          message: `Filtre vision Claude — analyse de ${rawProducts.length} images produit...`,
+        });
+        const { kept, rejected } = await filterByImageQuality(
+          rawProducts.map((p) => ({ ...p, imageUrl: p.imageUrl })),
+          mode === 'mono' ? 0.65 : 0.5,
+        );
+        kept.forEach((p) => visionVerdicts.set(p.externalId, p._quality));
+        rejected.forEach((p) => visionVerdicts.set(p.externalId, p._quality));
+
+        emit({
+          type: 'progress',
+          message: `${kept.length} produits qualifiés · ${rejected.length} rejetés (écritures/prix/badges)`,
+          data: { kept: kept.length, rejected: rejected.length },
+        });
+
+        // Replace rawProducts with kept (sorted by score desc); fall back to
+        // unfiltered if vision rejected everything (no supplier match is a
+        // worse outcome than a slightly-noisy image).
+        if (kept.length > 0) {
+          rawProducts.length = 0;
+          rawProducts.push(...kept.map(({ _quality: _q, ...p }) => p));
+        } else {
+          emit({
+            type: 'progress',
+            message: '⚠ Aucune image n’a passé le filtre — on continue avec les meilleures malgré tout',
+          });
+        }
+      }
+
       let enriched: EnrichedProduct[];
       let branding: BrandingResult;
 
@@ -473,17 +523,20 @@ export async function* createStore(input: StoreCreationInput): AsyncGenerator<Ag
             channel.id,
           );
 
+          const verdict = visionVerdicts.get(ep.externalId);
           await db.query(
             `INSERT INTO dropship_store_products
                (store_id, medusa_product_id, supplier, external_id,
                 original_title, enriched_title, enriched_description,
-                price_cents, cost_cents, image_url, supplier_url)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+                price_cents, cost_cents, image_url, supplier_url,
+                image_quality_score, image_quality_issues)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
              ON CONFLICT (store_id, supplier, external_id) DO NOTHING`,
             [
               storeId, medusaProduct.id, ep.supplier, ep.externalId,
               ep.originalTitle, ep.enrichedTitle, ep.enrichedDescription,
               ep.priceCents, ep.costCents, ep.imageUrl || null, ep.supplierUrl || null,
+              verdict?.score ?? null, JSON.stringify(verdict?.issues ?? []),
             ],
           );
 
@@ -519,10 +572,72 @@ export async function* createStore(input: StoreCreationInput): AsyncGenerator<Ag
         ],
       );
 
+      // Mono mode: kick off the asset generation pipeline. We do this AFTER
+      // the store row is marked 'active' so the storefront is already
+      // browseable while images render. Failures here are non-fatal — the
+      // store still works with the supplier image.
+      if (mode === 'mono' && enriched[0]) {
+        const heroProduct = enriched[0];
+        emit({ type: 'step', message: 'Génération des visuels (hero, lifestyles, vidéo)...' });
+        await db.query(
+          `UPDATE dropship_stores SET assets_status = 'generating' WHERE id = $1`,
+          [storeId],
+        );
+        try {
+          const assets = await generateMonoAssets(
+            {
+              storeSlug: slug,
+              product: {
+                title: heroProduct.enrichedTitle,
+                description: heroProduct.enrichedDescription,
+                imageUrl: heroProduct.imageUrl,
+              },
+              niche: input.niche,
+              language,
+              skipVideo: input.skipVideo,
+            },
+            (msg) => emit({ type: 'progress', message: msg }),
+          );
+
+          const hasAnyAsset = Boolean(assets.heroUrl || assets.cutoutUrl || assets.lifestyleUrls.length);
+          await db.query(
+            `UPDATE dropship_stores SET
+               assets_run_id = $1,
+               hero_image_url = $2,
+               cutout_image_url = $3,
+               lifestyle_images = $4,
+               promo_video_url = $5,
+               assets_status = $6,
+               updated_at = now()
+             WHERE id = $7`,
+            [
+              assets.runId || null,
+              assets.heroUrl,
+              assets.cutoutUrl,
+              JSON.stringify(assets.lifestyleUrls),
+              assets.promoVideoUrl,
+              hasAnyAsset ? 'ready' : 'error',
+              storeId,
+            ],
+          );
+
+          for (const w of assets.warnings) {
+            emit({ type: 'progress', message: `⚠ ${w}` });
+          }
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : 'erreur inconnue';
+          emit({ type: 'progress', message: `⚠ Asset generation: ${msg}` });
+          await db.query(
+            `UPDATE dropship_stores SET assets_status = 'error' WHERE id = $1`,
+            [storeId],
+          );
+        }
+      }
+
       emit({
         type: 'success',
-        message: `✅ "${input.storeName}" créé avec ${imported} produits !`,
-        data: { storeId, slug, storeName: input.storeName, productCount: imported, url: `/shop/${slug}` },
+        message: `✅ "${input.storeName}" créé avec ${imported} produit${imported > 1 ? 's' : ''} !`,
+        data: { storeId, slug, storeName: input.storeName, productCount: imported, mode, url: `/shop/${slug}` },
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erreur inconnue';

@@ -9,10 +9,14 @@ export const maxDuration = 300;
 const schema = z.object({
   niche: z.string().min(2).max(100),
   storeName: z.string().min(2).max(80),
-  // 1 = mono-product store (one hero SKU, landing-page style).
-  // 3-25 = niche-brand store with a curated catalogue.
+  // mono = single hero SKU + auto hero/lifestyle/video assets.
+  // collection = 3-25 SKU catalogue, no asset gen.
+  mode: z.enum(['mono', 'collection']).optional().default('collection'),
+  // Used only in collection mode (mono is forced to 1 server-side).
   maxProducts: z.number().int().min(1).max(25).optional().default(12),
   language: z.enum(['fr', 'en']).optional().default('fr'),
+  // Mono mode only: skip the 5s promo video (faster + saves credits).
+  skipVideo: z.boolean().optional().default(false),
 });
 
 export async function POST(req: NextRequest) {

@@ -1,5 +1,3 @@
-import { existsSync } from 'fs';
-import path from 'path';
 import { AddToCartButton } from '@/app/products/[handle]/AddToCartButton';
 import { formatMoney } from '@/lib/medusa-store';
 import type { StoreConfig } from '@/lib/store-config';
@@ -66,33 +64,15 @@ export function MonoProductLanding({ store, product }: Props) {
   const formattedPrice = price !== undefined ? formatMoney(price, currency) : null;
   const compareAtPrice = price !== undefined ? formatMoney(price * 1.6, currency) : null;
 
-  const heroOverride = (() => {
-    const dir = path.join(process.cwd(), 'public', 'generated', store.slug, 'current');
-    for (const ext of ['png', 'webp', 'jpg', 'jpeg']) {
-      if (existsSync(path.join(dir, `hero.${ext}`))) {
-        return `/generated/${store.slug}/current/hero.${ext}`;
-      }
-    }
-    return null;
-  })();
-  const heroImage = heroOverride || product.thumbnail || product.images?.[0]?.url;
-
-  // Curated single-image lifestyle shot. Right now hardcoded to the only Kontext
-  // render that holds up; later this becomes a per-store curated list in DB.
-  const beachImage =
-    store.slug === 'brisa-mohlwwe7'
-      ? '/generated/brisa-mohlwwe7/run-2026-04-28-0006-flux-kontext-real-product/beach_terrace.png'
-      : null;
-
-  const cutoutImage = (() => {
-    const dir = path.join(process.cwd(), 'public', 'generated', store.slug, 'current');
-    for (const ext of ['png', 'webp']) {
-      if (existsSync(path.join(dir, `product-cutout.${ext}`))) {
-        return `/generated/${store.slug}/current/product-cutout.${ext}`;
-      }
-    }
-    return null;
-  })();
+  // Auto-generated assets live in DB (mono mode: hero/cutout/lifestyles/promo
+  // video populated by lib/agent/asset-generator.ts). Legacy brisa-style
+  // file-based assets still resolve via /generated/{slug}/current/* — the
+  // store-creator's symlink keeps that path live.
+  const heroImage = store.heroImageUrl || product.thumbnail || product.images?.[0]?.url;
+  const cutoutImage = store.cutoutImageUrl;
+  // First lifestyle wins the parallax beach slot. We intentionally pick by
+  // index (not by name) so the agent stays agnostic about scene labels.
+  const beachImage = store.lifestyleImages[0] ?? null;
 
   return (
     <>
@@ -169,16 +149,30 @@ export function MonoProductLanding({ store, product }: Props) {
         </Section>
       )}
 
-      {/* ================== BEACH MOMENT (parallax full-bleed) ================== */}
-      {beachImage && (
+      {/* ================== BEACH MOMENT (parallax full-bleed) ==================
+         Promo video wins over the static lifestyle when available — auto-
+         play muted loop, no controls, treated as decorative motion. Falls
+         back to the first lifestyle image. */}
+      {(store.promoVideoUrl || beachImage) && (
         <section className="relative overflow-hidden h-[70vh] sm:h-[88vh] bg-zinc-950">
           <Parallax speed={-0.18} className="absolute inset-0 -top-[8%] -bottom-[8%]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={beachImage}
-              alt=""
-              className="w-full h-full object-cover [filter:saturate(1.06)_contrast(1.04)]"
-            />
+            {store.promoVideoUrl ? (
+              <video
+                src={store.promoVideoUrl}
+                autoPlay
+                muted
+                loop
+                playsInline
+                className="w-full h-full object-cover [filter:saturate(1.06)_contrast(1.04)]"
+              />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={beachImage!}
+                alt=""
+                className="w-full h-full object-cover [filter:saturate(1.06)_contrast(1.04)]"
+              />
+            )}
           </Parallax>
           <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-black/30" />
           <div className="relative h-full flex items-end">

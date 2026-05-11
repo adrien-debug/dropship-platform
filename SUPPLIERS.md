@@ -33,8 +33,36 @@ Le client `apps/web/lib/suppliers/cj.ts` gère l'access token (cache 1h) et la r
 # Diagnostic AliExpress (token requis dans platform_settings)
 curl 'https://<host>/api/aliexpress/test-search?keywords=yoga+mat'
 
-# Pipeline complet
+# Pipeline complet (collection)
 curl -N -X POST 'https://<host>/api/agent/create-store' \
   -H 'Content-Type: application/json' \
-  -d '{"niche":"yoga","storeName":"Test","maxProducts":6,"language":"fr"}'
+  -d '{"niche":"yoga","storeName":"Test","mode":"collection","maxProducts":6,"language":"fr"}'
+
+# Mono-produit + assets auto (hero/cutout/3 lifestyles/vidéo)
+curl -N -X POST 'https://<host>/api/agent/create-store' \
+  -H 'Content-Type: application/json' \
+  -d '{"niche":"yoga mat","storeName":"Mono Test","mode":"mono","language":"fr"}'
 ```
+
+## Mode mono-produit + génération d'assets
+
+Le mode `mono` ajoute deux étages au pipeline :
+
+1. **Filtre vision Claude** — chaque image fournisseur passe devant `claude-haiku-4-5` qui rejette les écritures, prix sur l'image, badges `-10%`, watermarks, collages multi-produits, mains/visages humains. Code : `apps/web/lib/agent/image-quality.ts`. Coût ~$0.001 par image. Seuil mono = 0.65, collection = 0.5.
+
+2. **Asset generator** — après l'import du SKU dans Medusa, l'agent appelle ComfyUI (via Comfy Deploy ou un instance local) pour générer hero / cutout / 3 lifestyles / vidéo promo 5s. Code : `apps/web/lib/agent/asset-generator.ts`. Sortie : `apps/web/public/generated/{slug}/run-{ts}-flux-kontext/` + symlink `current/`. Les chemins web sont stockés dans `dropship_stores.{hero_image_url, cutout_image_url, lifestyle_images, promo_video_url}` et consommés par `MonoProductLanding.tsx`.
+
+### Variables d'env (asset generation)
+
+- `COMFY_DEPLOY_API_KEY` — clé API cloud.comfy.org. Si absente, fallback local.
+- `COMFY_DEPLOY_API_URL` (optionnel) — défaut `https://api.comfydeploy.com/api`.
+- `COMFY_DEPLOYMENT_HERO`, `COMFY_DEPLOYMENT_CUTOUT`, `COMFY_DEPLOYMENT_LIFESTYLE` — IDs de deployment cloud.comfy.org pour chaque type d'asset (FLUX Kontext recommandé).
+- `COMFY_DEPLOYMENT_VIDEO` — deployment image-to-video (CogVideoX / Wan2.1 i2v). Optionnel : si absent, vidéo skipée.
+- `COMFYUI_URL` — URL d'un ComfyUI self-hosted (utilisé seulement si `COMFY_DEPLOY_API_KEY` absent).
+- `NEXT_PUBLIC_BASE_URL` — utilisé pour résoudre l'URL absolue du cutout passée à la step vidéo.
+
+Si aucune variable Comfy n'est configurée, l'agent termine quand même et le store fonctionne avec l'image fournisseur brute (warning loggé).
+
+### Production : stockage des assets
+
+Vercel n'a pas de filesystem persistant en runtime. Pour le moment les assets sont écrits dans `public/generated/` ce qui marche en dev. En prod il faut soit (a) commit-and-deploy les assets générés (workflow brisa actuel), soit (b) ajouter un backend S3/R2 dans `comfy-client.ts:fetchBinary` pour pousser direct vers un bucket et stocker l'URL absolue. Voir TODO en bas de `asset-generator.ts`.
