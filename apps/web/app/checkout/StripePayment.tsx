@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { loadStripe, type Stripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
+import { firePixels } from '@/lib/analytics/pixel-client';
 
 interface StripePaymentProps {
   publishableKey: string;
@@ -24,10 +25,29 @@ export function StripePayment({ publishableKey, amountLabel }: StripePaymentProp
     let cancelled = false;
     fetch('/api/checkout/payment', { method: 'POST' })
       .then(async (r) => {
-        const j = await r.json();
+        const j = (await r.json()) as {
+          success?: boolean;
+          error?: string;
+          clientSecret?: string;
+          amount?: number;
+          currency?: string;
+          eventId?: string | null;
+        };
         if (cancelled) return;
         if (!r.ok || !j.success) throw new Error(j.error || 'Erreur init paiement');
-        setClientSecret(j.clientSecret as string);
+        setClientSecret(j.clientSecret ?? null);
+        // Pair the server-side InitiateCheckout fire with a client pixel
+        // call carrying the same eventID for Meta and TikTok dedup.
+        if (j.eventId) {
+          firePixels(
+            'initiate_checkout',
+            {
+              value: j.amount !== undefined ? j.amount / 100 : undefined,
+              currency: j.currency,
+            },
+            j.eventId,
+          );
+        }
       })
       .catch((e) => !cancelled && setError(e instanceof Error ? e.message : 'Erreur'));
     return () => {
