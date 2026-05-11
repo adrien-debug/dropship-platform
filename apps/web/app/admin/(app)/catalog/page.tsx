@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { medusa, type MedusaProduct } from '@/lib/medusa';
+import { PageHeader, StatusPill } from '../../_components/AdminUI';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,50 +13,98 @@ export default async function CatalogPage() {
   } catch (e) {
     error = e instanceof Error ? e.message : 'Erreur';
   }
+
+  const published = products.filter((p) => p.status === 'published').length;
+  const drafts = products.length - published;
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Catalogue Medusa</h2>
-        <p className="text-sm text-zinc-500">{products.length} produit(s)</p>
-      </div>
-      {error && <div className="border border-red-200 bg-red-50 text-red-800 p-4 rounded">{error}</div>}
-      <div className="border rounded-lg overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-zinc-50 text-sm">
-            <tr>
-              <th className="text-left p-3">Image</th>
-              <th className="text-left p-3">Titre</th>
-              <th className="text-left p-3">Handle</th>
-              <th className="text-left p-3">Status</th>
-              <th className="text-left p-3">Variantes</th>
-              <th className="p-3"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {products.map((p) => (
-              <tr key={p.id}>
-                <td className="p-3">
-                  {p.thumbnail ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.thumbnail} alt="" className="w-12 h-12 rounded object-cover bg-zinc-100" />
-                  ) : (
-                    <div className="w-12 h-12 rounded bg-zinc-100" />
-                  )}
-                </td>
-                <td className="p-3 font-medium text-sm">{p.title}</td>
-                <td className="p-3 text-xs text-zinc-500">{p.handle}</td>
-                <td className="p-3">
-                  <span className={`px-2 py-1 rounded text-xs ${p.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-zinc-100 text-zinc-700'}`}>{p.status}</span>
-                </td>
-                <td className="p-3 text-sm">{p.variants?.length ?? 0}</td>
-                <td className="p-3 text-right">
-                  <Link href={`/products/${p.handle}`} className="text-sm underline" target="_blank">Voir</Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        kicker="Production · Medusa"
+        title={
+          <>
+            Catalogue <em className="italic text-zinc-500">Medusa</em>
+          </>
+        }
+        lede="Tous les SKU publiés par l’agent. Source de vérité du stock e-commerce, indépendante des storefronts."
+        actions={
+          <span className="text-xs text-zinc-400 tabular-nums">
+            {products.length} produit{products.length > 1 ? 's' : ''}
+            {drafts > 0 ? ` · ${drafts} brouillon${drafts > 1 ? 's' : ''}` : ''}
+          </span>
+        }
+      />
+
+      {error && (
+        <div className="border border-red-200 bg-red-50/60 rounded-xl p-5">
+          <p className="text-kicker uppercase tracking-label text-red-700 font-medium">Erreur Medusa</p>
+          <p className="mt-1.5 text-sm text-red-900">{error}</p>
+        </div>
+      )}
+
+      {!error && products.length === 0 && (
+        <div className="border border-dashed border-zinc-200 rounded-xl px-6 py-16 text-center bg-white">
+          <p className="text-sm font-serif text-zinc-600">Aucun produit publié pour le moment.</p>
+          <p className="mt-1 text-xs text-zinc-400">Lance l’agent pour publier les premiers SKU.</p>
+        </div>
+      )}
+
+      {products.length > 0 && (
+        <section className="border border-zinc-200 rounded-xl overflow-hidden bg-white">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px] text-sm">
+              <thead className="bg-zinc-50/60 text-kicker uppercase tracking-header text-zinc-500">
+                <tr>
+                  <th className="text-left px-5 py-3 font-medium w-16"></th>
+                  <th className="text-left px-5 py-3 font-medium">Produit</th>
+                  <th className="text-left px-5 py-3 font-medium">Handle</th>
+                  <th className="text-left px-5 py-3 font-medium">Statut</th>
+                  <th className="text-left px-5 py-3 font-medium">Variantes</th>
+                  <th className="text-right px-5 py-3 font-medium">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {products.map((p) => (
+                  <tr key={p.id} className="hover:bg-zinc-50/60 transition-colors">
+                    <td className="px-5 py-3">
+                      {p.thumbnail ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={p.thumbnail}
+                          alt=""
+                          className="w-11 h-11 rounded-lg object-cover bg-zinc-100 border border-zinc-200"
+                        />
+                      ) : (
+                        <div className="w-11 h-11 rounded-lg bg-zinc-100 border border-zinc-200" />
+                      )}
+                    </td>
+                    <td className="px-5 py-3 font-medium text-zinc-900">{p.title}</td>
+                    <td className="px-5 py-3">
+                      <code className="text-xs text-zinc-500 font-mono">{p.handle}</code>
+                    </td>
+                    <td className="px-5 py-3">
+                      <StatusPill tone={p.status === 'published' ? 'emerald' : 'zinc'}>
+                        {p.status}
+                      </StatusPill>
+                    </td>
+                    <td className="px-5 py-3 text-zinc-600 tabular-nums">{p.variants?.length ?? 0}</td>
+                    <td className="px-5 py-3 text-right">
+                      <Link
+                        href={`/products/${p.handle}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs text-zinc-500 hover:text-zinc-900 underline underline-offset-4 decoration-zinc-200 hover:decoration-zinc-500 transition-colors"
+                      >
+                        Ouvrir <span aria-hidden>↗</span>
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
     </div>
   );
 }
