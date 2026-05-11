@@ -3,7 +3,23 @@
 import { useState, useRef, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { PageHeader } from '../../../_components/AdminUI';
+import { PageHeader, StatCard, StatusPill, type Tone } from '../../../_components/AdminUI';
+
+interface NicheValidationResult {
+  saturation: number;
+  verdict: 'go' | 'caution' | 'no-go';
+  totalAds: number;
+  topAdvertisers: Array<{ name: string; pageId?: string; adCount: number }>;
+  sampleCreatives: Array<{
+    adId?: string;
+    advertiser: string;
+    previewImage?: string;
+    landingUrl?: string;
+    startedAt?: string;
+  }>;
+  angles: string[];
+  source: 'meta-html' | 'claude-fallback' | 'cache';
+}
 
 interface AgentEvent {
   type: 'step' | 'progress' | 'success' | 'error' | 'done';
@@ -66,6 +82,9 @@ function NewStoreForm() {
   const [error, setError] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const [validating, setValidating] = useState(false);
+  const [validation, setValidation] = useState<NicheValidationResult | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const counterRef = useRef(0);
   const startTimeRef = useRef(0);
   const detailsEndRef = useRef<HTMLDivElement>(null);
@@ -170,6 +189,32 @@ function NewStoreForm() {
     setNiche('');
     setStoreName('');
     setShowDetails(false);
+    setValidation(null);
+    setValidationError(null);
+  };
+
+  const validateNiche = async () => {
+    const term = niche.trim();
+    if (!term || validating) return;
+    setValidating(true);
+    setValidationError(null);
+    setValidation(null);
+    try {
+      const res = await fetch('/api/agent/niches/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ niche: term, country: 'FR' }),
+      });
+      const body = (await res.json()) as NicheValidationResult & { error?: string };
+      if (!res.ok) {
+        setValidationError(body.error ?? 'Validation indisponible.');
+      } else {
+        setValidation(body);
+      }
+    } catch (err) {
+      setValidationError(err instanceof Error ? err.message : 'Erreur réseau');
+    }
+    setValidating(false);
   };
 
   const stepLines = logs.filter((l) => l.type === 'step' || l.type === 'success' || l.type === 'error');
@@ -237,13 +282,32 @@ function NewStoreForm() {
               );
             })}
           </div>
-          <input
-            type="text"
-            value={niche}
-            onChange={(e) => setNiche(e.target.value)}
-            placeholder="ex. wireless earbuds, scandinavian lamp, eco bottles…"
-            className="w-full border border-zinc-200 rounded-lg px-3.5 py-2.5 text-sm placeholder:text-zinc-400 focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 transition-colors"
-          />
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={niche}
+              onChange={(e) => setNiche(e.target.value)}
+              placeholder="ex. wireless earbuds, scandinavian lamp, eco bottles…"
+              className="flex-1 border border-zinc-200 rounded-lg px-3.5 py-2.5 text-sm placeholder:text-zinc-400 focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 transition-colors"
+            />
+            <button
+              type="button"
+              onClick={validateNiche}
+              disabled={!niche.trim() || validating}
+              className="shrink-0 border border-zinc-200 text-zinc-700 px-4 py-2.5 rounded-lg text-sm font-medium hover:border-zinc-400 hover:bg-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              title="Estimer la saturation Meta Ads de cette niche"
+            >
+              {validating ? (
+                <span className="inline-flex items-center gap-2"><Spinner /> Analyse…</span>
+              ) : (
+                'Valider la niche'
+              )}
+            </button>
+          </div>
+          {validationError && (
+            <p className="mt-2 text-xs text-red-600">{validationError}</p>
+          )}
+          {validation && <NicheValidationPanel result={validation} />}
         </div>
 
         <div>
@@ -530,6 +594,156 @@ function RunStatus({
         )}
       </div>
     </section>
+  );
+}
+
+function NicheValidationPanel({ result }: { result: NicheValidationResult }) {
+  const verdictTone: Tone =
+    result.verdict === 'no-go' ? 'red' : result.verdict === 'caution' ? 'amber' : 'emerald';
+  const verdictLabel =
+    result.verdict === 'no-go'
+      ? 'Marché saturé'
+      : result.verdict === 'caution'
+      ? 'Concurrence soutenue'
+      : 'Marché ouvert';
+  const sourceLabel =
+    result.source === 'meta-html'
+      ? 'Meta Ads Library'
+      : result.source === 'cache'
+      ? 'Cache 24h'
+      : 'Estimation Claude (fallback)';
+
+  // The gauge is a simple linear bar coloured by verdict — saturation
+  // is bounded 0-100 so width = saturation%.
+  const gaugeColor =
+    result.verdict === 'no-go'
+      ? 'bg-red-500'
+      : result.verdict === 'caution'
+      ? 'bg-amber-500'
+      : 'bg-emerald-500';
+
+  return (
+    <div className="mt-4 border border-zinc-200 bg-white rounded-xl overflow-hidden">
+      <div className="px-5 py-4 border-b border-zinc-200/70 flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">
+            Validation niche · {sourceLabel}
+          </p>
+          <h3 className="mt-1 text-base font-serif text-zinc-900">
+            <em className="italic">{verdictLabel}</em>
+          </h3>
+        </div>
+        <StatusPill tone={verdictTone}>{result.verdict.toUpperCase()}</StatusPill>
+      </div>
+
+      <div className="px-5 py-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <StatCard
+          label="Saturation"
+          value={`${result.saturation}/100`}
+          hint={
+            <div className="mt-2 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-[width] duration-500 ${gaugeColor}`}
+                style={{ width: `${result.saturation}%` }}
+              />
+            </div>
+          }
+          tone={verdictTone}
+        />
+        <StatCard
+          label="Ads actives estimées"
+          value={result.totalAds.toLocaleString('fr-FR')}
+          hint={`${result.topAdvertisers.length} annonceur${result.topAdvertisers.length > 1 ? 's' : ''} top`}
+        />
+      </div>
+
+      {result.topAdvertisers.length > 0 && (
+        <div className="px-5 py-4 border-t border-zinc-200/70">
+          <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium mb-2">
+            Top annonceurs
+          </p>
+          <ul className="space-y-1.5">
+            {result.topAdvertisers.map((a) => (
+              <li
+                key={`${a.name}-${a.pageId ?? ''}`}
+                className="flex items-center justify-between text-sm"
+              >
+                <span className="text-zinc-700 truncate">{a.name}</span>
+                <span className="text-xs text-zinc-500 tabular-nums shrink-0 ml-3">
+                  {a.adCount} ad{a.adCount > 1 ? 's' : ''}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {result.sampleCreatives.length > 0 && (
+        <div className="px-5 py-4 border-t border-zinc-200/70">
+          <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium mb-2">
+            Créas observées ({result.sampleCreatives.length})
+          </p>
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {result.sampleCreatives.map((c, idx) => (
+              <li
+                key={c.adId ?? `${c.advertiser}-${idx}`}
+                className="flex items-center gap-3 border border-zinc-200 rounded-lg p-2"
+              >
+                {c.previewImage ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={c.previewImage}
+                    alt=""
+                    className="w-12 h-12 rounded object-cover bg-zinc-100 shrink-0"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded bg-zinc-100 shrink-0" aria-hidden />
+                )}
+                <div className="min-w-0">
+                  <p className="text-sm text-zinc-700 truncate">{c.advertiser}</p>
+                  {c.landingUrl ? (
+                    <a
+                      href={c.landingUrl}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="text-xs text-zinc-400 hover:text-zinc-900 truncate block"
+                    >
+                      {new URL(c.landingUrl).hostname}
+                    </a>
+                  ) : c.startedAt ? (
+                    <p className="text-xs text-zinc-400">depuis {c.startedAt}</p>
+                  ) : null}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {result.angles.length > 0 && (
+        <div className="px-5 py-4 border-t border-zinc-200/70">
+          <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium mb-2">
+            Angles éditoriaux récurrents
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {result.angles.map((angle) => (
+              <span
+                key={angle}
+                className="inline-flex items-center px-2.5 py-1 rounded-full border border-zinc-200 text-xs text-zinc-700"
+              >
+                {angle}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {result.verdict === 'no-go' && (
+        <div className="px-5 py-3 bg-red-50/60 border-t border-red-200 text-xs text-red-800 leading-relaxed">
+          Niche très saturée sur Meta Ads. La création de store n’est pas bloquée — mais prévoyez un budget acquisition supérieur ou un angle différenciant fort.
+        </div>
+      )}
+    </div>
   );
 }
 
