@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { getDb, getDbRead } from '@/lib/db';
 import { siteBaseUrl, storeUrl } from '@/lib/seo';
 import { buildMedusaHandle } from '@/lib/agent/handle';
 
@@ -63,7 +63,7 @@ function fmtPrice(cents: number): string {
 
 export async function GET(_req: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const db = getDb();
+  const db = getDbRead();
 
   const { rows: stores } = await db.query<StoreRow>(
     `SELECT id, slug, name, tagline, description, niche, logo_emoji

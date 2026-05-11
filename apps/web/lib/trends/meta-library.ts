@@ -1,4 +1,4 @@
-import { getDb } from '@/lib/db';
+import { getDb, getDbRead } from '@/lib/db';
 import { trackedMessage } from '@/lib/agent/anthropic';
 import { extractJson } from '@/lib/agent/json';
 
@@ -501,7 +501,7 @@ async function readCache(
   country: string,
 ): Promise<NicheValidationResult | null> {
   try {
-    const db = getDb();
+    const db = getDbRead();
     const { rows } = await db.query<{ payload: NicheValidationResult }>(
       `SELECT payload FROM dropship_trend_snapshots
        WHERE niche = $1 AND country = $2 AND expires_at > now()

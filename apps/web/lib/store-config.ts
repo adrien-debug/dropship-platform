@@ -1,4 +1,4 @@
-import { getDb } from '@/lib/db';
+import { getDbRead } from '@/lib/db';
 import { tryDecryptSecret } from '@/lib/secrets';
 
 export interface StoreConfig {
@@ -162,7 +162,7 @@ export function publicAnalytics(store: StoreConfig): StorePublicAnalytics {
 }
 
 export async function getStoreBySalesChannelId(salesChannelId: string): Promise<StoreConfig | null> {
-  const db = getDb();
+  const db = getDbRead();
   const { rows } = await db.query<StoreRow>(
     `SELECT ${STORE_COLUMNS}
      FROM dropship_stores
@@ -174,7 +174,7 @@ export async function getStoreBySalesChannelId(salesChannelId: string): Promise<
 }
 
 export async function getStoreBySlug(slug: string): Promise<StoreConfig | null> {
-  const db = getDb();
+  const db = getDbRead();
   const { rows } = await db.query<StoreRow>(
     `SELECT ${STORE_COLUMNS}
      FROM dropship_stores WHERE slug = $1 AND status = 'active' LIMIT 1`,

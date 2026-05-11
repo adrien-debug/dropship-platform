@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { getDb } from '@/lib/db';
+import { getDbRead } from '@/lib/db';
 import { StoreActions } from '../StoreActions';
 import { StoreAnalyticsForm } from './StoreAnalyticsForm';
 import { StoreTemplateForm } from './StoreTemplateForm';
@@ -49,7 +49,7 @@ interface ProductRow {
 
 export default async function StoreDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const db = getDb();
+  const db = getDbRead();
 
   const storeRes = await db.query<StoreDetailRow>(
     `SELECT id, slug, name, niche, tagline, description, logo_emoji, primary_color, accent_color,

@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { getDb } from '@/lib/db';
+import { getDb, getDbRead } from '@/lib/db';
 import { formatMoney } from '@/lib/medusa-store';
 
 export const dynamic = 'force-dynamic';
@@ -43,7 +43,7 @@ const FUNNEL_LABEL: Record<string, string> = {
 export default async function StoreAnalyticsPage({ params, searchParams }: Props) {
   const { id } = await params;
   const { range = '30d' } = await searchParams;
-  const db = getDb();
+  const db = getDbRead();
 
   const storeRes = await db.query<{
     slug: string;

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { getDb } from '@/lib/db';
+import { getDb, getDbRead } from '@/lib/db';
 import { PageHeader, StatCard, StatusPill, type Tone } from '../../_components/AdminUI';
 import { StoreActions } from './StoreActions';
 
@@ -27,7 +27,7 @@ function statusOf(s: StoreRow): { tone: Tone; label: string } {
 }
 
 export default async function StoresPage() {
-  const db = getDb();
+  const db = getDbRead();
   const { rows } = await db.query<StoreRow>(
     `SELECT id, slug, name, niche, tagline, logo_emoji, primary_color, accent_color,
             status, product_count, error_message, created_at

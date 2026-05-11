@@ -1,5 +1,5 @@
 import { medusa } from '@/lib/medusa';
-import { getDb } from '@/lib/db';
+import { getDb, getDbRead } from '@/lib/db';
 import { ForwardButton } from './ForwardButton';
 import { DryRunPendingButton } from './DryRunPendingButton';
 import { MarkPaidButton } from './MarkPaidButton';
@@ -238,7 +238,7 @@ export default async function OrdersPage() {
   let forwardsByOrder = new Map<string, ForwardSummary>();
   if (ids.length > 0) {
     const placeholders = ids.map((_, i) => `$${i + 1}`).join(', ');
-    const { rows } = await getDb().query<ForwardSummary>(
+    const { rows } = await getDbRead().query<ForwardSummary>(
       `SELECT DISTINCT ON (medusa_order_id)
               medusa_order_id, status, ae_order_id, dry_run, error_message, paid_at, created_at
          FROM dropship_order_forwards
@@ -253,7 +253,7 @@ export default async function OrdersPage() {
   // de la fenêtre des 50 dernières commandes Medusa au-dessus — on remonte tout
   // ce qui dort en awaiting_payment, peu importe son ancienneté (AE annule au
   // bout de 20 jours).
-  const { rows: awaitingRaw } = await getDb().query<{
+  const { rows: awaitingRaw } = await getDbRead().query<{
     medusa_order_id: string;
     ae_order_id: string;
     created_at: string;

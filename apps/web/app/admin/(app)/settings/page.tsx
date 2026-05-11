@@ -1,10 +1,10 @@
-import { getDb } from '@/lib/db';
+import { getDbRead } from '@/lib/db';
 import { PageHeader, StatusPill, type Tone } from '../../_components/AdminUI';
 
 export const dynamic = 'force-dynamic';
 
 async function getSettings() {
-  const db = getDb();
+  const db = getDbRead();
   const { rows } = await db.query<{ key: string; value: string; updated_at: Date }>(
     `SELECT key, value, updated_at FROM platform_settings ORDER BY key`,
   );

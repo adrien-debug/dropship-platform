@@ -21,7 +21,7 @@
  *      address field or unmapped product. Won't fix itself.
  */
 
-import { getDb } from '@/lib/db';
+import { getDbRead } from '@/lib/db';
 import { medusa } from '@/lib/medusa';
 
 export interface StrandedForward {
@@ -82,7 +82,7 @@ function daysBetween(now: Date, iso: string): number {
 export async function runAnomalyWatch(): Promise<AnomalyWatchResult> {
   const now = new Date();
   const warnings: string[] = [];
-  const db = getDb();
+  const db = getDbRead();
 
   // 1) Stranded "awaiting payment at AE" > 15 days. Same partial index
   //    `idx_order_forwards_awaiting_payment` the admin /orders page uses,

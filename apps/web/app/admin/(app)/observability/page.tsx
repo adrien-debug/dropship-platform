@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { getDb } from '@/lib/db';
+import { getDb, getDbRead } from '@/lib/db';
 import { PageHeader, StatCard, StatusPill } from '../../_components/AdminUI';
 
 export const dynamic = 'force-dynamic';
@@ -39,7 +39,7 @@ interface OverallTotals {
 }
 
 async function fetchTotals(): Promise<OverallTotals> {
-  const db = getDb();
+  const db = getDbRead();
   const { rows } = await db.query<OverallTotals>(
     `SELECT
         COUNT(*)::int AS call_count,
@@ -54,7 +54,7 @@ async function fetchTotals(): Promise<OverallTotals> {
 }
 
 async function fetchStepBreakdown(): Promise<StepSummary[]> {
-  const db = getDb();
+  const db = getDbRead();
   const { rows } = await db.query<StepSummary>(
     `SELECT
         step,
@@ -72,7 +72,7 @@ async function fetchStepBreakdown(): Promise<StepSummary[]> {
 }
 
 async function fetchTopStores(): Promise<TopStore[]> {
-  const db = getDb();
+  const db = getDbRead();
   const { rows } = await db.query<TopStore>(
     `SELECT
         r.store_id,
@@ -91,7 +91,7 @@ async function fetchTopStores(): Promise<TopStore[]> {
 }
 
 async function fetchRecentErrors(): Promise<RecentError[]> {
-  const db = getDb();
+  const db = getDbRead();
   const { rows } = await db.query<RecentError>(
     `SELECT id, store_id, step, model, error_json, created_at
       FROM dropship_ai_runs

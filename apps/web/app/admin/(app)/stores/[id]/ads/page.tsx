@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getDb } from '@/lib/db';
+import { getDb, getDbRead } from '@/lib/db';
 import { listAdVariantsForStore } from '@/lib/agent/ad-variants';
 import { PageHeader, StatusPill } from '../../../../_components/AdminUI';
 import { GenerateAdsButton } from './GenerateAdsButton';
@@ -27,7 +27,7 @@ interface ProductRow {
 
 export default async function StoreAdsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const db = getDb();
+  const db = getDbRead();
 
   const storeRes = await db.query<StoreRow>(
     `SELECT id, slug, name, niche, hero_image_url, cutout_image_url, lifestyle_images, promo_video_url

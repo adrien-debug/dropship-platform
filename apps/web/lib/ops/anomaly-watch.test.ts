@@ -44,6 +44,7 @@ function dbQuery<T = unknown>(
 
 vi.mock('@/lib/db', () => ({
   getDb: () => ({ query: dbQuery }),
+  getDbRead: () => ({ query: dbQuery }),
 }));
 
 const getOrdersMock = vi.fn();
