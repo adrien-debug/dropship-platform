@@ -34,7 +34,11 @@ export interface StoreConfig {
   lifestyleImages: string[];
   promoVideoUrl: string | null;
   assetsStatus: 'none' | 'pending' | 'generating' | 'ready' | 'error';
+  // Storefront template selector (P1.4). 'auto' = derive from product count.
+  template: StoreTemplate;
 }
+
+export type StoreTemplate = 'auto' | 'mono' | 'collection-grid' | 'collection-editorial';
 
 interface StoreRow {
   id: string;
@@ -67,6 +71,7 @@ interface StoreRow {
   lifestyle_images: unknown; // JSONB — array of strings; pg returns parsed
   promo_video_url: string | null;
   assets_status: 'none' | 'pending' | 'generating' | 'ready' | 'error';
+  template: StoreTemplate;
 }
 
 const STORE_COLUMNS = `
@@ -79,7 +84,7 @@ const STORE_COLUMNS = `
   tiktok_events_token_enc, tiktok_events_token_nonce,
   clarity_id,
   mode, hero_image_url, cutout_image_url, lifestyle_images,
-  promo_video_url, assets_status
+  promo_video_url, assets_status, template
 `;
 
 function rowToStore(r: StoreRow): StoreConfig {
@@ -121,6 +126,7 @@ function rowToStore(r: StoreRow): StoreConfig {
       : [],
     promoVideoUrl: r.promo_video_url,
     assetsStatus: r.assets_status,
+    template: r.template,
   };
 }
 

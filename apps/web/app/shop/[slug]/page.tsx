@@ -5,7 +5,9 @@ import { getStoreBySlug } from '@/lib/store-config';
 import { formatMoney, listProducts } from '@/lib/medusa-store';
 import { breadcrumbList, organizationSchema, storeUrl, withCanonical } from '@/lib/seo';
 import { TrackPageView } from '@/components/analytics/TrackPageView';
+import type { StoreTemplate } from '@/lib/store-config';
 import { MonoProductLanding } from './MonoProductLanding';
+import { CollectionEditorialLanding } from './CollectionEditorialLanding';
 
 export const dynamic = 'force-dynamic';
 
@@ -60,14 +62,23 @@ export default async function ShopPage({ params }: { params: Promise<{ slug: str
     breadcrumbList([{ name: store.name, url: storeUrl(slug) }]),
   );
 
-  // Mono-product mode: a store with exactly one product gets the long-form
-  // conversion-optimized landing page instead of the niche-brand grid. This
-  // is the default for paid-traffic dropship stores.
-  if (!error && products.length === 1) {
+  // P1.4 — resolve the storefront template. `auto` (default) keeps the
+  // legacy logic (1 product → mono, else grid). Operators can flip a
+  // store to mono / collection-grid / collection-editorial from the
+  // admin to overrule the heuristic.
+  const resolved: StoreTemplate = resolveTemplate(store.template, products.length);
+
+  const jsonLdHead = (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: orgJsonLd }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: breadcrumbJsonLd }} />
+    </>
+  );
+
+  if (!error && resolved === 'mono' && products.length >= 1) {
     return (
       <>
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: orgJsonLd }} />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: breadcrumbJsonLd }} />
+        {jsonLdHead}
         <TrackPageView
           slug={slug}
           eventName="view_content"
@@ -79,10 +90,19 @@ export default async function ShopPage({ params }: { params: Promise<{ slug: str
     );
   }
 
+  if (!error && resolved === 'collection-editorial' && products.length >= 1) {
+    return (
+      <>
+        {jsonLdHead}
+        <TrackPageView slug={slug} eventName="page_view" />
+        <CollectionEditorialLanding store={store} products={products} />
+      </>
+    );
+  }
+
   return (
     <div>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: orgJsonLd }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: breadcrumbJsonLd }} />
+      {jsonLdHead}
       <TrackPageView slug={slug} eventName="page_view" />
       {/* Hero */}
       <section
@@ -166,4 +186,10 @@ export default async function ShopPage({ params }: { params: Promise<{ slug: str
       </section>
     </div>
   );
+}
+
+function resolveTemplate(template: StoreTemplate, productCount: number): StoreTemplate {
+  if (template !== 'auto') return template;
+  if (productCount === 1) return 'mono';
+  return 'collection-grid';
 }

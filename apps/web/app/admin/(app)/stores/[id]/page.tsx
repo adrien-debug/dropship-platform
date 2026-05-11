@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { getDb } from '@/lib/db';
 import { StoreActions } from '../StoreActions';
 import { StoreAnalyticsForm } from './StoreAnalyticsForm';
+import { StoreTemplateForm } from './StoreTemplateForm';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,6 +30,7 @@ interface StoreDetailRow {
   tiktok_pixel_id: string | null;
   tiktok_events_token: string | null;
   clarity_id: string | null;
+  template: 'auto' | 'mono' | 'collection-grid' | 'collection-editorial';
 }
 
 interface ProductRow {
@@ -53,7 +55,8 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
             status, product_count, medusa_sales_channel_id, medusa_publishable_key,
             error_message, created_at, updated_at,
             ga4_measurement_id, meta_pixel_id, meta_capi_token,
-            tiktok_pixel_id, tiktok_events_token, clarity_id
+            tiktok_pixel_id, tiktok_events_token, clarity_id,
+            template
      FROM dropship_stores WHERE id = $1 LIMIT 1`,
     [id],
   );
@@ -159,6 +162,12 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
           </div>
         </div>
       </div>
+
+      <StoreTemplateForm
+        storeId={store.id}
+        storeSlug={store.slug}
+        initial={store.template}
+      />
 
       <StoreAnalyticsForm
         storeId={store.id}

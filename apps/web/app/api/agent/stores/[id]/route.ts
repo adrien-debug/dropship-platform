@@ -66,7 +66,19 @@ const analyticsSchema = z.object({
   clarityId: safeId(/^[a-z0-9]{6,20}$/),
 });
 
-const patchSchema = z.object({ analytics: analyticsSchema });
+const templateSchema = z.enum(['auto', 'mono', 'collection-grid', 'collection-editorial']);
+
+// P1.4: storefront template is a top-level field — distinct from the
+// analytics block so the form can submit a single field without echoing
+// the full analytics payload.
+const patchSchema = z
+  .object({
+    analytics: analyticsSchema.optional(),
+    template: templateSchema.optional(),
+  })
+  .refine((v) => v.analytics !== undefined || v.template !== undefined, {
+    message: 'analytics or template required',
+  });
 
 // Plain text fields — written as-is to a single column.
 const PLAIN_FIELD_TO_COLUMN: Record<
@@ -106,11 +118,17 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = patchSchema.parse(await request.json());
-    const updates = body.analytics;
+    const updates = body.analytics ?? {};
 
     const setClauses: string[] = [];
     const values: (string | Buffer | null)[] = [];
     let i = 1;
+
+    if (body.template) {
+      setClauses.push(`template = $${i}`);
+      values.push(body.template);
+      i++;
+    }
 
     for (const [field, column] of Object.entries(PLAIN_FIELD_TO_COLUMN) as [
       keyof typeof PLAIN_FIELD_TO_COLUMN,
