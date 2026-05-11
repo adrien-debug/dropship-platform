@@ -4,6 +4,7 @@ import { getDbRead } from '@/lib/db';
 import { StoreActions } from '../StoreActions';
 import { StoreAnalyticsForm } from './StoreAnalyticsForm';
 import { StoreTemplateForm } from './StoreTemplateForm';
+import { StoreCustomDomainForm } from './StoreCustomDomainForm';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,6 +35,7 @@ interface StoreDetailRow {
   google_ads_conversion_action: string | null;
   google_merchant_id: string | null;
   template: 'auto' | 'mono' | 'collection-grid' | 'collection-editorial';
+  custom_domain: string | null;
 }
 
 interface ProductRow {
@@ -61,7 +63,7 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
             meta_pixel_id, meta_capi_token,
             tiktok_pixel_id, tiktok_events_token, clarity_id,
             google_ads_conversion_action, google_merchant_id,
-            template
+            template, custom_domain
      FROM dropship_stores WHERE id = $1 LIMIT 1`,
     [id],
   );
@@ -153,6 +155,9 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
                 <span className="font-medium">Description :</span> {store.description}
               </div>
             )}
+            <div>
+              <span className="font-medium">Domaine :</span> {store.custom_domain || '—'}
+            </div>
             {store.error_message && store.status !== 'active' && (
               <div className="col-span-2 text-red-600">
                 <span className="font-medium">Erreur :</span> {store.error_message}
@@ -172,6 +177,11 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
         storeId={store.id}
         storeSlug={store.slug}
         initial={store.template}
+      />
+
+      <StoreCustomDomainForm
+        storeId={store.id}
+        initial={store.custom_domain ?? ''}
       />
 
       <StoreAnalyticsForm

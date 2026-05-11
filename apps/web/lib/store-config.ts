@@ -41,6 +41,8 @@ export interface StoreConfig {
   assetsStatus: 'none' | 'pending' | 'generating' | 'ready' | 'error';
   // Storefront template selector (P1.4). 'auto' = derive from product count.
   template: StoreTemplate;
+  // P1.1: custom domain. e.g. "maison-chic.com". Null when not configured.
+  customDomain: string | null;
 }
 
 export type StoreTemplate = 'auto' | 'mono' | 'collection-grid' | 'collection-editorial';
@@ -82,6 +84,7 @@ interface StoreRow {
   promo_video_url: string | null;
   assets_status: 'none' | 'pending' | 'generating' | 'ready' | 'error';
   template: StoreTemplate;
+  custom_domain: string | null;
 }
 
 const STORE_COLUMNS = `
@@ -97,7 +100,8 @@ const STORE_COLUMNS = `
   clarity_id,
   google_ads_conversion_action, google_merchant_id,
   mode, hero_image_url, cutout_image_url, lifestyle_images,
-  promo_video_url, assets_status, template
+  promo_video_url, assets_status, template,
+  custom_domain
 `;
 
 function rowToStore(r: StoreRow): StoreConfig {
@@ -145,6 +149,7 @@ function rowToStore(r: StoreRow): StoreConfig {
     promoVideoUrl: r.promo_video_url,
     assetsStatus: r.assets_status,
     template: r.template,
+    customDomain: r.custom_domain,
   };
 }
 
@@ -187,6 +192,21 @@ export async function getStoreBySlug(slug: string): Promise<StoreConfig | null> 
     `SELECT ${STORE_COLUMNS}
      FROM dropship_stores WHERE slug = $1 AND status = 'active' LIMIT 1`,
     [slug],
+  );
+  return rows[0] ? rowToStore(rows[0]) : null;
+}
+
+/**
+ * P1.1 — resolve a custom domain to a store. Used by /api/domain-resolve
+ * which is called by the middleware to rewrite inbound custom-domain requests
+ * to /shop/{slug} without a redirect.
+ */
+export async function getStoreByDomain(domain: string): Promise<StoreConfig | null> {
+  const db = getDbRead();
+  const { rows } = await db.query<StoreRow>(
+    `SELECT ${STORE_COLUMNS}
+     FROM dropship_stores WHERE custom_domain = $1 AND status = 'active' LIMIT 1`,
+    [domain],
   );
   return rows[0] ? rowToStore(rows[0]) : null;
 }

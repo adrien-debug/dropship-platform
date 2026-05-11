@@ -74,6 +74,10 @@ const analyticsSchema = z.object({
 
 const templateSchema = z.enum(['auto', 'mono', 'collection-grid', 'collection-editorial']);
 
+// P1.1: custom domain — apex hostname like "maison-chic.com". Empty string clears it.
+// Accepts: lowercase alphanumeric, hyphens, dots; at least one dot; valid TLD (2+ chars).
+const customDomainSchema = safeId(/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]\.[a-z]{2,}$/);
+
 // P1.4: storefront template is a top-level field — distinct from the
 // analytics block so the form can submit a single field without echoing
 // the full analytics payload.
@@ -81,17 +85,20 @@ const patchSchema = z
   .object({
     analytics: analyticsSchema.optional(),
     template: templateSchema.optional(),
+    customDomain: customDomainSchema,
   })
-  .refine((v) => v.analytics !== undefined || v.template !== undefined, {
-    message: 'analytics or template required',
-  });
+  .refine(
+    (v) => v.analytics !== undefined || v.template !== undefined || v.customDomain !== undefined,
+    { message: 'analytics, template, or customDomain required' },
+  );
 
 // Plain text fields — written as-is to a single column.
 const PLAIN_FIELD_TO_COLUMN: Record<
-  Exclude<
-    keyof z.infer<typeof analyticsSchema>,
-    'metaCapiToken' | 'tiktokEventsToken' | 'ga4ApiSecret'
-  >,
+  | Exclude<
+      keyof z.infer<typeof analyticsSchema>,
+      'metaCapiToken' | 'tiktokEventsToken' | 'ga4ApiSecret'
+    >
+  | 'customDomain',
   string
 > = {
   ga4MeasurementId: 'ga4_measurement_id',
@@ -100,6 +107,8 @@ const PLAIN_FIELD_TO_COLUMN: Record<
   clarityId: 'clarity_id',
   googleAdsConversionAction: 'google_ads_conversion_action',
   googleAdsMerchantId: 'google_merchant_id',
+  // P1.1: custom domain
+  customDomain: 'custom_domain',
 };
 
 // Secret fields — encrypted at rest. Each field maps to three columns:
@@ -146,12 +155,22 @@ export async function PATCH(
       i++;
     }
 
+    // P1.1: customDomain is a top-level field (not inside analytics).
+    if (body.customDomain !== undefined) {
+      const v = body.customDomain;
+      setClauses.push(`custom_domain = $${i}`);
+      values.push(v && v.length > 0 ? v : null);
+      i++;
+    }
+
     for (const [field, column] of Object.entries(PLAIN_FIELD_TO_COLUMN) as [
       keyof typeof PLAIN_FIELD_TO_COLUMN,
       string,
     ][]) {
+      // customDomain is handled above as a top-level field; skip it here.
+      if (field === 'customDomain') continue;
       if (field in updates) {
-        const v = updates[field];
+        const v = updates[field as keyof typeof updates];
         setClauses.push(`${column} = $${i}`);
         values.push(v && v.length > 0 ? v : null);
         i++;
