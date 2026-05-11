@@ -1,4 +1,3 @@
-import Anthropic from '@anthropic-ai/sdk';
 import { medusa } from '@/lib/medusa';
 import { getDb } from '@/lib/db';
 import * as aliexpress from '@/lib/suppliers/aliexpress';
@@ -6,6 +5,8 @@ import * as cj from '@/lib/suppliers/cj';
 import { filterByImageQuality, type ImageQualityVerdict } from './image-quality';
 import { generateMonoAssets } from './asset-generator';
 import { extractJson } from './json';
+import { trackedMessage } from './anthropic';
+import { runContext } from './run-context';
 
 export interface StoreCreationInput {
   niche: string;
@@ -65,10 +66,6 @@ function slugify(text: string): string {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
     .slice(0, 60);
-}
-
-function getAnthropicClient() {
-  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 }
 
 async function searchSuppliers(
@@ -144,9 +141,7 @@ async function generateProductsWithClaude(
     ? 'Write ALL content in French (titles, descriptions).'
     : 'Write ALL content in English.';
 
-  const anthropic = getAnthropicClient();
-
-  const response = await anthropic.messages.create({
+  const response = await trackedMessage({ step: 'generate-products' }, {
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 4096,
     messages: [
@@ -237,7 +232,6 @@ async function enrichSupplierProductsWithClaude(
   language: 'fr' | 'en',
   emit: (e: AgentEvent) => void,
 ): Promise<{ products: EnrichedProduct[]; branding: BrandingResult }> {
-  const anthropic = getAnthropicClient();
   const langInstruction = language === 'fr'
     ? 'Write all content in French.'
     : 'Write all content in English.';
@@ -257,7 +251,7 @@ async function enrichSupplierProductsWithClaude(
     2,
   );
 
-  const response = await anthropic.messages.create({
+  const response = await trackedMessage({ step: 'enrich-products' }, {
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 4096,
     messages: [
@@ -381,6 +375,10 @@ export async function* createStore(input: StoreCreationInput): AsyncGenerator<Ag
         [slug, input.storeName, input.niche, mode],
       );
       const storeId = insertRes.rows[0]!.id;
+
+      // From here on every Anthropic call landed via trackedMessage will
+      // pick up storeId automatically (AsyncLocalStorage in run-context).
+      await runContext.run({ storeId }, async () => {
 
       emit({ type: 'step', message: 'Recherche produits chez AliExpress & CJ Dropshipping...' });
 
@@ -635,6 +633,7 @@ export async function* createStore(input: StoreCreationInput): AsyncGenerator<Ag
         type: 'success',
         message: `✅ "${input.storeName}" créé avec ${imported} produit${imported > 1 ? 's' : ''} !`,
         data: { storeId, slug, storeName: input.storeName, productCount: imported, mode, url: `/shop/${slug}` },
+      });
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erreur inconnue';

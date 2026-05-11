@@ -1,8 +1,8 @@
 import { promises as fs } from 'fs';
 import path from 'path';
-import Anthropic from '@anthropic-ai/sdk';
 import { runWorkflow, isComfyConfigured } from './comfy-client';
 import { extractJson } from './json';
+import { trackedMessage } from './anthropic';
 import { isR2Configured, uploadToR2 } from '@/lib/storage/r2';
 
 /**
@@ -93,12 +93,10 @@ const FALLBACK_PROMPTS: PromptBundle = {
 };
 
 async function buildPromptsWithClaude(input: AssetGenInput): Promise<PromptBundle> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return FALLBACK_PROMPTS;
+  if (!process.env.ANTHROPIC_API_KEY) return FALLBACK_PROMPTS;
 
-  const client = new Anthropic({ apiKey });
   try {
-    const res = await client.messages.create({
+    const res = await trackedMessage({ step: 'asset-prompts' }, {
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 1024,
       messages: [

@@ -1,5 +1,5 @@
-import Anthropic from '@anthropic-ai/sdk';
 import { extractJson } from './json';
+import { trackedMessage } from './anthropic';
 
 /**
  * Claude Vision filter for supplier product images.
@@ -34,10 +34,6 @@ const ISSUE_TAXONOMY = [
   'busy_background', // distracting non-studio backdrop
 ] as const;
 
-function getClient() {
-  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-}
-
 /**
  * Score a single image. Returns ok=false (score=0) on any error so a flaky
  * vision call doesn't poison the ranking.
@@ -45,10 +41,8 @@ function getClient() {
 export async function scoreImage(imageUrl: string): Promise<ImageQualityVerdict> {
   if (!imageUrl) return { score: 0, issues: ['low_quality'], reason: 'Pas d’image' };
 
-  const client = getClient();
-
   try {
-    const response = await client.messages.create({
+    const response = await trackedMessage({ step: 'vision-score' }, {
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 256,
       messages: [
