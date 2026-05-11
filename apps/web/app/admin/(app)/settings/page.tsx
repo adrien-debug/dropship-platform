@@ -1,4 +1,5 @@
 import { getDb } from '@/lib/db';
+import { PageHeader, StatusPill, type Tone } from '../../_components/AdminUI';
 
 export const dynamic = 'force-dynamic';
 
@@ -7,7 +8,7 @@ async function getSettings() {
   const { rows } = await db.query<{ key: string; value: string; updated_at: Date }>(
     `SELECT key, value, updated_at FROM platform_settings ORDER BY key`,
   );
-  return Object.fromEntries(rows.map(r => [r.key, { value: r.value, updatedAt: r.updated_at }]));
+  return Object.fromEntries(rows.map((r) => [r.key, { value: r.value, updatedAt: r.updated_at }]));
 }
 
 export default async function SettingsPage() {
@@ -21,97 +22,145 @@ export default async function SettingsPage() {
   const expiresAt = aliExpires?.value ? new Date(parseInt(aliExpires.value)) : null;
   const isExpired = expiresAt ? Date.now() > expiresAt.getTime() : false;
 
+  const aliTone: Tone = isConnected && !isExpired ? 'emerald' : isConnected ? 'amber' : 'red';
+  const aliLabel = isConnected && !isExpired ? 'Connecté' : isConnected ? 'Token expiré' : 'Non connecté';
+
   return (
-    <div className="space-y-6 max-w-2xl">
-      <div>
-        <h2 className="text-2xl font-bold">Paramètres</h2>
-        <p className="text-sm text-zinc-500 mt-1">Connexions API fournisseurs</p>
-      </div>
+    <div className="space-y-8 max-w-3xl">
+      <PageHeader
+        kicker="Production · Intégrations"
+        title={
+          <>
+            Connexions <em className="italic text-zinc-500">fournisseurs</em>
+          </>
+        }
+        lede="L’agent a besoin de ces clés pour interroger AliExpress et CJ. Les jetons OAuth expirent — vérifie l’état avant chaque grosse session."
+      />
 
-      {/* AliExpress */}
-      <div className="border rounded-xl bg-white shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b bg-zinc-50 flex items-center gap-3">
-          <span className="text-2xl">🟠</span>
-          <div>
-            <h3 className="font-bold">AliExpress DS API</h3>
-            <p className="text-xs text-zinc-500">AppKey: 531346 · App Category: Drop Shipping</p>
-          </div>
-          <div className="ml-auto">
-            {isConnected && !isExpired ? (
-              <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 text-xs font-medium px-3 py-1 rounded-full">
-                ✅ Connecté
-              </span>
-            ) : isConnected && isExpired ? (
-              <span className="inline-flex items-center gap-1 bg-yellow-100 text-yellow-700 text-xs font-medium px-3 py-1 rounded-full">
-                ⚠️ Token expiré
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 bg-red-100 text-red-700 text-xs font-medium px-3 py-1 rounded-full">
-                ❌ Non connecté
-              </span>
+      <ProviderCard
+        accent="#FF4F00"
+        name="AliExpress DS API"
+        meta="AppKey 531346 · App Category: Drop Shipping"
+        tone={aliTone}
+        statusLabel={aliLabel}
+      >
+        {isConnected ? (
+          <dl className="grid grid-cols-1 sm:grid-cols-3 gap-y-2 gap-x-6 text-sm">
+            {aliNick?.value && (
+              <DLRow label="Compte" value={aliNick.value} />
             )}
-          </div>
-        </div>
-
-        <div className="px-6 py-5 space-y-4">
-          {isConnected && (
-            <div className="text-sm text-zinc-600 space-y-1">
-              {aliNick?.value && <div><span className="font-medium">Compte :</span> {aliNick.value}</div>}
-              {expiresAt && (
-                <div>
-                  <span className="font-medium">Token expire :</span>{' '}
-                  <span className={isExpired ? 'text-red-600' : 'text-zinc-600'}>
-                    {expiresAt.toLocaleString('fr-FR')}
+            {expiresAt && (
+              <DLRow
+                label="Expire le"
+                value={
+                  <span className={isExpired ? 'text-red-700' : 'text-zinc-700'}>
+                    {expiresAt.toLocaleString('fr-FR', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
                   </span>
-                </div>
-              )}
-              {aliToken?.updatedAt && (
-                <div>
-                  <span className="font-medium">Dernière auth :</span>{' '}
-                  {new Date(aliToken.updatedAt).toLocaleString('fr-FR')}
-                </div>
-              )}
-            </div>
-          )}
+                }
+              />
+            )}
+            {aliToken?.updatedAt && (
+              <DLRow
+                label="Dernière auth"
+                value={new Date(aliToken.updatedAt).toLocaleString('fr-FR', {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              />
+            )}
+          </dl>
+        ) : (
+          <p className="text-sm text-zinc-600 leading-relaxed">
+            L’agent a besoin d’un{' '}
+            <code className="text-xs bg-zinc-100 px-1.5 py-0.5 rounded">access_token</code> OAuth pour appeler{' '}
+            <code className="text-xs bg-zinc-100 px-1.5 py-0.5 rounded">aliexpress.solution.product.list.get</code>.
+            Autorise l’accès avec ton compte AliExpress.
+          </p>
+        )}
 
-          {!isConnected && (
-            <p className="text-sm text-zinc-600">
-              L&apos;agent a besoin d&apos;un <code className="bg-zinc-100 px-1 rounded">access_token</code> OAuth pour appeler <code className="bg-zinc-100 px-1 rounded">aliexpress.solution.product.list.get</code>.
-              Clique sur le bouton pour autoriser l&apos;accès avec ton compte AliExpress.
-            </p>
-          )}
-
+        <div className="pt-4">
           <a
             href="/api/aliexpress/oauth/start"
-            className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors"
+            className="inline-flex items-center gap-2 bg-zinc-900 text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-zinc-800 transition-colors shadow-cta"
           >
-            {isConnected && !isExpired ? '🔄 Re-autoriser' : '🔗 Connecter AliExpress'}
+            {isConnected && !isExpired ? 'Re-autoriser AliExpress' : 'Connecter AliExpress'}
+            <span aria-hidden>↗</span>
           </a>
         </div>
-      </div>
+      </ProviderCard>
 
-      {/* CJ Dropshipping */}
-      <div className="border rounded-xl bg-white shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b bg-zinc-50 flex items-center gap-3">
-          <span className="text-2xl">🔵</span>
-          <div>
-            <h3 className="font-bold">CJ Dropshipping API</h3>
-            <p className="text-xs text-zinc-500">Email: adriennejkovic@gmail.com</p>
-          </div>
-          <div className="ml-auto">
-            <span className="inline-flex items-center gap-1 bg-yellow-100 text-yellow-700 text-xs font-medium px-3 py-1 rounded-full">
-              ⚠️ API Key manquante
-            </span>
-          </div>
+      <ProviderCard
+        accent="#1976D2"
+        name="CJ Dropshipping API"
+        meta="Email: adriennejkovic@gmail.com"
+        tone="amber"
+        statusLabel="API Key manquante"
+      >
+        <p className="text-sm text-zinc-600 leading-relaxed">
+          L’authentification CJ nécessite une <strong className="font-medium text-zinc-900">API Key dédiée</strong>{' '}
+          (pas le mot de passe du compte). Va sur{' '}
+          <a
+            href="https://cjdropshipping.com"
+            target="_blank"
+            rel="noreferrer"
+            className="text-zinc-900 underline underline-offset-4 decoration-zinc-300 hover:decoration-zinc-900 transition-colors"
+          >
+            cjdropshipping.com
+          </a>{' '}
+          → Account Settings → Developer → copie l’API Key et mets-la dans{' '}
+          <code className="text-xs bg-zinc-100 px-1.5 py-0.5 rounded">CJ_DROPSHIPPING_API_KEY</code>.
+        </p>
+      </ProviderCard>
+    </div>
+  );
+}
+
+function DLRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div>
+      <dt className="text-kicker uppercase tracking-cta text-zinc-400 font-medium">{label}</dt>
+      <dd className="mt-0.5 text-sm text-zinc-700">{value}</dd>
+    </div>
+  );
+}
+
+function ProviderCard({
+  accent,
+  name,
+  meta,
+  tone,
+  statusLabel,
+  children,
+}: {
+  accent: string;
+  name: string;
+  meta: string;
+  tone: Tone;
+  statusLabel: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="border border-zinc-200 bg-white rounded-xl overflow-hidden">
+      <div className="px-6 py-4 border-b border-zinc-200/70 flex items-center gap-4">
+        <span className="w-1 h-10 rounded-full" style={{ backgroundColor: accent }} aria-hidden />
+        <div className="min-w-0">
+          <h3 className="font-medium text-zinc-900">{name}</h3>
+          <p className="text-xs text-zinc-400 mt-0.5">{meta}</p>
         </div>
-        <div className="px-6 py-5">
-          <p className="text-sm text-zinc-600">
-            L&apos;authentification CJ nécessite une <strong>API Key dédiée</strong> (pas le mot de passe du compte).
-            Va sur <a href="https://cjdropshipping.com" target="_blank" className="text-blue-600 hover:underline">cjdropshipping.com</a> →
-            Account Settings → Developer → copie l&apos;API Key et mets-la dans <code className="bg-zinc-100 px-1 rounded">CJ_DROPSHIPPING_API_KEY</code>.
-          </p>
+        <div className="ml-auto">
+          <StatusPill tone={tone}>{statusLabel}</StatusPill>
         </div>
       </div>
-    </div>
+      <div className="px-6 py-5 space-y-4">{children}</div>
+    </section>
   );
 }

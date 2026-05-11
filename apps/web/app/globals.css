@@ -34,3 +34,25 @@
 @media (prefers-reduced-motion: reduce) {
   .brisa-showcase-product, .brisa-showcase-halo { animation: none; }
 }
+
+/* Admin drawer slide-in (mobile) */
+@keyframes adminDrawerIn {
+  from { transform: translateX(-12px); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+.admin-drawer-in { animation: adminDrawerIn 220ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-drawer-in { animation: none; }
+}
+
+/* Soft pulse for the active step indicator in the agent feed */
+@keyframes adminStepPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.45; }
+}
+.admin-step-pulse { animation: adminStepPulse 1.4s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-step-pulse { animation: none; }
+}
