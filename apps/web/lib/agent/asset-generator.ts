@@ -3,13 +3,27 @@ import path from 'path';
 import Anthropic from '@anthropic-ai/sdk';
 import { runWorkflow, isComfyConfigured } from './comfy-client';
 import { extractJson } from './json';
+import { isR2Configured, uploadToR2 } from '@/lib/storage/r2';
 
 /**
  * Auto-generates hero/cutout/lifestyle/promo-video assets for a mono-product
  * store, given the product's reference image (the cleanest supplier shot we
  * could find).
  *
- * Output layout — mirrors what already lives at `public/generated/brisa-...`:
+ * Storage strategy (decided at runtime via env):
+ *
+ *   1. **R2 (preferred, prod)** — when `isR2Configured()` is true (all five
+ *      R2_* env vars set), assets are uploaded to Cloudflare R2 under
+ *      `{slug}/run-{ts}/{filename}` and the DB stores the absolute public
+ *      URL (`https://pub-...r2.dev/...`). Survives redeploys; works on
+ *      Vercel where `public/` is read-only at runtime.
+ *
+ *   2. **Filesystem (fallback, dev)** — when R2 isn't configured we keep
+ *      writing to `apps/web/public/generated/{slug}/run-{ts}/` exactly as
+ *      before, with a `current/` symlink for the storefront to consume.
+ *      Useful for local dev when no R2 credentials are around.
+ *
+ * Output layout (filesystem mode, kept for parity):
  *
  *   apps/web/public/generated/{slug}/run-{ts}/
  *     hero.png           (1920×1080, cinematic editorial — full-bleed)
@@ -21,7 +35,10 @@ import { extractJson } from './json';
  *
  *   apps/web/public/generated/{slug}/current        (symlink → latest run-*)
  *
- * The store row is updated with the resolved web paths (relative to /).
+ * In R2 mode there is no `current/` pointer — the DB row holds the resolved
+ * absolute URL of the latest run, so "which run is current" is answered by
+ * `dropship_stores.hero_image_url` directly. Old runs stay in the bucket as
+ * historical archives (cleaned by a P1 sweep job if/when storage grows).
  *
  * Workflow IDs come from env. If COMFY_BACKEND isn't configured we no-op
  * gracefully so the agent still produces a working store using only the
@@ -42,7 +59,13 @@ export interface AssetGenInput {
 
 export interface AssetGenOutput {
   runId: string;
-  /** Web paths (start with /generated/...). Null when generation skipped/failed for that asset. */
+  /**
+   * URL to the generated asset. In R2 mode this is an absolute https URL
+   * (`https://pub-....r2.dev/{slug}/run-{ts}/hero.png`). In filesystem mode
+   * it's a web-rooted path (`/generated/{slug}/run-{ts}/hero.png`). The
+   * storefront renders both via raw `<img src>` — no UI branching needed.
+   * Null when generation was skipped or failed for that asset.
+   */
   heroUrl: string | null;
   cutoutUrl: string | null;
   lifestyleUrls: string[];
@@ -139,9 +162,9 @@ async function writeAsset(absDir: string, filename: string, bytes: Buffer): Prom
 /**
  * Re-point public/generated/{slug}/current at the new run dir. Symlink on
  * Unix; on Windows we'd need a junction — out of scope for the production
- * Linux deploy on Vercel. (Vercel's writable area is /tmp; for prod we
- * actually want this committed to the repo or pushed to S3 — see TODO at
- * end of file.)
+ * Linux deploy on Vercel. Only used in filesystem mode (R2 mode stores the
+ * absolute URL of each run directly in the DB, so a "current" pointer is
+ * redundant).
  */
 async function repointCurrent(storeRoot: string, runDirName: string) {
   const current = path.join(storeRoot, 'current');
@@ -157,6 +180,20 @@ async function repointCurrent(storeRoot: string, runDirName: string) {
     console.warn('[asset-generator] symlink failed, falling back to copy', e);
     await fs.cp(path.join(storeRoot, runDirName), current, { recursive: true });
   }
+}
+
+/**
+ * Mime type for a generated asset filename. Limited to the three formats the
+ * ComfyUI pipeline can emit today; defaulting elsewhere would force browsers
+ * to download rather than render inline.
+ */
+function contentTypeFor(filename: string): string {
+  const ext = path.extname(filename).toLowerCase();
+  if (ext === '.png') return 'image/png';
+  if (ext === '.jpg' || ext === '.jpeg') return 'image/jpeg';
+  if (ext === '.mp4') return 'video/mp4';
+  if (ext === '.webm') return 'video/webm';
+  return 'application/octet-stream';
 }
 
 async function runImage(deploymentEnvKey: string, prompt: string, refImageUrl: string) {
@@ -217,15 +254,46 @@ export async function generateMonoAssets(
 
   const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 16);
   const runDirName = `run-${ts}-flux-kontext`;
+
+  // Decide once which backend we persist to. R2 wins when configured (prod
+  // path on Vercel); filesystem is the dev fallback. Logged so the SSE
+  // stream surfaces which mode was used for this run.
+  const useR2 = isR2Configured();
+  log(useR2 ? 'Mode stockage: Cloudflare R2' : 'Mode stockage: filesystem (dev)');
+
+  // Filesystem-only setup. Skipped entirely in R2 mode — Vercel's runtime
+  // filesystem outside /tmp is read-only and the mkdir would fail.
   const storeRoot = path.join(process.cwd(), 'public', 'generated', input.storeSlug);
   const runAbs = path.join(storeRoot, runDirName);
-  await ensureDir(runAbs);
+  if (!useR2) {
+    await ensureDir(runAbs);
+  }
 
   log('Génération des prompts (Claude art director)...');
   const prompts = await buildPromptsWithClaude(input);
 
-  // Web base path used by the storefront. Web is rooted at /apps/web/public.
+  // Web base path used by the storefront in filesystem mode. Web is rooted
+  // at /apps/web/public so this resolves to /generated/{slug}/run-{ts}/...
   const webBase = `/generated/${input.storeSlug}/${runDirName}`;
+  // R2 key prefix. Convention: `{slug}/run-{ts}/{filename}`. Flat, no leading
+  // slash — R2 keys are not paths.
+  const r2KeyPrefix = `${input.storeSlug}/${runDirName}`;
+
+  /**
+   * Persist a single asset and return the URL we'll store in the DB.
+   * R2 → absolute https URL. Filesystem → web-rooted path.
+   */
+  const persist = async (filename: string, bytes: Buffer): Promise<string> => {
+    if (useR2) {
+      return uploadToR2({
+        key: `${r2KeyPrefix}/${filename}`,
+        body: bytes,
+        contentType: contentTypeFor(filename),
+      });
+    }
+    await writeAsset(runAbs, filename, bytes);
+    return `${webBase}/${filename}`;
+  };
 
   let heroUrl: string | null = null;
   let cutoutUrl: string | null = null;
@@ -237,8 +305,7 @@ export async function generateMonoAssets(
   try {
     log('Génération du hero (1/6)...');
     const heroBytes = await runImage('COMFY_DEPLOYMENT_HERO', prompts.hero, input.product.imageUrl);
-    await writeAsset(runAbs, 'hero.png', heroBytes);
-    heroUrl = `${webBase}/hero.png`;
+    heroUrl = await persist('hero.png', heroBytes);
   } catch (e) {
     warn.push(`Hero: ${e instanceof Error ? e.message : 'erreur'}`);
   }
@@ -246,8 +313,7 @@ export async function generateMonoAssets(
   try {
     log('Génération du cutout (2/6)...');
     const cutoutBytes = await runImage('COMFY_DEPLOYMENT_CUTOUT', prompts.cutout, input.product.imageUrl);
-    await writeAsset(runAbs, 'cutout.png', cutoutBytes);
-    cutoutUrl = `${webBase}/cutout.png`;
+    cutoutUrl = await persist('cutout.png', cutoutBytes);
   } catch (e) {
     warn.push(`Cutout: ${e instanceof Error ? e.message : 'erreur'}`);
   }
@@ -261,8 +327,8 @@ export async function generateMonoAssets(
         input.product.imageUrl,
       );
       const filename = `lifestyle-${i + 1}.png`;
-      await writeAsset(runAbs, filename, bytes);
-      lifestyleUrls.push(`${webBase}/${filename}`);
+      const url = await persist(filename, bytes);
+      lifestyleUrls.push(url);
     } catch (e) {
       warn.push(`Lifestyle ${i + 1}: ${e instanceof Error ? e.message : 'erreur'}`);
     }
@@ -271,23 +337,28 @@ export async function generateMonoAssets(
   if (!input.skipVideo && process.env.COMFY_DEPLOYMENT_VIDEO) {
     try {
       log('Génération de la vidéo promo 5s (6/6)...');
-      // Drive the video off the cutout if we got one (cleanest framing) else the supplier ref.
+      // Drive the video off the cutout if we got one (cleanest framing) else
+      // the supplier ref. In R2 mode `cutoutUrl` is already absolute; in
+      // filesystem mode we prepend the public base so ComfyUI can fetch it.
       const videoSource = cutoutUrl
-        ? `${process.env.NEXT_PUBLIC_BASE_URL || ''}${cutoutUrl}`
+        ? (useR2 ? cutoutUrl : `${process.env.NEXT_PUBLIC_BASE_URL || ''}${cutoutUrl}`)
         : input.product.imageUrl;
       const videoBytes = await runVideo('COMFY_DEPLOYMENT_VIDEO', prompts.promo, videoSource);
-      await writeAsset(runAbs, 'promo.mp4', videoBytes);
-      promoVideoUrl = `${webBase}/promo.mp4`;
+      promoVideoUrl = await persist('promo.mp4', videoBytes);
     } catch (e) {
       warn.push(`Vidéo: ${e instanceof Error ? e.message : 'erreur'}`);
     }
   }
 
-  // Re-point /current → latest run so the storefront's existsSync checks find it.
-  try {
-    await repointCurrent(storeRoot, runDirName);
-  } catch (e) {
-    warn.push(`current symlink: ${e instanceof Error ? e.message : 'erreur'}`);
+  // Re-point /current → latest run so the storefront's existsSync checks find
+  // it. Filesystem mode only — in R2 mode the DB stores the absolute URL of
+  // the latest run directly, so there is no "current" indirection to maintain.
+  if (!useR2) {
+    try {
+      await repointCurrent(storeRoot, runDirName);
+    } catch (e) {
+      warn.push(`current symlink: ${e instanceof Error ? e.message : 'erreur'}`);
+    }
   }
 
   return {
@@ -301,16 +372,14 @@ export async function generateMonoAssets(
 }
 
 /*
- * NOTE on production storage:
+ * Production storage:
  *
- * Vercel's runtime filesystem is read-only outside /tmp, and /tmp doesn't
- * persist across requests. So this generator works LOCALLY (dev) but in prod
- * you'll want either:
- *   (a) S3/R2 upload from runWorkflow() and DB-stored absolute URLs
- *   (b) Generate locally, commit to repo, deploy
+ * R2 is now wired (see imports above). When the five R2_* env vars are set,
+ * generated assets land in Cloudflare R2 under `{slug}/run-{ts}/...` and the
+ * absolute public URL (`https://pub-...r2.dev/...`) is stored in
+ * `dropship_stores.hero_image_url` / `cutout_image_url` / `lifestyle_images`
+ * / `promo_video_url`. Survives redeploys. No /public writes.
  *
- * The brisa-mohlwwe7 store today uses (b) (assets committed under
- * apps/web/public/generated/brisa-mohlwwe7/...). For the next iteration we
- * should add an S3 backend behind ASSETS_BUCKET / ASSETS_BASE_URL — keeps
- * this signature unchanged.
+ * The filesystem path is preserved as a dev fallback so this module still
+ * works locally without R2 credentials.
  */
