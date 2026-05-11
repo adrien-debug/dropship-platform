@@ -116,6 +116,7 @@ export const config = {
     '/api/agent/:path*',
     '/api/aliexpress/oauth/start',
     '/api/aliexpress/oauth/callback',
+    '/api/aliexpress/oauth/refresh',
     '/api/aliexpress/test-search',
     '/api/aliexpress/probe-order',
     '/api/medusa/setup',

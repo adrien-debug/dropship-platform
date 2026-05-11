@@ -89,6 +89,30 @@ async function getAccessToken(): Promise<string | null> {
 }
 
 async function refreshAccessToken(refreshToken: string): Promise<string | null> {
+  const result = await refreshAccessTokenDetailed(refreshToken);
+  return result.ok && result.access_token ? result.access_token : null;
+}
+
+/**
+ * Refresh result with structured detail. Used by the QW7 cron endpoint
+ * (`/api/aliexpress/oauth/refresh`) to surface a clear status to GH Actions
+ * and to Sentry. On success we persist the new access token + expiry (and
+ * the new refresh token if AE rotated it).
+ */
+export interface AliExpressRefreshResult {
+  ok: boolean;
+  access_token?: string;
+  expires_at?: number;        // epoch ms (mirrors `aliexpress_token_expires`)
+  rotated_refresh?: boolean;  // true if AE returned a new refresh_token
+  http_status?: number;
+  error?: string;
+  raw?: unknown;
+}
+
+export async function refreshAccessTokenDetailed(refreshToken: string): Promise<AliExpressRefreshResult> {
+  if (!APP_KEY || !APP_SECRET) {
+    return { ok: false, error: 'AliExpress credentials not configured' };
+  }
   try {
     const apiPath = '/auth/token/refresh';
     const params: Record<string, string> = {
@@ -100,9 +124,20 @@ async function refreshAccessToken(refreshToken: string): Promise<string | null> 
     params.sign = signSystem(apiPath, params);
 
     const res = await fetch(`${REST_BASE}${apiPath}?${new URLSearchParams(params)}`, { method: 'POST' });
-    const data = await res.json() as { access_token?: string; expire_time?: number; refresh_token?: string };
+    const rawBody = await res.text();
+    let data: {
+      access_token?: string;
+      expire_time?: number;
+      refresh_token?: string;
+      error_response?: { msg?: string; sub_msg?: string; code?: string };
+    } = {};
+    try { data = JSON.parse(rawBody); } catch { /* leave empty, fall through */ }
 
-    if (!data.access_token) return null;
+    if (!data.access_token) {
+      const errCode = data.error_response?.code || 'no_access_token';
+      const errMsg = data.error_response?.sub_msg || data.error_response?.msg || rawBody.slice(0, 200);
+      return { ok: false, http_status: res.status, error: `${errCode} — ${errMsg}`, raw: data };
+    }
 
     const db = getDb();
     await db.query(
@@ -112,7 +147,8 @@ async function refreshAccessToken(refreshToken: string): Promise<string | null> 
        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`,
       [data.access_token, data.expire_time?.toString() || ''],
     );
-    if (data.refresh_token) {
+    const rotated = Boolean(data.refresh_token);
+    if (rotated) {
       await db.query(
         `INSERT INTO platform_settings (key, value, updated_at) VALUES ('aliexpress_refresh_token', $1, now())
          ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`,
@@ -120,9 +156,15 @@ async function refreshAccessToken(refreshToken: string): Promise<string | null> 
       );
     }
 
-    return data.access_token;
-  } catch {
-    return null;
+    return {
+      ok: true,
+      access_token: data.access_token,
+      expires_at: data.expire_time,
+      rotated_refresh: rotated,
+      http_status: res.status,
+    };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Unknown refresh error' };
   }
 }
 
