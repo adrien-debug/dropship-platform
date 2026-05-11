@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getDb } from '@/lib/db';
 import { medusa } from '@/lib/medusa';
+import { encryptSecret, secretsConfigured } from '@/lib/secrets';
 
 export async function DELETE(
   _req: NextRequest,
@@ -67,13 +68,35 @@ const analyticsSchema = z.object({
 
 const patchSchema = z.object({ analytics: analyticsSchema });
 
-const FIELD_TO_COLUMN: Record<keyof z.infer<typeof analyticsSchema>, string> = {
+// Plain text fields — written as-is to a single column.
+const PLAIN_FIELD_TO_COLUMN: Record<
+  Exclude<keyof z.infer<typeof analyticsSchema>, 'metaCapiToken' | 'tiktokEventsToken'>,
+  string
+> = {
   ga4MeasurementId: 'ga4_measurement_id',
   metaPixelId: 'meta_pixel_id',
-  metaCapiToken: 'meta_capi_token',
   tiktokPixelId: 'tiktok_pixel_id',
-  tiktokEventsToken: 'tiktok_events_token',
   clarityId: 'clarity_id',
+};
+
+// Secret fields — encrypted at rest. Each field maps to three columns:
+// the legacy plain column (cleared on write) plus the ciphertext / nonce
+// pair. The read path (lib/store-config.ts) prefers the encrypted columns
+// and falls back to the plain one for legacy rows.
+const SECRET_FIELD_TO_COLUMNS: Record<
+  'metaCapiToken' | 'tiktokEventsToken',
+  { plain: string; enc: string; nonce: string }
+> = {
+  metaCapiToken: {
+    plain: 'meta_capi_token',
+    enc: 'meta_capi_token_enc',
+    nonce: 'meta_capi_token_nonce',
+  },
+  tiktokEventsToken: {
+    plain: 'tiktok_events_token',
+    enc: 'tiktok_events_token_enc',
+    nonce: 'tiktok_events_token_nonce',
+  },
 };
 
 export async function PATCH(
@@ -86,17 +109,58 @@ export async function PATCH(
     const updates = body.analytics;
 
     const setClauses: string[] = [];
-    const values: (string | null)[] = [];
+    const values: (string | Buffer | null)[] = [];
     let i = 1;
-    for (const [field, column] of Object.entries(FIELD_TO_COLUMN) as [keyof typeof FIELD_TO_COLUMN, string][]) {
+
+    for (const [field, column] of Object.entries(PLAIN_FIELD_TO_COLUMN) as [
+      keyof typeof PLAIN_FIELD_TO_COLUMN,
+      string,
+    ][]) {
       if (field in updates) {
         const v = updates[field];
-        // Empty string clears, non-empty string is the new value.
         setClauses.push(`${column} = $${i}`);
         values.push(v && v.length > 0 ? v : null);
         i++;
       }
     }
+
+    for (const [field, cols] of Object.entries(SECRET_FIELD_TO_COLUMNS) as [
+      keyof typeof SECRET_FIELD_TO_COLUMNS,
+      { plain: string; enc: string; nonce: string },
+    ][]) {
+      if (!(field in updates)) continue;
+      const v = updates[field];
+      // QW4: always wipe the legacy plain column on any secret write so a
+      // half-encrypted state cannot persist. Either we encrypt the new
+      // value into the cipher pair, or we clear all three.
+      setClauses.push(`${cols.plain} = $${i}`);
+      values.push(null);
+      i++;
+      if (v && v.length > 0) {
+        if (!secretsConfigured()) {
+          return NextResponse.json(
+            { success: false, error: 'STORE_SECRETS_KEY is not configured — cannot store secret token.' },
+            { status: 500 },
+          );
+        }
+        const { encrypted, nonce } = encryptSecret(v);
+        setClauses.push(`${cols.enc} = $${i}`);
+        values.push(encrypted);
+        i++;
+        setClauses.push(`${cols.nonce} = $${i}`);
+        values.push(nonce);
+        i++;
+      } else {
+        // Clearing the field — wipe both cipher columns too.
+        setClauses.push(`${cols.enc} = $${i}`);
+        values.push(null);
+        i++;
+        setClauses.push(`${cols.nonce} = $${i}`);
+        values.push(null);
+        i++;
+      }
+    }
+
     if (setClauses.length === 0) {
       return NextResponse.json({ success: true, updated: 0 });
     }
