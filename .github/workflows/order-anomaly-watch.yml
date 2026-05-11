@@ -1,0 +1,176 @@
+name: Order anomaly watcher
+
+# P1.3 — Daily order anomaly scan. Hits the admin endpoint
+# `POST /api/agent/ops/anomaly-watch`, which surfaces three silent failure
+# modes the founder needs to act on manually:
+#
+#   * Stranded AE forwards: `status='sent' AND paid_at IS NULL` for > 15 days
+#     (AE auto-cancels at 20 days without payment).
+#   * Stuck Stripe → AE forwards: paid Medusa orders with no `dropship_order_forwards`
+#     row after 4h (the founder didn't click "Forward").
+#   * Errored forwards: rows in `status='error'` unresolved for 48h+.
+#
+# If the response total is 0 we exit silently (no issue, no Sentry, no noise).
+# If the response total is > 0 we open one GH issue per run, tagged
+# `order-anomalies`, with the payload formatted as markdown. The founder
+# resolves it from the admin panel, then closes the issue manually.
+#
+# No retry: the situation is human-resolved by definition, so re-running the
+# cron won't help. A second run tomorrow will catch the same anomalies if the
+# operator hasn't acted yet.
+#
+# Required repo secrets:
+#   APP_URL          — e.g. https://dropship-platform-amber.vercel.app
+#   ADMIN_USERNAME   — Basic auth user (same as ADMIN_USERNAME env on Vercel)
+#   ADMIN_PASSWORD   — Basic auth password
+
+on:
+  schedule:
+    - cron: '0 8 * * *'      # 08:00 UTC daily
+  workflow_dispatch: {}
+
+permissions:
+  issues: write              # needed to open the anomaly issue
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Hit anomaly-watch endpoint
+        id: scan
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          ADMIN_USERNAME: ${{ secrets.ADMIN_USERNAME }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+        run: |
+          set -u
+          if [ -z "${APP_URL:-}" ] || [ -z "${ADMIN_USERNAME:-}" ] || [ -z "${ADMIN_PASSWORD:-}" ]; then
+            echo "::error::Missing required secrets (APP_URL / ADMIN_USERNAME / ADMIN_PASSWORD)"
+            exit 1
+          fi
+
+          AUTH=$(printf '%s:%s' "$ADMIN_USERNAME" "$ADMIN_PASSWORD" | base64 -w0 2>/dev/null || \
+                 printf '%s:%s' "$ADMIN_USERNAME" "$ADMIN_PASSWORD" | base64)
+          URL="${APP_URL%/}/api/agent/ops/anomaly-watch"
+
+          response=$(curl -s -o /tmp/anomaly.json -w "%{http_code}" \
+            --max-time 90 \
+            -X POST \
+            -H "Authorization: Basic $AUTH" \
+            -H "Content-Type: application/json" \
+            "$URL" || echo 000)
+
+          echo "HTTP $response"
+          body="$(cat /tmp/anomaly.json 2>/dev/null || echo '{}')"
+          echo "Body (first 2000 chars):"
+          echo "${body:0:2000}"
+
+          if [ "$response" != "200" ]; then
+            echo "::error::anomaly-watch endpoint returned HTTP $response"
+            exit 1
+          fi
+
+          # Extract total without needing jq's full set — node is preinstalled
+          # on ubuntu-latest runners and parses JSON deterministically.
+          total=$(node -e "const j=require('/tmp/anomaly.json'); process.stdout.write(String(j.total ?? 0))")
+          echo "total=$total"
+          echo "total=$total" >> "$GITHUB_OUTPUT"
+
+      - name: Format markdown report
+        if: steps.scan.outputs.total != '0' && steps.scan.outputs.total != ''
+        id: report
+        run: |
+          set -u
+          node <<'EOF' > /tmp/anomaly.md
+          const fs = require('fs');
+          const j = JSON.parse(fs.readFileSync('/tmp/anomaly.json', 'utf8'));
+          const lines = [];
+          lines.push(`Anomaly scan ran at \`${j.generated_at}\` (UTC).`);
+          lines.push('');
+          lines.push(`**Total: ${j.total}** — stranded \`${j.counts.stranded}\`, stuck \`${j.counts.stuck}\`, errors \`${j.counts.errors}\`.`);
+          lines.push('');
+
+          if (j.stranded && j.stranded.length > 0) {
+            lines.push(`## Stranded AE forwards (\`status='sent' AND paid_at IS NULL\`, ≥ 15 days)`);
+            lines.push('');
+            lines.push('Pay these on aliexpress.com, then click "Marquer payée" in `/admin/orders`. AE auto-cancels at 20 days.');
+            lines.push('');
+            lines.push('| Medusa order | AE order | Age (days) | Forwarded at |');
+            lines.push('|---|---|---|---|');
+            for (const r of j.stranded.slice(0, 25)) {
+              lines.push(`| \`${r.medusa_order_id}\` | \`${r.ae_order_id}\` | ${r.age_days} | ${r.created_at} |`);
+            }
+            if (j.stranded.length > 25) lines.push(`_…and ${j.stranded.length - 25} more._`);
+            lines.push('');
+          }
+
+          if (j.stuck && j.stuck.length > 0) {
+            lines.push(`## Stuck Stripe → forward (paid Medusa orders, no forward row, ≥ 4h)`);
+            lines.push('');
+            lines.push('Open `/admin/orders` and click **Forward to AE** on these. Dry-run pending in the same page covers them too.');
+            lines.push('');
+            lines.push('| Medusa order | Display | Email | Total | Age (h) |');
+            lines.push('|---|---|---|---|---|');
+            for (const r of j.stuck.slice(0, 25)) {
+              const display = r.display_id != null ? `#${r.display_id}` : '—';
+              const total = (r.total != null && r.currency_code) ? `${r.total} ${r.currency_code}` : '—';
+              lines.push(`| \`${r.medusa_order_id}\` | ${display} | ${r.email ?? '—'} | ${total} | ${r.age_hours} |`);
+            }
+            if (j.stuck.length > 25) lines.push(`_…and ${j.stuck.length - 25} more._`);
+            lines.push('');
+          }
+
+          if (j.errors && j.errors.length > 0) {
+            lines.push(`## Errored forwards (\`status='error'\`, unresolved ≥ 48h)`);
+            lines.push('');
+            lines.push('Usually a missing address field or an unmapped product. Triage in `/admin/orders`.');
+            lines.push('');
+            lines.push('| Medusa order | Error | Age (h) | Forwarded at |');
+            lines.push('|---|---|---|---|');
+            for (const r of j.errors.slice(0, 25)) {
+              const err = (r.error_message ?? '—').toString().slice(0, 140).replace(/\|/g, '\\|');
+              lines.push(`| \`${r.medusa_order_id}\` | ${err} | ${r.age_hours} | ${r.created_at} |`);
+            }
+            if (j.errors.length > 25) lines.push(`_…and ${j.errors.length - 25} more._`);
+            lines.push('');
+          }
+
+          if (j.warnings && j.warnings.length > 0) {
+            lines.push('## Scan warnings');
+            lines.push('');
+            for (const w of j.warnings) lines.push(`- \`${w}\``);
+            lines.push('');
+          }
+
+          process.stdout.write(lines.join('\n'));
+          EOF
+          echo "report_path=/tmp/anomaly.md" >> "$GITHUB_OUTPUT"
+
+      - name: Open GH issue
+        if: steps.scan.outputs.total != '0' && steps.scan.outputs.total != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('/tmp/anomaly.md', 'utf8');
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const today = new Date().toISOString().slice(0, 10);
+            const title = `[ops] order-anomalies-${today}`;
+            const issueBody = [
+              body,
+              '',
+              '---',
+              `Run: ${runUrl}`,
+              '',
+              'Auto-generated by `.github/workflows/order-anomaly-watch.yml`. Close manually once cleared from `/admin/orders`.',
+            ].join('\n');
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body: issueBody,
+              labels: ['order-anomalies', 'ops'],
+            });
