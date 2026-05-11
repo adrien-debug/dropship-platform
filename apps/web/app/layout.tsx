@@ -23,6 +23,12 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'Dropship Platform',
   description: 'Dropship admin & integrations',
+  // Google Search Console / Merchant Center site verification.
+  // Token issued in Merchant Center > Add an HTML tag. Rotation = update
+  // NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION env var, redeploy.
+  ...(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+    ? { verification: { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION } }
+    : {}),
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
