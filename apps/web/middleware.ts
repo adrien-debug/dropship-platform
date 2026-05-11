@@ -34,7 +34,7 @@ const PUBLIC_EXCEPTIONS = new Set<string>([
   '/api/domain-resolve',             // P1.1: internal domain→slug lookup (no auth)
 ]);
 
-const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'fbclid', 'ttclid'] as const;
+const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'fbclid', 'ttclid', 'gclid'] as const;
 const UTM_COOKIE = 'utm_attribution';
 const UTM_TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
 
