@@ -78,12 +78,19 @@ export async function POST(request: NextRequest) {
       // Purchase conversion — fire AFTER capture so we only count
       // money-in-hand. Fetch the full order for email/total/currency;
       // a fetch failure is non-fatal, the order is already created.
+      //
+      // QW3 wiring: trackEvent persists a `purchase` row in
+      // dropship_funnel_events with the visitor's session_id, event_id,
+      // utm_* and medusa_order_id all in one shot. That row is the join
+      // key used later by order-forwarder.ts → loadAttributionForOrder()
+      // to hydrate attribution_json / session_id / event_id on the
+      // dropship_order_forwards INSERT. No additional UPDATE needed.
       const slug = await getLastStoreSlug();
       if (slug) {
         const store = await getStoreBySlug(slug).catch(() => null);
         const fullOrder = await medusa.getOrder(result.order.id).catch(() => null);
         if (store && fullOrder) {
-          await trackEvent({
+          const { eventId } = await trackEvent({
             store,
             request,
             eventName: 'purchase',
@@ -93,6 +100,9 @@ export async function POST(request: NextRequest) {
             phone: fullOrder.shipping_address?.phone ?? undefined,
             medusaOrderId: result.order.id,
           });
+          if (eventId) {
+            console.log(`[checkout/complete] purchase tracked order=${result.order.id} event=${eventId}`);
+          }
         }
       }
 

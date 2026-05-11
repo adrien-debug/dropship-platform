@@ -10,10 +10,28 @@ import { medusa, type MedusaOrder } from '@/lib/medusa';
 import { placeOrder, type AliExpressPlaceOrderInput, type AliExpressLogisticsAddress } from '@/lib/suppliers/aliexpress';
 import { getDb } from '@/lib/db';
 
+export interface OrderAttribution {
+  /** Visitor session id — joins dropship_funnel_events.session_id. */
+  session_id?: string;
+  /** Shared event UUID with the funnel purchase row + Meta/TikTok dedup. */
+  event_id?: string;
+  /** Snapshot of the utm_attribution cookie at purchase time. */
+  attribution?: Record<string, unknown>;
+}
+
 export interface ForwardOptions {
   dryRun: boolean;
   /** Override the province if the Medusa shipping address has none. AE requires it. */
   provinceOverride?: string;
+  /**
+   * Explicit attribution context to persist on the forward row. When
+   * omitted (the common case — forward is triggered hours after checkout
+   * via the admin button), we look it up from dropship_funnel_events on
+   * the matching purchase row. Pass it explicitly only when the caller
+   * already has the values in hand (e.g. inline forward right after
+   * /api/checkout/complete).
+   */
+  attribution?: OrderAttribution;
 }
 
 export interface ForwardResult {
@@ -170,6 +188,60 @@ async function mapItemsToAliExpress(order: MedusaOrder): Promise<{
 }
 
 /**
+ * Look up the purchase-time attribution captured in
+ * `dropship_funnel_events` for this order. Returns nulls if no purchase
+ * row exists (older orders, opted-out visitors, race condition) — that's
+ * non-fatal, attribution is best-effort by design.
+ */
+async function loadAttributionForOrder(medusaOrderId: string): Promise<OrderAttribution> {
+  try {
+    const { rows } = await getDb().query<{
+      session_id: string | null;
+      event_id: string | null;
+      utm_source: string | null;
+      utm_medium: string | null;
+      utm_campaign: string | null;
+      utm_term: string | null;
+      utm_content: string | null;
+      fbclid: string | null;
+      ttclid: string | null;
+    }>(
+      `SELECT session_id, event_id,
+              utm_source, utm_medium, utm_campaign, utm_term, utm_content,
+              fbclid, ttclid
+         FROM dropship_funnel_events
+        WHERE medusa_order_id = $1
+          AND event_name = 'purchase'
+        ORDER BY created_at ASC
+        LIMIT 1`,
+      [medusaOrderId],
+    );
+    const row = rows[0];
+    if (!row) return {};
+    const attribution: Record<string, unknown> = {
+      utm_source: row.utm_source,
+      utm_medium: row.utm_medium,
+      utm_campaign: row.utm_campaign,
+      utm_term: row.utm_term,
+      utm_content: row.utm_content,
+      fbclid: row.fbclid,
+      ttclid: row.ttclid,
+    };
+    const hasAnyUtm = Object.values(attribution).some((v) => v !== null && v !== undefined);
+    return {
+      session_id: row.session_id ?? undefined,
+      event_id: row.event_id ?? undefined,
+      attribution: hasAnyUtm ? attribution : undefined,
+    };
+  } catch (e) {
+    // Schema not migrated yet, table missing in test DBs, anything: never
+    // block a forward on the attribution lookup.
+    console.warn('[order-forwarder] attribution lookup failed', e);
+    return {};
+  }
+}
+
+/**
  * Forward a single Medusa order. Persists the attempt — dry-run or live —
  * to `dropship_order_forwards`.
  */
@@ -184,6 +256,14 @@ export async function forwardOrder(medusaOrderId: string, opts: ForwardOptions):
     out_order_id: medusaOrderId,
   };
 
+  // Hydrate attribution context. Caller-provided wins; otherwise we look
+  // it up from the funnel log. Result may have any subset of fields —
+  // unknown fields stay NULL in the insert.
+  const attributionCtx = opts.attribution ?? (await loadAttributionForOrder(medusaOrderId));
+  const attributionJson = attributionCtx.attribution ? JSON.stringify(attributionCtx.attribution) : null;
+  const sessionId = attributionCtx.session_id ?? null;
+  const eventId = attributionCtx.event_id ?? null;
+
   const db = getDb();
 
   // Hard gates: nothing to ship, missing address, or all items unmapped.
@@ -197,10 +277,11 @@ export async function forwardOrder(medusaOrderId: string, opts: ForwardOptions):
   if (hardError) {
     const { rows } = await db.query<{ id: string }>(
       `INSERT INTO dropship_order_forwards
-         (medusa_order_id, store_id, payload, status, error_message, dry_run)
-       VALUES ($1, $2, $3, 'error', $4, $5)
+         (medusa_order_id, store_id, payload, status, error_message, dry_run,
+          attribution_json, session_id, event_id)
+       VALUES ($1, $2, $3, 'error', $4, $5, $6, $7, $8)
        RETURNING id`,
-      [medusaOrderId, storeId ?? null, JSON.stringify(payload), hardError, opts.dryRun],
+      [medusaOrderId, storeId ?? null, JSON.stringify(payload), hardError, opts.dryRun, attributionJson, sessionId, eventId],
     );
     return {
       ok: false,
@@ -215,10 +296,11 @@ export async function forwardOrder(medusaOrderId: string, opts: ForwardOptions):
   if (opts.dryRun) {
     const { rows } = await db.query<{ id: string }>(
       `INSERT INTO dropship_order_forwards
-         (medusa_order_id, store_id, payload, status, dry_run)
-       VALUES ($1, $2, $3, 'dry_run', true)
+         (medusa_order_id, store_id, payload, status, dry_run,
+          attribution_json, session_id, event_id)
+       VALUES ($1, $2, $3, 'dry_run', true, $4, $5, $6)
        RETURNING id`,
-      [medusaOrderId, storeId ?? null, JSON.stringify(payload)],
+      [medusaOrderId, storeId ?? null, JSON.stringify(payload), attributionJson, sessionId, eventId],
     );
     return {
       ok: true,
@@ -238,10 +320,11 @@ export async function forwardOrder(medusaOrderId: string, opts: ForwardOptions):
   try {
     const { rows } = await db.query<{ id: string }>(
       `INSERT INTO dropship_order_forwards
-         (medusa_order_id, store_id, payload, status, dry_run)
-       VALUES ($1, $2, $3, 'sending', false)
+         (medusa_order_id, store_id, payload, status, dry_run,
+          attribution_json, session_id, event_id)
+       VALUES ($1, $2, $3, 'sending', false, $4, $5, $6)
        RETURNING id`,
-      [medusaOrderId, storeId ?? null, JSON.stringify(payload)],
+      [medusaOrderId, storeId ?? null, JSON.stringify(payload), attributionJson, sessionId, eventId],
     );
     lockId = rows[0]!.id;
   } catch (e) {
