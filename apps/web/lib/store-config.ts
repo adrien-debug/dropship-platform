@@ -20,6 +20,8 @@ export interface StoreConfig {
   // measurement / clarity) are safe to send to the client bundle. The two
   // *_token fields are server-only — never pass them to a client component.
   ga4MeasurementId: string | null;
+  /** GA4 Measurement Protocol API secret. Server-only — never expose to client. */
+  ga4ApiSecret: string | null;
   metaPixelId: string | null;
   metaCapiToken: string | null;
   tiktokPixelId: string | null;
@@ -52,6 +54,9 @@ interface StoreRow {
   status: string;
   product_count: number;
   ga4_measurement_id: string | null;
+  ga4_api_secret: string | null;
+  ga4_api_secret_enc: Buffer | null;
+  ga4_api_secret_nonce: Buffer | null;
   meta_pixel_id: string | null;
   meta_capi_token: string | null;
   meta_capi_token_enc: Buffer | null;
@@ -73,7 +78,9 @@ const STORE_COLUMNS = `
   id, slug, name, niche, tagline, description,
   primary_color, secondary_color, accent_color, logo_emoji,
   medusa_sales_channel_id, medusa_publishable_key, status, product_count,
-  ga4_measurement_id, meta_pixel_id, meta_capi_token,
+  ga4_measurement_id,
+  ga4_api_secret, ga4_api_secret_enc, ga4_api_secret_nonce,
+  meta_pixel_id, meta_capi_token,
   meta_capi_token_enc, meta_capi_token_nonce,
   tiktok_pixel_id, tiktok_events_token,
   tiktok_events_token_enc, tiktok_events_token_nonce,
@@ -91,6 +98,8 @@ function rowToStore(r: StoreRow): StoreConfig {
     tryDecryptSecret(r.meta_capi_token_enc, r.meta_capi_token_nonce) ?? r.meta_capi_token;
   const tiktokEventsToken =
     tryDecryptSecret(r.tiktok_events_token_enc, r.tiktok_events_token_nonce) ?? r.tiktok_events_token;
+  const ga4ApiSecret =
+    tryDecryptSecret(r.ga4_api_secret_enc, r.ga4_api_secret_nonce) ?? r.ga4_api_secret;
 
   return {
     id: r.id,
@@ -108,6 +117,7 @@ function rowToStore(r: StoreRow): StoreConfig {
     status: r.status,
     productCount: r.product_count,
     ga4MeasurementId: r.ga4_measurement_id,
+    ga4ApiSecret,
     metaPixelId: r.meta_pixel_id,
     metaCapiToken,
     tiktokPixelId: r.tiktok_pixel_id,
