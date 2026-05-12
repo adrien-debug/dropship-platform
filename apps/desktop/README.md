@@ -33,7 +33,7 @@ npm run dist         # → release/Hearst Dropship-0.1.0.dmg
 
 | Var               | Default                                              | Notes                                                                        |
 | ----------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `HEARST_URL`      | `https://hearst-dropship.vercel.app/admin` (prod) or `http://localhost:3063/admin` (dev) | The initial URL the dashboard window opens.            |
+| `HEARST_URL`      | `https://dropship-platform-amber.vercel.app/admin` (prod) or `http://localhost:3063/admin` (dev) | The initial URL the dashboard window opens.            |
 | `ADMIN_USERNAME`  | read from `apps/web/.env.local` if present           | Required to inject HTTP Basic Auth on every request.                         |
 | `ADMIN_PASSWORD`  | read from `apps/web/.env.local` if present           | Required alongside `ADMIN_USERNAME`.                                         |
 
