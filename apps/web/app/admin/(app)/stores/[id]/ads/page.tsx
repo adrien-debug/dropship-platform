@@ -1,9 +1,13 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getDb, getDbRead } from '@/lib/db';
+import { getDbRead } from '@/lib/db';
 import { listAdVariantsForStore } from '@/lib/agent/ad-variants';
-import { PageHeader, StatusPill } from '../../../../_components/AdminUI';
+import { getCampaignPerformance, type CampaignPerformanceRow } from '@/lib/ads/performance';
+import { isMetaAdsConfigured } from '@/lib/ads/meta-ads';
+import { isTiktokAdsConfigured } from '@/lib/ads/tiktok-ads';
+import { PageHeader, SectionCard, StatusPill } from '../../../../_components/AdminUI';
 import { GenerateAdsButton } from './GenerateAdsButton';
+import { AdsChat, type VariantRow } from './AdsChat';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,8 +29,34 @@ interface ProductRow {
   price_cents: number;
 }
 
-export default async function StoreAdsPage({ params }: { params: Promise<{ id: string }> }) {
+interface SessionRow {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  preview: string | null;
+  preview_role: 'user' | 'assistant' | null;
+  message_count: number;
+}
+
+interface MessageRow {
+  id: string;
+  role: 'user' | 'assistant' | 'tool';
+  content: string;
+  tool_name: string | null;
+  tool_input: unknown;
+  tool_output: unknown;
+  created_at: string;
+}
+
+export default async function StoreAdsPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ session?: string }>;
+}) {
   const { id } = await params;
+  const { session: requestedSession } = await searchParams;
   const db = getDbRead();
 
   const storeRes = await db.query<StoreRow>(
@@ -39,15 +69,55 @@ export default async function StoreAdsPage({ params }: { params: Promise<{ id: s
   const store = storeRes.rows[0];
   if (!store) notFound();
 
-  const productsRes = await db.query<ProductRow>(
-    `SELECT id, enriched_title, image_url, price_cents
-       FROM dropship_store_products
-      WHERE store_id = $1
-      ORDER BY created_at ASC`,
+  const [productsRes, variantsList, performance] = await Promise.all([
+    db.query<ProductRow>(
+      `SELECT id, enriched_title, image_url, price_cents
+         FROM dropship_store_products
+        WHERE store_id = $1
+        ORDER BY created_at ASC`,
+      [id],
+    ),
+    listAdVariantsForStore(id),
+    getCampaignPerformance(id),
+  ]);
+  const products = productsRes.rows;
+  const variants = variantsList;
+
+  // Sessions (shared with curation table — same schema).
+  const sessionsRes = await db.query<SessionRow>(
+    `SELECT s.id, s.created_at, s.updated_at,
+            (SELECT content FROM dropship_curation_messages m
+                WHERE m.session_id = s.id AND m.role IN ('user','assistant')
+                ORDER BY m.created_at DESC, m.id DESC LIMIT 1) AS preview,
+            (SELECT role FROM dropship_curation_messages m
+                WHERE m.session_id = s.id AND m.role IN ('user','assistant')
+                ORDER BY m.created_at DESC, m.id DESC LIMIT 1) AS preview_role,
+            (SELECT COUNT(*) FROM dropship_curation_messages m WHERE m.session_id = s.id)::int AS message_count
+       FROM dropship_curation_sessions s
+       WHERE s.store_id = $1
+       ORDER BY s.updated_at DESC
+       LIMIT 20`,
     [id],
   );
-  const products = productsRes.rows;
-  const variants = await listAdVariantsForStore(id);
+
+  const activeSessionId = requestedSession || sessionsRes.rows[0]?.id || null;
+  let initialMessages: MessageRow[] = [];
+  if (activeSessionId) {
+    const sess = await db.query<{ id: string }>(
+      `SELECT id FROM dropship_curation_sessions WHERE id = $1 AND store_id = $2 LIMIT 1`,
+      [activeSessionId, id],
+    );
+    if (sess.rows[0]) {
+      const msgRes = await db.query<MessageRow>(
+        `SELECT id, role, content, tool_name, tool_input, tool_output, created_at
+           FROM dropship_curation_messages
+           WHERE session_id = $1
+           ORDER BY created_at ASC, id ASC`,
+        [activeSessionId],
+      );
+      initialMessages = msgRes.rows;
+    }
+  }
 
   // Group variants by product → latest batch.
   const byProduct = new Map<string, typeof variants>();
@@ -55,6 +125,33 @@ export default async function StoreAdsPage({ params }: { params: Promise<{ id: s
     if (!byProduct.has(v.productId)) byProduct.set(v.productId, []);
     byProduct.get(v.productId)!.push(v);
   }
+
+  // Variant rows for the chat sidebar (latest batch per product).
+  const productMap = new Map(products.map((p) => [p.id, p]));
+  const chatVariants: VariantRow[] = [];
+  for (const [productId, list] of byProduct) {
+    const latestBatch = list[0]?.batchId;
+    const latest = list.filter((v) => v.batchId === latestBatch);
+    const product = productMap.get(productId);
+    if (!product) continue;
+    for (const v of latest) {
+      chatVariants.push({
+        id: v.id,
+        product_id: productId,
+        product_title: product.enriched_title,
+        product_image_url: product.image_url,
+        channel: v.channel,
+        headline: v.headline,
+        primary_text: v.primaryText,
+        description: v.description,
+        cta: v.cta,
+        image_url: null,
+      });
+    }
+  }
+
+  const metaConfigured = isMetaAdsConfigured();
+  const tiktokConfigured = isTiktokAdsConfigured();
 
   const lifestyleImages = Array.isArray(store.lifestyle_images)
     ? (store.lifestyle_images as unknown[]).filter((u): u is string => typeof u === 'string')
@@ -75,15 +172,41 @@ export default async function StoreAdsPage({ params }: { params: Promise<{ id: s
         </Link>
         <div className="mt-2">
           <PageHeader
-            kicker={`Production · Créas ad · ${store.niche}`}
+            kicker={`Production · Ads · ${store.niche}`}
             title={
               <>
-                Variantes d’<em className="italic text-zinc-500">ad copy</em>
+                Ads de <em className="italic text-zinc-500">{store.name}</em>
               </>
             }
-            lede="3 hooks par produit, un par canal (Meta / TikTok / Google). Les visuels viennent du pipeline mono-asset, copier-coller direct dans le gestionnaire de pub."
+            lede="Hooks fan-out (Meta / TikTok / Google), copilot conversationnel pour itérer, et bouton « Pousser » vers les gestionnaires de pub. Les performances remontent automatiquement via UTM."
           />
         </div>
+      </div>
+
+      {/* Performance — top section if any campaigns exist. */}
+      <SectionCard kicker="Performance" title="Campagnes poussées">
+        {performance.length === 0 ? (
+          <p className="text-sm text-zinc-500">
+            Aucune campagne poussée. Génère des créas en bas, puis pousse-les vers Meta ou TikTok via le
+            bouton « Pousser » dans le panneau de droite.
+          </p>
+        ) : (
+          <PerformanceTable rows={performance} />
+        )}
+      </SectionCard>
+
+      {/* Ads copilot + variants sidebar. */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
+        <AdsChat
+          storeId={id}
+          storeSlug={store.slug}
+          metaConfigured={metaConfigured}
+          tiktokConfigured={tiktokConfigured}
+          initialSessions={sessionsRes.rows}
+          initialSessionId={activeSessionId}
+          initialMessages={initialMessages}
+          initialVariants={chatVariants}
+        />
       </div>
 
       {sharedVisuals.length > 0 && (
@@ -212,6 +335,56 @@ export default async function StoreAdsPage({ params }: { params: Promise<{ id: s
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+function PerformanceTable({ rows }: { rows: CampaignPerformanceRow[] }) {
+  const fmtPct = (x: number) => `${(x * 100).toFixed(2)} %`;
+  const fmtEur = (cents: number) => `${(cents / 100).toFixed(2)} €`;
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="text-kicker uppercase tracking-cta text-zinc-400 font-medium">
+            <th className="text-left pb-3 font-medium">Hook</th>
+            <th className="text-left pb-3 font-medium">Canal</th>
+            <th className="text-right pb-3 font-medium">Vues</th>
+            <th className="text-right pb-3 font-medium">ATC</th>
+            <th className="text-right pb-3 font-medium">Ventes</th>
+            <th className="text-right pb-3 font-medium">CTR</th>
+            <th className="text-right pb-3 font-medium">CPA</th>
+            <th className="text-right pb-3 font-medium">ROAS</th>
+            <th className="text-right pb-3 font-medium">Revenu</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-zinc-100">
+          {rows.map((r) => (
+            <tr key={r.campaignId}>
+              <td className="py-2.5 pr-4">
+                <p className="text-zinc-900 line-clamp-1">{r.hook}</p>
+                <p className="text-xs text-zinc-400 font-mono">{r.externalId ?? '—'}</p>
+              </td>
+              <td className="py-2.5 pr-4">
+                <StatusPill tone={r.status === 'live' ? 'emerald' : r.status === 'error' ? 'red' : 'zinc'}>
+                  {r.channel}
+                </StatusPill>
+              </td>
+              <td className="py-2.5 pr-4 text-right tabular-nums">{r.views}</td>
+              <td className="py-2.5 pr-4 text-right tabular-nums">{r.atcs}</td>
+              <td className="py-2.5 pr-4 text-right tabular-nums">{r.purchases}</td>
+              <td className="py-2.5 pr-4 text-right tabular-nums">{fmtPct(r.ctr)}</td>
+              <td className="py-2.5 pr-4 text-right tabular-nums">
+                {r.cpa > 0 ? `${r.cpa.toFixed(2)} €` : '—'}
+              </td>
+              <td className="py-2.5 pr-4 text-right tabular-nums">
+                {r.roas > 0 ? `${r.roas.toFixed(2)}×` : '—'}
+              </td>
+              <td className="py-2.5 text-right tabular-nums font-medium">{fmtEur(r.revenueCents)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
