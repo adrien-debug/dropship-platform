@@ -69,7 +69,7 @@ export interface WorkflowResult {
 
 export type ComfyBackend = 'deploy' | 'local' | 'none';
 
-export function detectBackend(): ComfyBackend {
+function detectBackend(): ComfyBackend {
   if (process.env.COMFY_DEPLOY_API_KEY) return 'deploy';
   if (process.env.COMFYUI_URL) return 'local';
   return 'none';

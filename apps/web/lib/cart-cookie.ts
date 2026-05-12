@@ -1,11 +1,11 @@
 import { cookies } from 'next/headers';
 
-export const CART_COOKIE = 'dropship_cart_id';
+const CART_COOKIE = 'dropship_cart_id';
 // Tracks the last /shop/[slug] the user interacted with so /cart, /checkout
 // and /order/[id] can keep the merchant's branding instead of falling back
 // to the generic "Dropship Store" shell. Survives cart completion (we don't
 // clear it together with CART_COOKIE).
-export const LAST_STORE_SLUG_COOKIE = 'dropship_last_store_slug';
+const LAST_STORE_SLUG_COOKIE = 'dropship_last_store_slug';
 
 export async function getCartId(): Promise<string | null> {
   const store = await cookies();

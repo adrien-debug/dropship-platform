@@ -196,17 +196,3 @@ export async function getStoreBySlug(slug: string): Promise<StoreConfig | null> 
   return rows[0] ? rowToStore(rows[0]) : null;
 }
 
-/**
- * P1.1 — resolve a custom domain to a store. Used by /api/domain-resolve
- * which is called by the middleware to rewrite inbound custom-domain requests
- * to /shop/{slug} without a redirect.
- */
-export async function getStoreByDomain(domain: string): Promise<StoreConfig | null> {
-  const db = getDbRead();
-  const { rows } = await db.query<StoreRow>(
-    `SELECT ${STORE_COLUMNS}
-     FROM dropship_stores WHERE custom_domain = $1 AND status = 'active' LIMIT 1`,
-    [domain],
-  );
-  return rows[0] ? rowToStore(rows[0]) : null;
-}

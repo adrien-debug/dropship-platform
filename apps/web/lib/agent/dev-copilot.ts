@@ -49,15 +49,15 @@ const exec = promisify(execCallback);
 export const DEV_MODEL = 'claude-sonnet-4-6';
 export const DEV_MAX_TOOL_LOOPS = 15;
 export const DEV_MAX_TOOLS_PER_TURN = 20;
-export const DEV_MAX_FILE_BYTES = 100 * 1024;
-export const DEV_DEFAULT_TIMEOUT_MS = 30_000;
-export const DEV_MAX_TIMEOUT_MS = 120_000;
-export const DEV_MAX_OUTPUT_BYTES = 200 * 1024;
+const DEV_MAX_FILE_BYTES = 100 * 1024;
+const DEV_DEFAULT_TIMEOUT_MS = 30_000;
+const DEV_MAX_TIMEOUT_MS = 120_000;
+const DEV_MAX_OUTPUT_BYTES = 200 * 1024;
 
 // Hard list of shell command roots we tolerate. `run_bash` rejects anything
 // whose first token (after leading `cd ...;` or `env VAR=...` prefixes —
 // which we strip before testing) is not present.
-export const ALLOWED_COMMAND_ROOTS = new Set([
+const ALLOWED_COMMAND_ROOTS = new Set([
   'npm', 'npx', 'node', 'git', 'ls', 'cat', 'grep', 'find', 'mkdir',
   'echo', 'pwd', 'which', 'head', 'tail', 'wc', 'sort', 'uniq', 'awk', 'sed',
   'tsc', 'eslint', 'prettier', 'vitest',
@@ -66,7 +66,7 @@ export const ALLOWED_COMMAND_ROOTS = new Set([
 // Belt-and-braces regex blocklist. These patterns are recognised anywhere in
 // the command string (chained `&&`, `;`, backticks). A whitelist alone would
 // pass `git status; rm -rf .`, hence the second pass.
-export const BANNED_PATTERNS: RegExp[] = [
+const BANNED_PATTERNS: RegExp[] = [
   /\brm\s+-rf?\b/, /\bsudo\b/, /\bssh\b/, /\bscp\b/, /\bdd\s/,
   /\bchmod\s+-R\s+777\b/, /\bcurl\b[^|;]*--data[^|;]*PASSWORD/i,
   /\b>\s*\/dev\//, /\bmkfs\b/, /\bshutdown\b/, /\breboot\b/,
@@ -120,7 +120,7 @@ function resetRepoRoot(): void {
  * Resolve `relPath` against the repo root and refuse anything that escapes
  * the root or hits a blocked segment. Returns the absolute path on success.
  */
-export async function safeResolvePath(
+async function safeResolvePath(
   relPath: string,
   opts?: { allowMissing?: boolean; forWrite?: boolean },
 ): Promise<string> {

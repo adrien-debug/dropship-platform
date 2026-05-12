@@ -101,7 +101,7 @@ Return ONLY this JSON, no preamble:
 }
 
 /** Concurrency-bounded batch scoring. */
-export async function scoreImages(
+async function scoreImages(
   urls: string[],
   concurrency = 4,
 ): Promise<ImageQualityVerdict[]> {

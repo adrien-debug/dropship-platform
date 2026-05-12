@@ -56,10 +56,10 @@ export interface ProductScore {
 }
 
 // ---- Tunable weights (one knob per signal). Sum normalised at the end. ----
-export const WEIGHT_COST = 0.25;
-export const WEIGHT_ORDERS = 0.30;
-export const WEIGHT_RATING = 0.20;
-export const WEIGHT_MARGIN = 0.25;
+const WEIGHT_COST = 0.25;
+const WEIGHT_ORDERS = 0.30;
+const WEIGHT_RATING = 0.20;
+const WEIGHT_MARGIN = 0.25;
 
 const COST_SWEET_SPOT_EUR = 18;
 const COST_SIGMA_EUR = 14;

@@ -32,7 +32,7 @@ const PRICING: Record<string, { input: number; output: number }> = {
 const USD_TO_EUR = Number(process.env.USD_TO_EUR ?? '0.92');
 
 let cachedClient: Anthropic | null = null;
-export function getAnthropicClient(): Anthropic {
+function getAnthropicClient(): Anthropic {
   if (!cachedClient) {
     cachedClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   }

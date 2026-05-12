@@ -4,7 +4,7 @@
  */
 import { getMedusaBaseUrl } from './medusa';
 
-export const MEDUSA_PUBLISHABLE_KEY = (process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || '').trim();
+const MEDUSA_PUBLISHABLE_KEY = (process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || '').trim();
 
 export function storefrontEnabled(): boolean {
   return !!getMedusaBaseUrl() && !!MEDUSA_PUBLISHABLE_KEY;
