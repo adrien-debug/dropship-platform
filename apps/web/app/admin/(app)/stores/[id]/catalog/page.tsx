@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 interface ProductRow {
   id: string;
   supplier: string;
-  supplier_product_id: string | null;
+  external_id: string;
   supplier_url: string | null;
   enriched_title: string;
   enriched_description: string;
@@ -16,7 +16,7 @@ interface ProductRow {
   cost_cents: number;
   image_url: string | null;
   medusa_product_id: string | null;
-  score: number | null;
+  image_quality_score: string | null; // numeric(3,2) comes back as string
   created_at: string;
 }
 
@@ -40,8 +40,9 @@ export default async function StoreCatalogPage({ params }: { params: Promise<{ i
   if (!store) notFound();
 
   const { rows: products } = await db.query<ProductRow>(
-    `SELECT id, supplier, supplier_product_id, supplier_url, enriched_title, enriched_description,
-            price_cents, cost_cents, image_url, medusa_product_id, score, created_at
+    `SELECT id, supplier, external_id, supplier_url, enriched_title, enriched_description,
+            price_cents, cost_cents, image_url, medusa_product_id,
+            image_quality_score, created_at
        FROM dropship_store_products
       WHERE store_id = $1
       ORDER BY created_at ASC`,
@@ -114,7 +115,7 @@ export default async function StoreCatalogPage({ params }: { params: Promise<{ i
                   <th className="text-right font-medium px-3 py-3">Coût</th>
                   <th className="text-right font-medium px-3 py-3">Prix</th>
                   <th className="text-right font-medium px-3 py-3">Marge</th>
-                  <th className="text-right font-medium px-3 py-3">Score</th>
+                  <th className="text-right font-medium px-3 py-3">Image</th>
                   <th className="text-right font-medium px-5 py-3">État</th>
                 </tr>
               </thead>
@@ -165,7 +166,9 @@ export default async function StoreCatalogPage({ params }: { params: Promise<{ i
                         <span className="block text-xs text-zinc-400">{marginPct}%</span>
                       </td>
                       <td className="px-3 py-3 align-middle text-right text-zinc-700 tabular-nums">
-                        {p.score != null ? p.score.toFixed(0) : '—'}
+                        {p.image_quality_score != null
+                          ? `${Math.round(parseFloat(p.image_quality_score) * 100)}%`
+                          : '—'}
                       </td>
                       <td className="px-5 py-3 align-middle text-right">
                         {p.medusa_product_id ? (
