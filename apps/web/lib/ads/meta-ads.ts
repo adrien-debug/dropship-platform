@@ -89,6 +89,9 @@ export function buildMetaPayload(args: MetaPushArgs): {
       objective: 'OUTCOME_SALES',
       status: 'PAUSED',
       special_ad_categories: [],
+      // Required by Meta Marketing API since 2024: explicitly opt out of
+      // Advantage campaign budget when each adset carries its own budget.
+      is_adset_budget_sharing_enabled: false,
     },
     adset: {
       name: `${name}-adset`,
