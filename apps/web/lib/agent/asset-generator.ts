@@ -81,7 +81,7 @@ interface PromptBundle {
   promo: string; // image-to-video motion description
 }
 
-const FALLBACK_PROMPTS: PromptBundle = {
+export const FALLBACK_PROMPTS: PromptBundle = {
   hero: 'Cinematic editorial product photograph, full-bleed wide composition, soft directional light, premium DTC brand aesthetic, ultra detailed, 35mm, depth of field',
   cutout: 'Single product centered on dark gradient studio backdrop, soft rim light, premium e-commerce hero shot, ultra clean, no text, no labels',
   lifestyles: [
@@ -207,7 +207,19 @@ function envPool(deploymentEnvKey: string): string | undefined {
   return raw;
 }
 
-async function runImage(deploymentEnvKey: string, prompt: string, refImageUrl: string) {
+/**
+ * Run an image workflow on the deployment pool resolved from `deploymentEnvKey`
+ * (e.g. `COMFY_DEPLOYMENT_HERO`). Returns the raw image bytes plus the comfy
+ * run id so callers can persist it in the asset history.
+ *
+ * Exported so the regenerator can reuse the same workflow plumbing without
+ * duplicating the env-resolution + negative-prompt boilerplate.
+ */
+export async function runImage(
+  deploymentEnvKey: string,
+  prompt: string,
+  refImageUrl: string,
+): Promise<{ bytes: Buffer; runId: string }> {
   const deploymentId = envPool(deploymentEnvKey);
   if (!deploymentId) throw new Error(`${deploymentEnvKey} not set`);
   const result = await runWorkflow({
@@ -219,10 +231,20 @@ async function runImage(deploymentEnvKey: string, prompt: string, refImageUrl: s
     },
   });
   if (!result.images.length) throw new Error('no image returned');
-  return result.images[0]!;
+  return { bytes: result.images[0]!, runId: result.runId };
 }
 
-async function runVideo(deploymentEnvKey: string, motionPrompt: string, sourceImageUrl: string) {
+/**
+ * Run the 5-second image-to-video workflow. Same env-pool resolution as
+ * {@link runImage}, plus the optional `COMFY_DEPLOYMENT_VIDEO_PIN` override
+ * that pins every video run to a specific deployment regardless of the
+ * round-robin rotation (useful when only one deployment has the VRAM budget).
+ */
+export async function runVideo(
+  deploymentEnvKey: string,
+  motionPrompt: string,
+  sourceImageUrl: string,
+): Promise<{ bytes: Buffer; runId: string }> {
   const deploymentId = envPool(deploymentEnvKey);
   if (!deploymentId) throw new Error(`${deploymentEnvKey} not set`);
   // Video is the heaviest workflow (60-180s on a beefier GPU profile).
@@ -240,7 +262,56 @@ async function runVideo(deploymentEnvKey: string, motionPrompt: string, sourceIm
     },
   });
   if (!result.videos.length) throw new Error('no video returned');
-  return result.videos[0]!;
+  return { bytes: result.videos[0]!, runId: result.runId };
+}
+
+/**
+ * Persist a single generated asset to whichever backend is configured.
+ * R2 (prod) returns an absolute `https://pub-...r2.dev/...` URL; filesystem
+ * (dev fallback) writes under `apps/web/public/generated/{slug}/run-{ts}/`
+ * and returns a web-rooted path. Exported for the regenerator which needs
+ * the exact same persistence semantics on a per-asset basis.
+ */
+export async function persistAsset(args: {
+  storeSlug: string;
+  runDirName: string;
+  filename: string;
+  bytes: Buffer;
+}): Promise<string> {
+  const useR2 = isR2Configured();
+  if (useR2) {
+    return uploadToR2({
+      key: `${args.storeSlug}/${args.runDirName}/${args.filename}`,
+      body: args.bytes,
+      contentType: contentTypeFor(args.filename),
+    });
+  }
+  const storeRoot = path.join(process.cwd(), 'public', 'generated', args.storeSlug);
+  const runAbs = path.join(storeRoot, args.runDirName);
+  await ensureDir(runAbs);
+  await writeAsset(runAbs, args.filename, args.bytes);
+  return `/generated/${args.storeSlug}/${args.runDirName}/${args.filename}`;
+}
+
+/**
+ * Build the run-dir name we use both as the R2 key prefix and the
+ * filesystem subdir. Single source of truth so the regenerator and the
+ * initial pipeline stay aligned.
+ */
+export function buildRunDirName(): string {
+  const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 16);
+  return `run-${ts}-flux-kontext`;
+}
+
+// Backwards-compatible internal aliases used by generateMonoAssets below.
+// The original signatures returned just Buffer; the refactored exported
+// helpers return { bytes, runId }. Keep the legacy shape for the existing
+// inline calls without a wider refactor.
+async function _runImageBuf(deploymentEnvKey: string, prompt: string, refImageUrl: string): Promise<Buffer> {
+  return (await runImage(deploymentEnvKey, prompt, refImageUrl)).bytes;
+}
+async function _runVideoBuf(deploymentEnvKey: string, motionPrompt: string, sourceImageUrl: string): Promise<Buffer> {
+  return (await runVideo(deploymentEnvKey, motionPrompt, sourceImageUrl)).bytes;
 }
 
 /**
@@ -321,7 +392,7 @@ export async function generateMonoAssets(
   // Concurrency could be added later behind COMFY_PARALLEL.
   try {
     log('Génération du hero (1/6)...');
-    const heroBytes = await runImage('COMFY_DEPLOYMENT_HERO', prompts.hero, input.product.imageUrl);
+    const heroBytes = await _runImageBuf('COMFY_DEPLOYMENT_HERO', prompts.hero, input.product.imageUrl);
     heroUrl = await persist('hero.png', heroBytes);
   } catch (e) {
     warn.push(`Hero: ${e instanceof Error ? e.message : 'erreur'}`);
@@ -329,7 +400,7 @@ export async function generateMonoAssets(
 
   try {
     log('Génération du cutout (2/6)...');
-    const cutoutBytes = await runImage('COMFY_DEPLOYMENT_CUTOUT', prompts.cutout, input.product.imageUrl);
+    const cutoutBytes = await _runImageBuf('COMFY_DEPLOYMENT_CUTOUT', prompts.cutout, input.product.imageUrl);
     cutoutUrl = await persist('cutout.png', cutoutBytes);
   } catch (e) {
     warn.push(`Cutout: ${e instanceof Error ? e.message : 'erreur'}`);
@@ -338,7 +409,7 @@ export async function generateMonoAssets(
   for (let i = 0; i < prompts.lifestyles.length; i++) {
     try {
       log(`Génération lifestyle ${i + 1}/3 (${i + 3}/6)...`);
-      const bytes = await runImage(
+      const bytes = await _runImageBuf(
         'COMFY_DEPLOYMENT_LIFESTYLE',
         prompts.lifestyles[i]!,
         input.product.imageUrl,
@@ -360,7 +431,7 @@ export async function generateMonoAssets(
       const videoSource = cutoutUrl
         ? (useR2 ? cutoutUrl : `${process.env.NEXT_PUBLIC_BASE_URL || ''}${cutoutUrl}`)
         : input.product.imageUrl;
-      const videoBytes = await runVideo('COMFY_DEPLOYMENT_VIDEO', prompts.promo, videoSource);
+      const videoBytes = await _runVideoBuf('COMFY_DEPLOYMENT_VIDEO', prompts.promo, videoSource);
       promoVideoUrl = await persist('promo.mp4', videoBytes);
     } catch (e) {
       warn.push(`Vidéo: ${e instanceof Error ? e.message : 'erreur'}`);

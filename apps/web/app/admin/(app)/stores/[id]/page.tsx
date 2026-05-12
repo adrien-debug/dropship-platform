@@ -116,6 +116,12 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
                   Analytics
                 </Link>
                 <Link
+                  href={`/admin/stores/${store.id}/assets`}
+                  className="bg-white/20 hover:bg-white/30 text-white text-sm px-4 py-1.5 rounded-lg transition-colors"
+                >
+                  Assets
+                </Link>
+                <Link
                   href={`/shop/${store.slug}`}
                   target="_blank"
                   className="bg-white/20 hover:bg-white/30 text-white text-sm px-4 py-1.5 rounded-lg transition-colors"
