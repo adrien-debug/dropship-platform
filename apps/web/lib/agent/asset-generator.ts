@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import { runWorkflow, isComfyConfigured } from './comfy-client';
+import { falGenerateImage, falGenerateVideo, isFalConfigured } from './fal-client';
 import { extractJson } from './json';
 import { trackedMessage } from './anthropic';
 import { isR2Configured, uploadToR2 } from '@/lib/storage/r2';
@@ -220,8 +221,19 @@ export async function runImage(
   prompt: string,
   refImageUrl: string,
 ): Promise<{ bytes: Buffer; runId: string }> {
+  // fal.ai fallback: when ComfyUI isn't configured (no deployment IDs) but
+  // FAL_KEY is, route the call to fal.ai. Keeps the asset pipeline working
+  // out-of-the-box without requiring users to host their own ComfyUI Deploy
+  // workflows. Falls back transparently — the rest of the pipeline doesn't
+  // know which backend produced the bytes.
   const deploymentId = envPool(deploymentEnvKey);
-  if (!deploymentId) throw new Error(`${deploymentEnvKey} not set`);
+  if (!deploymentId) {
+    if (isFalConfigured()) {
+      const bytes = await falGenerateImage({ prompt, referenceImageUrl: refImageUrl });
+      return { bytes, runId: `fal-${Date.now()}` };
+    }
+    throw new Error(`${deploymentEnvKey} not set (and no FAL_KEY fallback)`);
+  }
   const result = await runWorkflow({
     deploymentId,
     inputs: {
@@ -246,7 +258,13 @@ export async function runVideo(
   sourceImageUrl: string,
 ): Promise<{ bytes: Buffer; runId: string }> {
   const deploymentId = envPool(deploymentEnvKey);
-  if (!deploymentId) throw new Error(`${deploymentEnvKey} not set`);
+  if (!deploymentId) {
+    if (isFalConfigured()) {
+      const bytes = await falGenerateVideo({ prompt: motionPrompt, sourceImageUrl });
+      return { bytes, runId: `fal-${Date.now()}` };
+    }
+    throw new Error(`${deploymentEnvKey} not set (and no FAL_KEY fallback)`);
+  }
   // Video is the heaviest workflow (60-180s on a beefier GPU profile).
   // `COMFY_DEPLOYMENT_VIDEO_PIN`, when set, pins every video run to one
   // specific deployment regardless of the round-robin rotation — useful
@@ -328,8 +346,8 @@ export async function generateMonoAssets(
     onProgress?.(m);
   };
 
-  if (!isComfyConfigured()) {
-    warn.push('ComfyUI non configuré (COMFY_DEPLOY_API_KEY / COMFYUI_URL absent) — assets non générés');
+  if (!isComfyConfigured() && !isFalConfigured()) {
+    warn.push('Aucun backend d\'assets configuré (ni ComfyUI ni FAL_KEY) — assets non générés');
     return {
       runId: '',
       heroUrl: null,
@@ -339,6 +357,7 @@ export async function generateMonoAssets(
       warnings: warn,
     };
   }
+  log(isComfyConfigured() ? 'Backend: ComfyUI Deploy' : 'Backend: fal.ai (fallback)');
 
   const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 16);
   const runDirName = `run-${ts}-flux-kontext`;

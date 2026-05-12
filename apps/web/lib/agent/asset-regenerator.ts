@@ -26,6 +26,7 @@
 
 import { getDb } from '@/lib/db';
 import { isComfyConfigured } from './comfy-client';
+import { isFalConfigured } from './fal-client';
 import {
   buildRunDirName,
   FALLBACK_PROMPTS,
@@ -322,11 +323,12 @@ export async function regenerateAsset(
   const warnings: string[] = [];
   const log = (m: string) => onProgress?.(m);
 
-  if (!isComfyConfigured()) {
+  if (!isComfyConfigured() && !isFalConfigured()) {
     throw new Error(
-      'ComfyUI non configuré (COMFY_DEPLOY_API_KEY / COMFYUI_URL absent) — régénération impossible.',
+      'Aucun backend d\'assets configuré (ni ComfyUI ni FAL_KEY) — régénération impossible.',
     );
   }
+  log(isComfyConfigured() ? 'Backend: ComfyUI Deploy' : 'Backend: fal.ai (fallback)');
 
   log('Chargement du store et du produit de référence...');
   const { store, product } = await loadStoreAndProduct(input.storeId);

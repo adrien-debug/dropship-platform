@@ -16,3 +16,10 @@ dist
 npm-debug.log*
 supabase/.temp
 .claude/
+
+# Playwright MCP captures (local debug only)
+.playwright-mcp/
+audit/
+*-desktop.png
+*-mobile.png
+admin-stores-*.png

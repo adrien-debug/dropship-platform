@@ -88,6 +88,13 @@ vi.mock('./comfy-client', () => ({
   isComfyConfigured: () => isComfyConfiguredMock(),
 }));
 
+// fal.ai is the alternative backend. The regenerator falls back to it when
+// Comfy is absent; we stub both off for the "no backend" case.
+const isFalConfiguredMock = vi.fn(() => false);
+vi.mock('./fal-client', () => ({
+  isFalConfigured: () => isFalConfiguredMock(),
+}));
+
 beforeEach(() => {
   captured.length = 0;
   rowsByPattern.length = 0;
@@ -96,6 +103,7 @@ beforeEach(() => {
   persistAssetMock.mockReset();
   trackedMessageMock.mockReset();
   isComfyConfiguredMock.mockReturnValue(true);
+  isFalConfiguredMock.mockReturnValue(false);
 
   // Default store + product fixtures. Individual tests can override.
   setRows('FROM dropship_stores\n      WHERE id', [
@@ -127,12 +135,13 @@ afterEach(() => {
 });
 
 describe('regenerateAsset', () => {
-  it('throws when ComfyUI is not configured', async () => {
+  it('throws when no backend is configured (neither ComfyUI nor fal.ai)', async () => {
     isComfyConfiguredMock.mockReturnValue(false);
+    isFalConfiguredMock.mockReturnValue(false);
     const { regenerateAsset } = await import('./asset-regenerator');
     await expect(
       regenerateAsset({ storeId: 'store-1', kind: 'hero' }),
-    ).rejects.toThrow(/ComfyUI non configuré/);
+    ).rejects.toThrow(/Aucun backend/);
     // No DB writes should have happened.
     expect(captured.find((q) => q.sql.includes('INSERT INTO dropship_asset_runs'))).toBeUndefined();
   });
