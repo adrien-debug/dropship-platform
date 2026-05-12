@@ -94,11 +94,8 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Link href="/admin/stores" className="text-sm text-zinc-400 hover:underline">← Stores</Link>
-      </div>
-
-      {/* Store header */}
+      {/* Store header — branding + destructive actions only.
+          Navigation lives in the StoreTabs rendered by the layout. */}
       <div className="border rounded-xl overflow-hidden shadow-sm">
         <div className="h-16 flex items-center px-6 gap-4" style={{ backgroundColor: store.primary_color || '#111827' }}>
           <span className="text-3xl">{store.logo_emoji || '🛍️'}</span>
@@ -107,35 +104,6 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
             {store.tagline && <p className="text-sm opacity-75">{store.tagline}</p>}
           </div>
           <div className="ml-auto flex items-center gap-3">
-            {store.status === 'active' && (
-              <>
-                <Link
-                  href={`/admin/stores/${store.id}/curate`}
-                  className="bg-white/20 hover:bg-white/30 text-white text-sm px-4 py-1.5 rounded-lg transition-colors"
-                >
-                  Curation
-                </Link>
-                <Link
-                  href={`/admin/stores/${store.id}/analytics`}
-                  className="bg-white/20 hover:bg-white/30 text-white text-sm px-4 py-1.5 rounded-lg transition-colors"
-                >
-                  Analytics
-                </Link>
-                <Link
-                  href={`/admin/stores/${store.id}/assets`}
-                  className="bg-white/20 hover:bg-white/30 text-white text-sm px-4 py-1.5 rounded-lg transition-colors"
-                >
-                  Assets
-                </Link>
-                <Link
-                  href={`/shop/${store.slug}`}
-                  target="_blank"
-                  className="bg-white/20 hover:bg-white/30 text-white text-sm px-4 py-1.5 rounded-lg transition-colors"
-                >
-                  Voir le store →
-                </Link>
-              </>
-            )}
             <StoreActions storeId={store.id} storeName={store.name} />
           </div>
         </div>
@@ -211,58 +179,22 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
         }}
       />
 
-      {/* Products list */}
-      <div>
-        <h3 className="text-lg font-bold mb-4">Produits ({products.length})</h3>
-
-        {products.length === 0 ? (
-          <p className="text-zinc-400 text-sm">Aucun produit importé.</p>
-        ) : (
-          <div className="space-y-3">
-            {products.map((product) => {
-              const margin = ((product.price_cents - product.cost_cents) / 100).toFixed(2);
-              const marginPct = product.cost_cents > 0
-                ? Math.round(((product.price_cents - product.cost_cents) / product.cost_cents) * 100)
-                : 0;
-
-              return (
-                <div key={product.id} className="border rounded-xl bg-white flex gap-4 p-4 hover:shadow-sm transition-shadow">
-                  <div className="w-16 h-16 rounded-lg overflow-hidden bg-zinc-100 shrink-0">
-                    {product.image_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={product.image_url} alt={product.enriched_title} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-2xl">{store.logo_emoji}</div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start gap-2">
-                      <h4 className="font-medium text-sm text-zinc-900 line-clamp-1 flex-1">{product.enriched_title}</h4>
-                      <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${
-                        product.supplier === 'ai-generated'
-                          ? 'bg-purple-100 text-purple-700'
-                          : product.supplier === 'aliexpress'
-                          ? 'bg-orange-100 text-orange-700'
-                          : 'bg-blue-100 text-blue-700'
-                      }`}>
-                        {product.supplier}
-                      </span>
-                    </div>
-                    <p className="text-xs text-zinc-400 line-clamp-2 mt-1">{product.enriched_description}</p>
-                  </div>
-                  <div className="shrink-0 text-right space-y-1">
-                    <div className="font-bold text-sm">{(product.price_cents / 100).toFixed(2)} €</div>
-                    <div className="text-xs text-zinc-400">coût {(product.cost_cents / 100).toFixed(2)} €</div>
-                    <div className="text-xs text-green-600 font-medium">+{margin} € ({marginPct}%)</div>
-                    {product.medusa_product_id && (
-                      <div className="text-kicker text-zinc-300 font-mono">{product.medusa_product_id.slice(0, 12)}…</div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+      {/* Per-store product list lives on its own tab (`Catalogue`).
+          Keep the overview clean: just a teaser linking there. */}
+      <div className="rounded-xl border border-zinc-200 bg-white p-6 flex items-center justify-between">
+        <div>
+          <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">Catalogue</p>
+          <p className="mt-1 text-sm text-zinc-700">
+            <span className="font-medium text-zinc-900">{products.length}</span>{' '}
+            produit{products.length > 1 ? 's' : ''} importé{products.length > 1 ? 's' : ''}.
+          </p>
+        </div>
+        <Link
+          href={`/admin/stores/${store.id}/catalog`}
+          className="text-sm font-medium px-4 py-2 rounded-lg bg-zinc-900 text-white hover:bg-zinc-800 transition-colors"
+        >
+          Voir le catalogue →
+        </Link>
       </div>
     </div>
   );
