@@ -17,6 +17,8 @@ interface Tab {
   href: string;
   label: string;
   exact?: boolean;
+  /** When set, renders a small uppercase badge next to the label. */
+  badge?: string;
 }
 
 function buildTabs(storeId: string, storeSlug: string): Tab[] {
@@ -27,6 +29,10 @@ function buildTabs(storeId: string, storeSlug: string): Tab[] {
     { href: `/admin/stores/${storeId}/curate`, label: 'Curation' },
     { href: `/admin/stores/${storeId}/ads`, label: 'Ads' },
     { href: `/admin/stores/${storeId}/analytics`, label: 'Analytics' },
+    // Copilote hub — flagship unified chat with research/curation/ads/medias/dev.
+    // Placed between Analytics and Réglages so the operator finds it at the
+    // end of the workflow surfaces but before settings.
+    { href: `/admin/stores/${storeId}/copilot`, label: '🤖 Copilote', badge: 'new' },
     { href: `/admin/stores/${storeId}/settings`, label: 'Réglages' },
     { href: `/shop/${storeSlug}`, label: 'Voir le store ↗' },
   ];
@@ -58,6 +64,11 @@ export function StoreTabs({ storeId, storeSlug }: { storeId: string; storeSlug: 
               }`}
             >
               {tab.label}
+              {tab.badge && (
+                <span className="ml-1.5 inline-block px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider rounded-sm bg-amber-100 text-amber-700 align-middle">
+                  {tab.badge}
+                </span>
+              )}
               {active && (
                 <span className="absolute left-3 right-3 -bottom-px h-0.5 bg-zinc-900" aria-hidden />
               )}
