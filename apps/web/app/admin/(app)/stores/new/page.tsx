@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useRef, useEffect, Suspense } from 'react';
+import { useState, useRef, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { PageHeader, StatCard, StatusPill, type Tone } from '../../../_components/AdminUI';
+import { NicheResearchCopilot, type ShortlistPayload } from './NicheResearchCopilot';
 
 interface NicheValidationResult {
   saturation: number;
@@ -221,8 +222,19 @@ function NewStoreForm() {
   const canLaunch = !!niche.trim() && !!storeName.trim() && !running;
   const formDisabled = running || !!result;
 
+  // Apply a shortlist payload from the research copilot. Pre-fills niche
+  // and store name, clears any prior validation panel (since the niche
+  // changed), and keeps the existing form 100% functional — the operator
+  // can still tweak any field before pressing "Lancer l'agent".
+  const applyShortlist = useCallback((payload: ShortlistPayload) => {
+    setNiche(payload.niche);
+    setStoreName(payload.suggested_store_name);
+    setValidation(null);
+    setValidationError(null);
+  }, []);
+
   return (
-    <div className="max-w-3xl space-y-8">
+    <div className="max-w-5xl space-y-8">
       <div>
         <Link href="/admin/stores" className="text-xs text-zinc-400 hover:text-zinc-700 transition-colors">
           ← Tous les stores
@@ -239,6 +251,14 @@ function NewStoreForm() {
           />
         </div>
       </div>
+
+      {/* ===== COPILOTE (recherche de niche pré-création) ===== */}
+      {!result && (
+        <NicheResearchCopilot onApplyShortlist={applyShortlist} />
+      )}
+
+      {/* Form anchor — the copilot scrolls here when "Lancer cette niche" is clicked. */}
+      <div id="store-creation-form" className="max-w-3xl space-y-8 scroll-mt-8">
 
       {/* ===== STEP 1 — FORMAT ===== */}
       <fieldset disabled={formDisabled} className="border border-zinc-200 bg-white rounded-xl p-6">
@@ -447,6 +467,7 @@ function NewStoreForm() {
           <p className="mt-1.5 text-sm text-red-900 leading-relaxed">{error}</p>
         </div>
       )}
+      </div>
     </div>
   );
 }
