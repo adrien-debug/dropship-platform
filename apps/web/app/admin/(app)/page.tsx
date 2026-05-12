@@ -137,7 +137,7 @@ export default async function PortfolioDashboard() {
             AND f.event_name = 'purchase'
             AND f.created_at > now() - interval '7 days'
            WHERE s.status = 'active'
-           GROUP BY s.slug, s.name, s.logo_emoji
+           GROUP BY s.slug, s.name, s.logo_emoji, s.created_at
            ORDER BY revenue_cents DESC NULLS LAST, s.created_at DESC
            LIMIT 5`,
         );
