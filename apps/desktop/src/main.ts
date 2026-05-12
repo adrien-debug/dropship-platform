@@ -1,0 +1,249 @@
+/**
+ * Main process entry point for the Hearst Dropship desktop wrapper.
+ *
+ * Responsibilities:
+ *   - App lifecycle (ready / window-all-closed / activate)
+ *   - Inject HTTP Basic Auth on every request to the configured origin
+ *   - Build the native macOS menu bar with custom items
+ *   - Register global shortcuts (Cmd+Shift+D / N / O)
+ *   - Wire IPC channels used by the preload bridge
+ *   - Start the anomaly watcher and create the tray
+ */
+import {
+  Menu,
+  MenuItemConstructorOptions,
+  app,
+  globalShortcut,
+  ipcMain,
+  session,
+  shell,
+} from 'electron';
+
+import { getConfig } from './config';
+import {
+  notifyFromRenderer,
+  startAnomalyWatcher,
+  stopAnomalyWatcher,
+} from './notifications';
+import { createTray, destroyTray, pushRecentStore } from './tray';
+import { closeAll, hasOpenWindows, openWindow } from './windows';
+
+// macOS-only wrapper — bail out loudly on anything else so the user knows.
+if (process.platform !== 'darwin') {
+  console.error('[main] Hearst Dropship desktop is macOS-only.');
+}
+
+// Single-instance lock so Cmd+Shift+D from outside always reuses the app.
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) {
+  app.quit();
+}
+
+app.on('second-instance', () => {
+  openWindow({ kind: 'dashboard' });
+});
+
+function installAuthHeader(): void {
+  const { origin, basicAuthHeader } = getConfig();
+  if (!basicAuthHeader) {
+    console.warn(
+      '[main] No ADMIN_USERNAME/ADMIN_PASSWORD found — Basic Auth header will not be injected. ' +
+        'Set them in apps/web/.env.local or as env vars before launching.',
+    );
+    return;
+  }
+
+  const url = new URL(origin);
+  const filter = {
+    urls: [`${url.protocol}//${url.host}/*`, `${url.protocol}//${url.host}/`],
+  };
+
+  session.defaultSession.webRequest.onBeforeSendHeaders(filter, (details, callback) => {
+    details.requestHeaders.Authorization = basicAuthHeader;
+    callback({ requestHeaders: details.requestHeaders });
+  });
+}
+
+function buildAppMenu(): Menu {
+  const template: MenuItemConstructorOptions[] = [
+    {
+      label: app.name,
+      submenu: [
+        { role: 'about' },
+        { type: 'separator' },
+        { role: 'services' },
+        { type: 'separator' },
+        { role: 'hide' },
+        { role: 'hideOthers' },
+        { role: 'unhide' },
+        { type: 'separator' },
+        { role: 'quit' },
+      ],
+    },
+    {
+      label: 'File',
+      submenu: [
+        {
+          label: 'New Store',
+          accelerator: 'Cmd+Shift+N',
+          click: () => openWindow({ kind: 'new-store' }),
+        },
+        {
+          label: 'Open Dashboard',
+          accelerator: 'Cmd+Shift+D',
+          click: () => openWindow({ kind: 'dashboard' }),
+        },
+        {
+          label: 'Open Observability',
+          accelerator: 'Cmd+Shift+O',
+          click: () => openWindow({ kind: 'observability' }),
+        },
+        {
+          label: 'Open Orders',
+          click: () => openWindow({ kind: 'orders' }),
+        },
+        { type: 'separator' },
+        { role: 'close' },
+      ],
+    },
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'pasteAndMatchStyle' },
+        { role: 'delete' },
+        { role: 'selectAll' },
+      ],
+    },
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'forceReload' },
+        { role: 'toggleDevTools' },
+        { type: 'separator' },
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        { role: 'zoomOut' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' },
+      ],
+    },
+    {
+      label: 'Window',
+      submenu: [
+        { role: 'minimize' },
+        { role: 'zoom' },
+        { type: 'separator' },
+        { role: 'front' },
+        { type: 'separator' },
+        { role: 'window' },
+      ],
+    },
+    {
+      role: 'help',
+      submenu: [
+        {
+          label: 'Open in browser',
+          click: () => {
+            void shell.openExternal(getConfig().baseUrl);
+          },
+        },
+        {
+          label: 'View on GitHub',
+          click: () => {
+            void shell.openExternal('https://github.com/');
+          },
+        },
+      ],
+    },
+  ];
+
+  return Menu.buildFromTemplate(template);
+}
+
+function registerShortcuts(): void {
+  globalShortcut.register('Cmd+Shift+D', () => openWindow({ kind: 'dashboard' }));
+  globalShortcut.register('Cmd+Shift+N', () => openWindow({ kind: 'new-store' }));
+  globalShortcut.register('Cmd+Shift+O', () => openWindow({ kind: 'observability' }));
+}
+
+function wireIpc(): void {
+  ipcMain.handle(
+    'window:open',
+    (_event, opts: { kind: string; storeId?: string }) => {
+      // Validate the kind here — the preload type is `string` so we can't trust
+      // it at the boundary.
+      const validKinds = new Set([
+        'dashboard',
+        'new-store',
+        'observability',
+        'orders',
+        'store-detail',
+      ]);
+      if (!validKinds.has(opts.kind)) {
+        throw new Error(`Unknown window kind: ${opts.kind}`);
+      }
+      openWindow({ kind: opts.kind as never, storeId: opts.storeId });
+    },
+  );
+
+  ipcMain.handle(
+    'notify:show',
+    (_event, opts: { title: string; body: string; urgency?: 'normal' | 'critical' }) => {
+      if (typeof opts?.title !== 'string' || typeof opts?.body !== 'string') {
+        throw new Error('notify: title and body are required strings');
+      }
+      return notifyFromRenderer(opts);
+    },
+  );
+
+  ipcMain.handle(
+    'recent-store:push',
+    (_event, opts: { id: string; name?: string }) => {
+      if (typeof opts?.id !== 'string' || !opts.id.length) {
+        throw new Error('recent-store:push: id is required');
+      }
+      pushRecentStore({ id: opts.id, name: opts.name });
+    },
+  );
+
+  ipcMain.on('app:version-sync', (event) => {
+    event.returnValue = app.getVersion();
+  });
+}
+
+app.on('ready', () => {
+  app.setName('Hearst Dropship');
+  installAuthHeader();
+  Menu.setApplicationMenu(buildAppMenu());
+  registerShortcuts();
+  wireIpc();
+  createTray();
+  startAnomalyWatcher();
+  openWindow({ kind: 'dashboard' });
+});
+
+// macOS convention: keep the app running even with no windows.
+app.on('window-all-closed', () => {
+  // Intentionally do nothing — the tray + menu bar keep the app alive.
+});
+
+// Dock click with no windows open → reopen the dashboard.
+app.on('activate', () => {
+  if (!hasOpenWindows()) {
+    openWindow({ kind: 'dashboard' });
+  }
+});
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll();
+  stopAnomalyWatcher();
+  destroyTray();
+  closeAll();
+});

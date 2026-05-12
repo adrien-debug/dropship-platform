@@ -1,0 +1,43 @@
+{
+  "name": "@dropship/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "macOS Electron wrapper for the Hearst Dropship Next.js platform",
+  "main": "dist/main.js",
+  "scripts": {
+    "dev": "tsc -p tsconfig.json --watch & wait-on dist/main.js && electron dist/main.js",
+    "build": "tsc -p tsconfig.json",
+    "package": "npm run build && electron-builder --mac --dir",
+    "dist": "npm run build && electron-builder --mac",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0",
+    "typescript": "^5.6.0",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "io.hearstcorporation.dropship.desktop",
+    "productName": "Hearst Dropship",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "assets/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.business",
+      "icon": "assets/icon.icns",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "identity": null,
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false
+    }
+  }
+}
