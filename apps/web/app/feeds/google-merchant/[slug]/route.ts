@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getDb, getDbRead } from '@/lib/db';
+import { getDbRead } from '@/lib/db';
 import { siteBaseUrl, storeUrl } from '@/lib/seo';
 import { buildMedusaHandle } from '@/lib/agent/handle';
 

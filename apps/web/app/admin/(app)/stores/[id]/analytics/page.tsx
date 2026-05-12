@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { getDb, getDbRead } from '@/lib/db';
+import { getDbRead } from '@/lib/db';
 import { formatMoney } from '@/lib/medusa-store';
 
 export const dynamic = 'force-dynamic';

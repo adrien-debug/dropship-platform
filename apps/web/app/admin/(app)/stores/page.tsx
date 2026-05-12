@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { getDb, getDbRead } from '@/lib/db';
+import { getDbRead } from '@/lib/db';
 import { PageHeader, StatCard, StatusPill, type Tone } from '../../_components/AdminUI';
 import { StoreActions } from './StoreActions';
 
