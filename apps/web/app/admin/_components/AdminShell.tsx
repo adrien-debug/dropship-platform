@@ -6,6 +6,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { AdminLogoutButton } from '../login/AdminLogoutButton';
 
 const NAV = [
+  { href: '/admin', label: 'Dashboard', exact: true },
   { href: '/admin/stores', label: 'Stores' },
   { href: '/admin/orders', label: 'Commandes' },
   { href: '/admin/catalog', label: 'Catalogue' },
@@ -44,7 +45,9 @@ function NavList({
       </p>
       <ul className="space-y-0.5">
         {NAV.map((item) => {
-          const active = pathname === item.href || pathname.startsWith(item.href + '/');
+          const active = item.exact
+            ? pathname === item.href
+            : pathname === item.href || pathname.startsWith(item.href + '/');
           return (
             <li key={item.href}>
               <Link
@@ -74,7 +77,7 @@ function NavList({
 
 function Brand() {
   return (
-    <Link href="/admin/stores" className="block group">
+    <Link href="/admin" className="block group">
       <span className="font-serif text-xl text-white tracking-tight">
         Dropship<span className="text-zinc-500 group-hover:text-white/80 transition-colors">.</span>
       </span>
@@ -102,7 +105,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
     }
   }, [open]);
 
-  const currentLabel = NAV.find((n) => pathname === n.href || pathname.startsWith(n.href + '/'))?.label ?? 'Console';
+  const currentLabel =
+    NAV.find((n) =>
+      n.exact ? pathname === n.href : pathname === n.href || pathname.startsWith(n.href + '/'),
+    )?.label ?? 'Console';
 
   return (
     <div className="min-h-screen bg-zinc-50 lg:flex">

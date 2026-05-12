@@ -360,7 +360,7 @@ export default async function PortfolioDashboard() {
                 </dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-zinc-500">Taux d'erreur</dt>
+                <dt className="text-zinc-500">Taux d&apos;erreur</dt>
                 <dd className={`font-medium ${errorRate > 5 ? 'text-red-700' : 'text-zinc-900'}`}>
                   {errorRate.toFixed(1)}%
                 </dd>
