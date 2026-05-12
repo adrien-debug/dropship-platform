@@ -103,10 +103,13 @@ export function openWindow(opts: OpenWindowOptions): BrowserWindow {
     minWidth: 960,
     minHeight: 600,
     title: titleForKind(kind, storeId),
-    titleBarStyle: 'hiddenInset',
-    vibrancy: 'under-window',
-    visualEffectState: 'active',
-    backgroundColor: '#0b0b0c',
+    // Native macOS chrome: full title bar with traffic lights at left.
+    // 'hiddenInset' previously caused the Tailwind layout to render under
+    // the traffic lights and broke the visual hierarchy of the dashboard.
+    titleBarStyle: 'default',
+    // Solid background. Vibrancy under-window + transparent BG made the
+    // Tailwind zinc-50 background look greyed-out and inconsistent.
+    backgroundColor: '#ffffff',
     show: false,
     webPreferences: {
       contextIsolation: true,
