@@ -2,9 +2,6 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getDbRead } from '@/lib/db';
 import { StoreActions } from '../StoreActions';
-import { StoreAnalyticsForm } from './StoreAnalyticsForm';
-import { StoreTemplateForm } from './StoreTemplateForm';
-import { StoreCustomDomainForm } from './StoreCustomDomainForm';
 
 export const dynamic = 'force-dynamic';
 
@@ -152,32 +149,6 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
           </div>
         </div>
       </div>
-
-      <StoreTemplateForm
-        storeId={store.id}
-        storeSlug={store.slug}
-        initial={store.template}
-      />
-
-      <StoreCustomDomainForm
-        storeId={store.id}
-        initial={store.custom_domain ?? ''}
-      />
-
-      <StoreAnalyticsForm
-        storeId={store.id}
-        initial={{
-          ga4MeasurementId: store.ga4_measurement_id ?? '',
-          ga4ApiSecret: store.ga4_api_secret ?? '',
-          metaPixelId: store.meta_pixel_id ?? '',
-          metaCapiToken: store.meta_capi_token ?? '',
-          tiktokPixelId: store.tiktok_pixel_id ?? '',
-          tiktokEventsToken: store.tiktok_events_token ?? '',
-          clarityId: store.clarity_id ?? '',
-          googleAdsConversionAction: store.google_ads_conversion_action ?? '',
-          googleAdsMerchantId: store.google_merchant_id ?? '',
-        }}
-      />
 
       {/* Per-store product list lives on its own tab (`Catalogue`).
           Keep the overview clean: just a teaser linking there. */}

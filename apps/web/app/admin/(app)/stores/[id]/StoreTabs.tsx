@@ -27,6 +27,7 @@ function buildTabs(storeId: string, storeSlug: string): Tab[] {
     { href: `/admin/stores/${storeId}/curate`, label: 'Curation' },
     { href: `/admin/stores/${storeId}/ads`, label: 'Ads' },
     { href: `/admin/stores/${storeId}/analytics`, label: 'Analytics' },
+    { href: `/admin/stores/${storeId}/settings`, label: 'Réglages' },
     { href: `/shop/${storeSlug}`, label: 'Voir le store ↗' },
   ];
 }
