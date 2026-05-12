@@ -110,6 +110,12 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
             {store.status === 'active' && (
               <>
                 <Link
+                  href={`/admin/stores/${store.id}/curate`}
+                  className="bg-white/20 hover:bg-white/30 text-white text-sm px-4 py-1.5 rounded-lg transition-colors"
+                >
+                  Curation
+                </Link>
+                <Link
                   href={`/admin/stores/${store.id}/analytics`}
                   className="bg-white/20 hover:bg-white/30 text-white text-sm px-4 py-1.5 rounded-lg transition-colors"
                 >
