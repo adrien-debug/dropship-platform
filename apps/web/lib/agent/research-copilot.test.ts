@@ -25,13 +25,8 @@ interface CapturedQuery {
 }
 
 const captured: CapturedQuery[] = [];
-const rowsBySubstring: { pattern: string; rows: unknown[] }[] = [];
 const inserted: { table: string; sql: string; params: unknown[] }[] = [];
 const updated: { sql: string; params: unknown[] }[] = [];
-
-function setRows(pattern: string, rows: unknown[]) {
-  rowsBySubstring.push({ pattern, rows });
-}
 
 function dbQuery<T = unknown>(
   sql: string,
@@ -53,11 +48,6 @@ function dbQuery<T = unknown>(
     return Promise.resolve({ rows: [] as T[], rowCount: 1 });
   }
 
-  for (const { pattern, rows } of rowsBySubstring) {
-    if (sql.includes(pattern)) {
-      return Promise.resolve({ rows: rows as T[], rowCount: rows.length });
-    }
-  }
   return Promise.resolve({ rows: [] as T[], rowCount: 0 });
 }
 
@@ -121,7 +111,6 @@ vi.mock('./anthropic', () => ({
 
 function reset() {
   captured.length = 0;
-  rowsBySubstring.length = 0;
   inserted.length = 0;
   updated.length = 0;
   anthropicResponseQueue.length = 0;

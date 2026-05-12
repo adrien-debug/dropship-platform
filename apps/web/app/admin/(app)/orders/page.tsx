@@ -1,5 +1,5 @@
 import { medusa } from '@/lib/medusa';
-import { getDb, getDbRead } from '@/lib/db';
+import { getDbRead } from '@/lib/db';
 import { ForwardButton } from './ForwardButton';
 import { DryRunPendingButton } from './DryRunPendingButton';
 import { MarkPaidButton } from './MarkPaidButton';
