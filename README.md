@@ -115,6 +115,20 @@ npm run lint     # tsc + ESLint
 
 CI (`.github/workflows/ci.yml`) : lint + tests sur chaque push. Workflows séparés pour le warmup Medusa (cron 5 min) et le refresh OAuth AliExpress (cron quotidien).
 
+## Desktop app
+
+Wrapper Electron macOS-only (`apps/desktop/`) qui ouvre la console admin dans une fenêtre native, ajoute un icône menu-bar, des raccourcis globaux (`⇧⌘D` Dashboard, `⇧⌘N` New store, `⇧⌘O` Observability) et un watcher d'anomalies en tâche de fond (poll toutes les 5 min sur `/api/agent/ops/anomaly-watch` → notif critique macOS).
+
+```bash
+cd apps/desktop
+npm install
+HEARST_URL=http://localhost:3063/admin npm run dev   # dev local
+npm run package                                       # build .app non signée
+npm run dist                                          # build .dmg
+```
+
+L'app Next.js reste 100 % browser-compatible — l'intégration Electron est opt-in via `window.electron`. Détails : [`apps/desktop/README.md`](apps/desktop/README.md).
+
 ## Sécurité
 
 - Auth admin par Basic Auth (Edge middleware), pas d'OAuth multi-utilisateur
