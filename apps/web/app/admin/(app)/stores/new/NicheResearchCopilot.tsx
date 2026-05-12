@@ -380,9 +380,11 @@ export function NicheResearchCopilot({ onApplyShortlist }: Props) {
         </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px]">
-        {/* Chat column */}
-        <div className="flex flex-col min-h-[520px] max-h-[680px] border-r border-zinc-200/70">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] items-stretch">
+        {/* Chat column — viewport-relative height so the scroll area
+            adapts to the screen instead of being clipped by the parent
+            overflow-hidden when the sidebar grows longer. */}
+        <div className="flex flex-col h-[calc(100dvh-260px)] min-h-[480px] max-h-[820px] border-r border-zinc-200/70">
           <div
             ref={scrollRef}
             className="flex-1 overflow-y-auto px-5 py-5 space-y-4 bg-zinc-50/40"
@@ -452,8 +454,9 @@ export function NicheResearchCopilot({ onApplyShortlist }: Props) {
           </form>
         </div>
 
-        {/* Right context column */}
-        <aside className="px-5 py-5 space-y-5 bg-zinc-50/30">
+        {/* Right context column — scrolls internally when content is taller
+            than the chat column it stretches against. */}
+        <aside className="px-5 py-5 space-y-5 bg-zinc-50/30 overflow-y-auto">
           <div>
             <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium mb-2">
               Comment ça marche
