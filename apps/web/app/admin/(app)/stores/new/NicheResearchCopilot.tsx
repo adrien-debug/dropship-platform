@@ -59,6 +59,8 @@ interface FeaturedProduct {
   orders?: number;
   rating?: string | null;
   why_this_one?: string;
+  pricing_rationale?: string;
+  expected_aov_eur?: number;
 }
 
 interface ShortlistPayload {
@@ -697,7 +699,15 @@ function ShortlistCard({
               <span className="text-zinc-300">→</span>
               <span className="text-zinc-900 font-semibold">{fpPrice} €</span>
               <span className="text-emerald-700 font-medium">+{fpMargin} €</span>
+              {fp.expected_aov_eur != null && (
+                <span className="text-zinc-400 ml-auto">AOV ~{fp.expected_aov_eur} €</span>
+              )}
             </div>
+            {fp.pricing_rationale && (
+              <p className="text-xs text-zinc-600 leading-snug line-clamp-2 italic">
+                {fp.pricing_rationale}
+              </p>
+            )}
             {fp.why_this_one && (
               <p className="text-xs text-zinc-500 leading-snug line-clamp-2">{fp.why_this_one}</p>
             )}

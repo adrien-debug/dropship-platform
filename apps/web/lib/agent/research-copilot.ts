@@ -81,6 +81,11 @@ const FeaturedProductInput = z.object({
   orders: z.number().int().min(0).optional(),
   rating: z.string().max(20).nullable().optional(),
   why_this_one: z.string().min(0).max(400).optional(),
+  /** One sentence justifying the recommended retail price, grounded in
+   *  a market benchmark (Amazon FR, DTC competitor). Forces Claude to
+   *  prove it actually checked the market instead of using cost × 2.2. */
+  pricing_rationale: z.string().min(0).max(400).optional(),
+  expected_aov_eur: z.number().min(0).max(10_000).optional(),
 });
 
 const ShortlistNicheInput = z.object({
@@ -212,14 +217,32 @@ const TOOLS: Anthropic.Messages.Tool[] = [
             title: { type: 'string' },
             image_url: { type: 'string', description: 'Product image URL from the supplier candidate.' },
             supplier_url: { type: 'string', description: 'Supplier product page URL.' },
-            cost_cents: { type: 'number' },
-            suggested_price_cents: { type: 'number' },
+            cost_cents: {
+              type: 'number',
+              description:
+                'Supplier cost in EUR cents — copy verbatim from the candidate.',
+            },
+            suggested_price_cents: {
+              type: 'number',
+              description:
+                'YOUR recommended retail TTC in EUR cents, grounded in the market benchmark you ran (Amazon FR, DTC competitor). Do NOT blindly forward the supplier candidate\'s `suggested_price_cents` — that one is cost × 2.2 and is too high in most cases. Must yield a gross margin ≥ 10 € after ~2 € shipping.',
+            },
             orders: { type: 'number' },
             rating: { type: 'string' },
             why_this_one: {
               type: 'string',
               description:
                 'One sentence: why this specific candidate over the other ones in the same search (price/orders/format/visual appeal).',
+            },
+            pricing_rationale: {
+              type: 'string',
+              description:
+                'One sentence on WHY you set suggested_price_cents to that exact value. Must reference your market benchmark (e.g. "Amazon FR 22-28€, marge brute 13€, sous la barre psychologique 25€").',
+            },
+            expected_aov_eur: {
+              type: 'number',
+              description:
+                'Expected AOV after bundle uplift, in euros. If unit retail < 30€, bundle 2/3 units to lift AOV — state the resulting expected AOV here.',
             },
           },
           required: ['supplier', 'supplier_product_id', 'title', 'image_url', 'supplier_url', 'cost_cents', 'suggested_price_cents'],
@@ -255,6 +278,8 @@ export interface FeaturedProduct {
   orders?: number;
   rating?: string | null;
   why_this_one?: string;
+  pricing_rationale?: string;
+  expected_aov_eur?: number;
 }
 
 export interface ShortlistPayload {
@@ -428,13 +453,21 @@ function buildSystemPrompt(): string {
     '',
     'Rules:',
     '- Speak French. The operator is French. Switch to English only if the operator does first.',
-    '- Always call AT LEAST ONE tool before making a recommendation. Prefer at least TWO (typically meta_ads_library + aliexpress_search) before calling shortlist_niche.',
     '- Maximum 6 tool calls per user turn. Do not call the same tool with the same arguments twice.',
     '- When a tool returns nothing usable, say so plainly and try a different angle instead of looping.',
     '- Saturation > 70 means crowded — explicitly warn the operator. Saturation 30-70 = competitive. < 30 = open.',
-    '- Cost in supplier results is in EUR cents. A healthy retail margin is 2.2x cost minimum.',
-    '- ALWAYS call `shortlist_niche` once you have a recommendation. It is how the UI surfaces the "Lancer cette niche" button.',
-    '- When `shortlist_niche` is called and you have already run aliexpress_search or cj_search, ALWAYS pass the winning candidate as `featured_product` (copy supplier/supplier_product_id/title/image_url/supplier_url/cost_cents/suggested_price_cents from one of the returned candidates VERBATIM). The operator wants to SEE the product photo in the recommendation card, not just read the niche name.',
+    '',
+    'Mandatory analysis sequence before `shortlist_niche` (DO NOT skip any step):',
+    '1. **Saturation check** — call meta_ads_library on the candidate niche. Reject niches with saturation > 75.',
+    '2. **Supply check** — call aliexpress_search (and cj_search if relevant). Pick the strongest candidate: cost in EUR cents, ≥30 orders for social proof, rating ≥85%.',
+    '3. **Market price benchmark — NON OPTIONAL**. Call web_search OR ask_perplexity to find the real retail price the product sells for on the French market (Amazon FR, established DTC competitors, prix moyen constaté). The `suggested_price_cents` returned by the supplier tools is a naive cost × 2.2 estimate — IGNORE IT for the operator-facing price.',
+    '4. **Unit economics check** — compute three pricing scenarios (aggressive / balanced / premium) with: retail TTC, shipping ~2€, cost, gross margin €. Then qualify each: CPA-cible (estimate from saturation), ROAS attendu, viability "FB Ads débutant" vs "branding requis".',
+    '5. **Bundle strategy** — if unit retail < 30€, propose a 2-unit and 3-unit bundle to lift AOV. State the expected AOV after bundles.',
+    '',
+    '- The operator paid Opus 4.7 to do the pricing work — never propose a retail price without having benchmarked it against the market. Never lazily round `cost × 2.2`.',
+    '- A healthy gross margin floor is ~12€ on the chosen retail (otherwise FB Ads débutant burns cash). Reject any combo that gives < 10€ margin.',
+    '- ALWAYS call `shortlist_niche` once the analysis above is complete. It is how the UI surfaces the "Lancer cette niche" button.',
+    '- When `shortlist_niche` is called, ALWAYS pass the winning candidate as `featured_product`. Set `suggested_price_cents` to YOUR balanced-scenario retail price (in cents) — not the naive supplier estimate. Set `pricing_rationale` to one short sentence explaining why this price (e.g. "Aligné Amazon FR 22-28€, marge 13€, sweet spot psychologique sous 25€").',
     '- No em-dashes (—). No three-beat triads. Write tight, concrete French. Numbers, ranges, names.',
     '',
     'Tool availability:',
@@ -604,6 +637,9 @@ function execShortlistNiche(raw: unknown): ToolExecutionResult {
           orders: input.featured_product.orders,
           rating: input.featured_product.rating ?? null,
           why_this_one: input.featured_product.why_this_one?.trim() || undefined,
+          pricing_rationale:
+            input.featured_product.pricing_rationale?.trim() || undefined,
+          expected_aov_eur: input.featured_product.expected_aov_eur,
         }
       : undefined,
   };
