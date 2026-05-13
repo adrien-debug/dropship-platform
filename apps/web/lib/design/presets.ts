@@ -150,7 +150,7 @@ export function getPreset(slug: string | null | undefined): DesignPreset {
   return DESIGN_PRESETS.find((p) => p.slug === slug) ?? DESIGN_PRESETS[0]!;
 }
 
-export function listPresetSlugs(): string[] {
+function listPresetSlugs(): string[] {
   return DESIGN_PRESETS.map((p) => p.slug);
 }
 

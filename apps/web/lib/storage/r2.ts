@@ -27,7 +27,7 @@ import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 let _client: S3Client | null = null;
 
 /** Cloudflare R2 S3-compatible endpoint, derived from the account ID. */
-export function r2Endpoint(): string {
+function r2Endpoint(): string {
   const account = process.env.R2_ACCOUNT_ID;
   if (!account) throw new Error('R2_ACCOUNT_ID is not set');
   return `https://${account}.r2.cloudflarestorage.com`;

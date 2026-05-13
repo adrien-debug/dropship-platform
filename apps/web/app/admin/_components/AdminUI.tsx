@@ -1,38 +1,25 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils/cn';
 
-// ── Accent : indigo ──────────────────────────────────────────────────────────
-// Trois fontes : zinc-900 (noir), zinc-500 (gris), zinc-400 (gris clair)
-// Couleurs sémantiques : accent indigo uniquement — pas d'amber/emerald/red
+// ── Design system ─────────────────────────────────────────────────────────────
+// Deux pôles : indigo (positif / actif) · zinc (neutre / inactif / erreur)
+// Trois fontes : zinc-900 (noir) · zinc-500 (gris) · zinc-400 (gris clair)
 
-export type Tone = 'neutral' | 'zinc' | 'amber' | 'emerald' | 'red' | 'blue';
+export type Tone = 'neutral' | 'emerald';
 
-// Toutes les tones convergent vers indigo ou zinc
 const dotTone: Record<Tone, string> = {
   neutral: 'bg-zinc-400',
-  zinc:    'bg-zinc-400',
-  amber:   'bg-indigo-500',
   emerald: 'bg-indigo-500',
-  red:     'bg-zinc-400',
-  blue:    'bg-indigo-500',
 };
 
 const labelTone: Record<Tone, string> = {
   neutral: 'text-zinc-500',
-  zinc:    'text-zinc-500',
-  amber:   'text-indigo-600',
   emerald: 'text-indigo-600',
-  red:     'text-zinc-500',
-  blue:    'text-indigo-600',
 };
 
 const valueTone: Record<Tone, string> = {
   neutral: 'text-zinc-900',
-  zinc:    'text-zinc-900',
-  amber:   'text-indigo-700',
   emerald: 'text-indigo-700',
-  red:     'text-zinc-900',
-  blue:    'text-indigo-700',
 };
 
 export function PageHeader({
@@ -120,7 +107,7 @@ export function SectionCard({
   );
 }
 
-export function IconButton({
+function IconButton({
   label,
   onClick,
   disabled,

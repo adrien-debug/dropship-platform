@@ -89,7 +89,7 @@ let cachedRepoRoot: string | null = null;
  * Walk up from `start` until a `.git` directory is found. Cached after the
  * first hit; tests reset it via `__internals.resetRepoRoot()`.
  */
-export async function resolveRepoRoot(start: string = process.cwd()): Promise<string> {
+async function resolveRepoRoot(start: string = process.cwd()): Promise<string> {
   if (cachedRepoRoot) return cachedRepoRoot;
   let dir = path.resolve(start);
   // Guard against `/` runaway.
@@ -175,11 +175,11 @@ async function safeResolvePath(
 
 // ── Shell safety ───────────────────────────────────────────────────────
 
-export function isBannedCommand(cmd: string): boolean {
+function isBannedCommand(cmd: string): boolean {
   return BANNED_PATTERNS.some((re) => re.test(cmd));
 }
 
-export function isWhitelistedCommand(cmd: string): boolean {
+function isWhitelistedCommand(cmd: string): boolean {
   // Split on the first chain operator and inspect each segment's first
   // non-whitespace token. Empty segments are skipped. Subshells, pipes and
   // redirects are accepted as long as each command root is whitelisted.

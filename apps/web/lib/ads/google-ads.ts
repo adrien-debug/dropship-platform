@@ -147,7 +147,7 @@ async function mutate(
   return json.results ?? [];
 }
 
-export function googleCampaignName(storeSlug: string, variantId: string): string {
+function googleCampaignName(storeSlug: string, variantId: string): string {
   return `${storeSlug}-${variantId.slice(0, 8)}`;
 }
 

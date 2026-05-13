@@ -505,7 +505,7 @@ export interface ResearchStreamEvent {
   data: unknown;
 }
 
-export interface FeaturedProduct {
+interface FeaturedProduct {
   supplier: 'aliexpress' | 'cj';
   supplier_product_id: string;
   title: string;
@@ -520,7 +520,7 @@ export interface FeaturedProduct {
   expected_aov_eur?: number;
 }
 
-export interface DesignProposal {
+interface DesignProposal {
   preset:
     | 'editorial-serif'
     | 'tech-mono'
@@ -532,7 +532,7 @@ export interface DesignProposal {
   rationale: string;
 }
 
-export interface ShortlistPayload {
+interface ShortlistPayload {
   niche: string;
   rationale: string;
   saturation?: number;

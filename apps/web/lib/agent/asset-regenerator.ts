@@ -280,7 +280,7 @@ async function applyAssetToStore(args: {
  * endpoint. Wraps the two UPDATEs in a single client transaction so a partial
  * failure can't leave the table with zero or two `is_current` rows.
  */
-export async function promoteRunAsCurrent(args: {
+async function promoteRunAsCurrent(args: {
   storeId: string;
   kind: AssetKind;
   runId: string;
