@@ -13,6 +13,8 @@ import { trackedMessage } from './anthropic';
 import { extractJson } from './json';
 import { falGenerateImage } from './fal-client';
 import { uploadToR2, isR2Configured } from '@/lib/storage/r2';
+import { pushMetaCampaign, isMetaAdsConfigured } from '@/lib/ads/meta-ads';
+import { pushTiktokCampaign, isTiktokAdsConfigured } from '@/lib/ads/tiktok-ads';
 
 const ADS_MODEL = 'claude-sonnet-4-6';
 
@@ -41,6 +43,18 @@ const EstimateBudgetInput = z.object({
   daily_budget_eur: z.number().positive().max(10_000),
   days: z.number().int().positive().max(90),
   channel: z.enum(['meta', 'tiktok', 'google']).optional(),
+});
+
+const PublishMetaInput = z.object({
+  variant_id: z.string().uuid(),
+  daily_budget_eur: z.number().positive().min(1).max(10_000),
+  days: z.number().int().positive().max(90),
+});
+
+const PublishTiktokInput = z.object({
+  variant_id: z.string().uuid(),
+  daily_budget_eur: z.number().positive().min(1).max(10_000),
+  days: z.number().int().positive().max(90),
 });
 
 const TOOLS: Anthropic.Messages.Tool[] = [
@@ -108,6 +122,34 @@ const TOOLS: Anthropic.Messages.Tool[] = [
         channel: { type: 'string', enum: ['meta', 'tiktok', 'google'] },
       },
       required: ['product_id', 'daily_budget_eur', 'days'],
+    },
+  },
+  {
+    name: 'publish_to_meta',
+    description:
+      "Publish an ad variant LIVE on Meta Marketing API (Facebook + Instagram). Creates a campaign, adset and ad on the configured ad account. The operator MUST confirm before calling this. Returns the Meta campaign ID and status (live / draft / error). Variant must have a hook, primary text, image URL and targeting. Daily budget in EUR.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        variant_id: { type: 'string', description: 'UUID of dropship_ad_variants. Must have headline, primary_text, image_url and targeting filled in.' },
+        daily_budget_eur: { type: 'number', description: 'Daily budget in euros (minimum 1, recommended 15-50 to learn).' },
+        days: { type: 'number', description: 'Number of days to run, 1-90.' },
+      },
+      required: ['variant_id', 'daily_budget_eur', 'days'],
+    },
+  },
+  {
+    name: 'publish_to_tiktok',
+    description:
+      "Publish an ad variant LIVE on TikTok Ads API. Creates a campaign, adgroup and ad on the configured advertiser account. The operator MUST confirm before calling this. Returns the TikTok campaign ID and status.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        variant_id: { type: 'string', description: 'UUID of dropship_ad_variants.' },
+        daily_budget_eur: { type: 'number', description: 'Daily budget in euros.' },
+        days: { type: 'number', description: 'Number of days to run.' },
+      },
+      required: ['variant_id', 'daily_budget_eur', 'days'],
     },
   },
 ];
@@ -271,12 +313,21 @@ function buildSystemPrompt(store: StoreContext): string {
   return [
     `You are a senior performance marketer embedded in the admin of "${store.name}" (niche: "${store.niche}").`,
     '',
-    'Your job is to help the operator iterate ad creatives via tools:',
+    'Your job is to help the operator iterate ad creatives AND launch live campaigns on Meta + TikTok. Tools:',
     '- list_variants / list_products: read state.',
     '- rewrite_hook: rewrite headline + body + CTA of a specific variant.',
     '- generate_visual: produce a 1:1 ad image via fal.ai (slow, ~30s).',
     '- suggest_targeting: derive age/gender/interests/placements for a product+channel.',
     '- estimate_budget: quick CPM-based forecast for a daily budget over N days.',
+    '- **publish_to_meta** : LIVE PUSH on Meta Marketing API (Facebook + Instagram). Creates real campaign + adset + ad spending real money. REQUIRES explicit confirmation from the operator before calling. Variant must have headline + primary_text + image_url + targeting filled in (run generate_visual + suggest_targeting first if missing).',
+    '- **publish_to_tiktok** : LIVE PUSH on TikTok Ads API. Same confirmation rules.',
+    '',
+    'Launch workflow (the operator paid for an agent that ships ads, not just brainstorms):',
+    '1. Identify the winning variant (list_variants).',
+    '2. Verify it has image_url (else generate_visual) AND targeting_json (else suggest_targeting).',
+    '3. Re-show the variant + the daily_budget_eur + days to the operator. Ask "OK pour pousser sur Meta à X €/j pendant N jours ?".',
+    '4. On explicit yes (mots clés "oui pousse", "lance", "go", "OK pousse") → call publish_to_meta / publish_to_tiktok.',
+    '5. Report the external campaign ID and a link to Ads Manager. Never silently publish.',
     '',
     'You are ONE mode of a multi-mode Copilote hub. NEVER tell the operator that a request is "outside your perimeter" or "needs a developer" without first checking if another mode of the hub can do it:',
     '- **Curation** : ajout/retrait/prix/copywriting des produits du store.',
@@ -675,6 +726,185 @@ async function execEstimateBudget(store: StoreContext, raw: unknown): Promise<To
   void store;
 }
 
+/**
+ * Load a variant + its product so we can build the publish payload for
+ * Meta / TikTok. Returns null if the variant is missing or doesn't belong
+ * to the store (defensive multi-tenant check).
+ */
+async function loadVariantForPush(
+  store: StoreContext,
+  variantId: string,
+): Promise<{
+  variant: {
+    id: string;
+    headline: string;
+    primary_text: string;
+    description: string | null;
+    cta: string | null;
+    image_url: string | null;
+    targeting_json: unknown;
+    product_id: string;
+  };
+  product: { id: string; handle: string };
+} | null> {
+  const db = getDb();
+  const { rows } = await db.query<{
+    id: string;
+    headline: string;
+    primary_text: string;
+    description: string | null;
+    cta: string | null;
+    image_url: string | null;
+    targeting_json: unknown;
+    product_id: string;
+    handle: string | null;
+  }>(
+    `SELECT v.id, v.headline, v.primary_text, v.description, v.cta,
+            v.image_url, v.targeting_json, v.product_id,
+            p.medusa_product_id AS handle
+       FROM dropship_ad_variants v
+       JOIN dropship_store_products p ON p.id = v.product_id
+       WHERE v.id = $1 AND p.store_id = $2 LIMIT 1`,
+    [variantId, store.id],
+  );
+  const r = rows[0];
+  if (!r) return null;
+  return {
+    variant: {
+      id: r.id,
+      headline: r.headline,
+      primary_text: r.primary_text,
+      description: r.description,
+      cta: r.cta,
+      image_url: r.image_url,
+      targeting_json: r.targeting_json,
+      product_id: r.product_id,
+    },
+    product: { id: r.product_id, handle: r.handle ?? '' },
+  };
+}
+
+function productPublicUrl(storeSlug: string, productHandle: string): string {
+  const origin = process.env.NEXT_PUBLIC_SITE_URL || 'https://dropship-platform-amber.vercel.app';
+  return `${origin}/shop/${storeSlug}/products/${productHandle}`;
+}
+
+async function execPublishMeta(
+  store: StoreContext,
+  raw: unknown,
+): Promise<ToolExecutionResult> {
+  const input = PublishMetaInput.parse(raw);
+
+  if (!isMetaAdsConfigured()) {
+    return {
+      output: { status: 'error', error: 'Meta Ads not configured (missing META_ADS_ACCESS_TOKEN or META_AD_ACCOUNT_ID).' },
+      summary: 'Publish Meta — configuration manquante',
+    };
+  }
+
+  const loaded = await loadVariantForPush(store, input.variant_id);
+  if (!loaded) {
+    return {
+      output: { status: 'error', error: `Variant ${input.variant_id} not found for store ${store.id}` },
+      summary: 'Publish Meta — variante introuvable',
+    };
+  }
+  if (!loaded.variant.image_url) {
+    return {
+      output: { status: 'error', error: 'Variant has no image_url. Run generate_visual first.' },
+      summary: 'Publish Meta — visuel manquant',
+    };
+  }
+
+  const targeting = isPlainObject(loaded.variant.targeting_json)
+    ? (loaded.variant.targeting_json as Parameters<typeof pushMetaCampaign>[0]['targeting'])
+    : undefined;
+
+  const result = await pushMetaCampaign({
+    storeId: store.id,
+    storeSlug: store.slug,
+    variantId: loaded.variant.id,
+    headline: loaded.variant.headline,
+    primaryText: loaded.variant.primary_text,
+    description: loaded.variant.description,
+    cta: loaded.variant.cta,
+    imageUrl: loaded.variant.image_url,
+    productUrl: productPublicUrl(store.slug, loaded.product.handle),
+    dailyBudgetEur: input.daily_budget_eur,
+    days: input.days,
+    targeting,
+  });
+
+  return {
+    output: {
+      status: result.status,
+      external_id: result.externalId,
+      campaign_db_id: result.campaignDbId,
+      error: result.error,
+    },
+    summary:
+      result.status === 'live'
+        ? `Meta ✓ Campagne LIVE (${result.externalId})`
+        : `Meta — ${result.status}${result.error ? ` : ${result.error}` : ''}`,
+  };
+}
+
+async function execPublishTiktok(
+  store: StoreContext,
+  raw: unknown,
+): Promise<ToolExecutionResult> {
+  const input = PublishTiktokInput.parse(raw);
+
+  if (!isTiktokAdsConfigured()) {
+    return {
+      output: { status: 'error', error: 'TikTok Ads not configured (missing TIKTOK_ACCESS_TOKEN or TIKTOK_ADVERTISER_ID).' },
+      summary: 'Publish TikTok — configuration manquante',
+    };
+  }
+
+  const loaded = await loadVariantForPush(store, input.variant_id);
+  if (!loaded) {
+    return {
+      output: { status: 'error', error: `Variant ${input.variant_id} not found for store ${store.id}` },
+      summary: 'Publish TikTok — variante introuvable',
+    };
+  }
+  if (!loaded.variant.image_url) {
+    return {
+      output: { status: 'error', error: 'Variant has no image_url. Run generate_visual first.' },
+      summary: 'Publish TikTok — visuel manquant',
+    };
+  }
+
+  const result = await pushTiktokCampaign({
+    storeId: store.id,
+    storeSlug: store.slug,
+    variantId: loaded.variant.id,
+    headline: loaded.variant.headline,
+    primaryText: loaded.variant.primary_text,
+    description: loaded.variant.description,
+    cta: loaded.variant.cta,
+    imageUrl: loaded.variant.image_url,
+    videoUrl: null,
+    productUrl: productPublicUrl(store.slug, loaded.product.handle),
+    dailyBudgetEur: input.daily_budget_eur,
+    days: input.days,
+  });
+
+  return {
+    output: {
+      status: result.status,
+      external_id: result.externalId,
+      campaign_db_id: result.campaignDbId,
+      error: result.error,
+    },
+    summary:
+      result.status === 'live'
+        ? `TikTok ✓ Campagne LIVE (${result.externalId})`
+        : `TikTok — ${result.status}${result.error ? ` : ${result.error}` : ''}`,
+  };
+}
+
 function buildVisualPrompt(headline: string, productTitle: string, niche: string): string {
   return `Square 1:1 ad creative for "${productTitle}" (${niche}). Bold hook overlay: "${headline}". Premium e-commerce product photography aesthetic, soft natural light, minimal background. No people unless necessary. High contrast, scroll-stopping.`;
 }
@@ -695,7 +925,9 @@ type ToolName =
   | 'rewrite_hook'
   | 'generate_visual'
   | 'suggest_targeting'
-  | 'estimate_budget';
+  | 'estimate_budget'
+  | 'publish_to_meta'
+  | 'publish_to_tiktok';
 
 async function executeTool(
   name: string,
@@ -715,6 +947,10 @@ async function executeTool(
       return execSuggestTargeting(store, input);
     case 'estimate_budget':
       return execEstimateBudget(store, input);
+    case 'publish_to_meta':
+      return execPublishMeta(store, input);
+    case 'publish_to_tiktok':
+      return execPublishTiktok(store, input);
     default:
       throw new Error(`Tool inconnu: ${name}`);
   }
