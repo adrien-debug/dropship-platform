@@ -88,6 +88,44 @@ const FeaturedProductInput = z.object({
   expected_aov_eur: z.number().min(0).max(10_000).optional(),
 });
 
+const AdsChannelInput = z.object({
+  name: z.enum(['meta', 'tiktok', 'google', 'pinterest']),
+  weight_pct: z.number().int().min(0).max(100),
+  expected_cpm_eur: z.number().min(0).max(200).optional(),
+  expected_cpc_eur: z.number().min(0).max(10).optional(),
+  expected_cpa_eur: z.number().min(0).max(200).optional(),
+  rationale: z.string().min(0).max(200).optional(),
+});
+
+const MediaPlanInput = z.object({
+  daily_budget_eur: z.number().min(0).max(5_000),
+  channels: z.array(AdsChannelInput).min(1).max(4),
+  geo: z.object({
+    primary_countries: z.array(z.string().length(2)).min(1).max(5),
+    emphasis: z.array(z.string().max(60)).max(8).optional(),
+    rationale: z.string().max(300).optional(),
+  }),
+  audience: z.object({
+    demographics: z.string().min(0).max(300),
+    interests: z.array(z.string().max(60)).max(12),
+    lookalike_seeds: z.array(z.string().max(80)).max(6).optional(),
+  }),
+  schedule: z.object({
+    best_hours_local: z.array(z.string().max(20)).max(6),
+    best_days: z.array(z.string().max(20)).max(7),
+    timezone: z.string().max(40).optional(),
+    rationale: z.string().max(300).optional(),
+  }),
+  expected_outcomes: z.object({
+    daily_orders_low: z.number().min(0).max(10_000),
+    daily_orders_high: z.number().min(0).max(10_000),
+    target_cpa_eur: z.number().min(0).max(200),
+    target_roas: z.number().min(0).max(20),
+    breakeven_note: z.string().max(300).optional(),
+  }),
+  top_hooks: z.array(z.string().max(160)).max(5).optional(),
+});
+
 const ShortlistNicheInput = z.object({
   niche: z.string().min(1).max(80),
   rationale: z.string().min(10).max(800),
@@ -99,6 +137,14 @@ const ShortlistNicheInput = z.object({
   // renders this image in the shortlist card so the operator can see
   // exactly what they are validating before clicking "Lancer cette niche".
   featured_product: FeaturedProductInput.optional(),
+  // Catalog & layout decisions Claude makes so the operator doesn't have
+  // to re-pick after the shortlist. Pre-fills the form below.
+  suggested_mode: z.enum(['mono', 'collection']).optional(),
+  suggested_template: z
+    .enum(['auto', 'mono', 'collection-grid', 'collection-editorial', 'luxury-minimal', 'gen-z-bold'])
+    .optional(),
+  // Full media plan — channel mix, geo, audience, dayparting, outcomes.
+  media_plan: MediaPlanInput.optional(),
 });
 
 // ── Anthropic tool surfaces ────────────────────────────────────────────
@@ -246,6 +292,114 @@ const TOOLS: Anthropic.Messages.Tool[] = [
             },
           },
           required: ['supplier', 'supplier_product_id', 'title', 'image_url', 'supplier_url', 'cost_cents', 'suggested_price_cents'],
+        },
+        suggested_mode: {
+          type: 'string',
+          enum: ['mono', 'collection'],
+          description:
+            'Catalog shape: "mono" for a single hero SKU long-form landing, "collection" for 3-6 curated pieces. Decide from the niche signal: editorial / story-driven → collection ; one breakout SKU → mono.',
+        },
+        suggested_template: {
+          type: 'string',
+          enum: ['auto', 'mono', 'collection-grid', 'collection-editorial', 'luxury-minimal', 'gen-z-bold'],
+          description:
+            'Storefront template. "mono" = long-form DTC landing. "collection-grid" = 4-col grid. "collection-editorial" = magazine layout. "luxury-minimal" = b&w typo-driven (premium serif feel). "gen-z-bold" = saturated brand color, oversized type, grain, marquee. Match to niche vibe.',
+        },
+        media_plan: {
+          type: 'object',
+          description:
+            'Full media plan the operator will use to launch ads. Required when supply + market + audience are clear. Anchored in current saturation (Meta library) + market benchmark.',
+          properties: {
+            daily_budget_eur: {
+              type: 'number',
+              description: 'Recommended starting daily total budget across all channels.',
+            },
+            channels: {
+              type: 'array',
+              description: 'Channel mix with budget weights summing to ~100%.',
+              items: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string', enum: ['meta', 'tiktok', 'google', 'pinterest'] },
+                  weight_pct: { type: 'number', description: 'Share of total budget (0-100).' },
+                  expected_cpm_eur: { type: 'number' },
+                  expected_cpc_eur: { type: 'number' },
+                  expected_cpa_eur: { type: 'number' },
+                  rationale: { type: 'string', description: 'One sentence: why this channel for this niche.' },
+                },
+                required: ['name', 'weight_pct'],
+              },
+            },
+            geo: {
+              type: 'object',
+              properties: {
+                primary_countries: {
+                  type: 'array',
+                  description: 'ISO-3166 2-letter country codes, ordered by priority.',
+                  items: { type: 'string' },
+                },
+                emphasis: {
+                  type: 'array',
+                  description: 'Cities / regions to over-index (e.g. "Paris", "Île-de-France", "Lyon").',
+                  items: { type: 'string' },
+                },
+                rationale: { type: 'string' },
+              },
+              required: ['primary_countries'],
+            },
+            audience: {
+              type: 'object',
+              properties: {
+                demographics: { type: 'string', description: 'e.g. "Femmes 28-45, parents enfants 0-6 ans, CSP+".' },
+                interests: {
+                  type: 'array',
+                  description: 'Meta-style interest keywords.',
+                  items: { type: 'string' },
+                },
+                lookalike_seeds: {
+                  type: 'array',
+                  description: 'Lookalike audience seed sources (e.g. "Veilleuse Magique", "Maisons du Monde").',
+                  items: { type: 'string' },
+                },
+              },
+              required: ['demographics', 'interests'],
+            },
+            schedule: {
+              type: 'object',
+              properties: {
+                best_hours_local: {
+                  type: 'array',
+                  description: 'e.g. ["20h-22h", "07h-09h"]',
+                  items: { type: 'string' },
+                },
+                best_days: {
+                  type: 'array',
+                  description: 'e.g. ["dimanche", "mercredi"]',
+                  items: { type: 'string' },
+                },
+                timezone: { type: 'string', description: 'IANA TZ, default Europe/Paris.' },
+                rationale: { type: 'string' },
+              },
+              required: ['best_hours_local', 'best_days'],
+            },
+            expected_outcomes: {
+              type: 'object',
+              properties: {
+                daily_orders_low: { type: 'number' },
+                daily_orders_high: { type: 'number' },
+                target_cpa_eur: { type: 'number' },
+                target_roas: { type: 'number', description: 'Target ROAS (revenue/spend).' },
+                breakeven_note: { type: 'string' },
+              },
+              required: ['daily_orders_low', 'daily_orders_high', 'target_cpa_eur', 'target_roas'],
+            },
+            top_hooks: {
+              type: 'array',
+              description: '3 short ad-hook ideas tailored to the audience.',
+              items: { type: 'string' },
+            },
+          },
+          required: ['daily_budget_eur', 'channels', 'geo', 'audience', 'schedule', 'expected_outcomes'],
         },
       },
       required: ['niche', 'rationale', 'suggested_store_name'],
@@ -536,10 +690,12 @@ function buildSystemPrompt(): string {
     '3. **Market price benchmark — NON OPTIONAL**. Call web_search OR ask_perplexity to find the real retail price the product sells for on the French market (Amazon FR, established DTC competitors, prix moyen constaté). The `suggested_price_cents` returned by the supplier tools is a naive cost × 2.2 estimate — IGNORE IT for the operator-facing price.',
     '4. **Unit economics check** — compute three pricing scenarios (aggressive / balanced / premium) with: retail TTC, shipping ~2€, cost, gross margin €. Then qualify each: CPA-cible (estimate from saturation), ROAS attendu, viability "FB Ads débutant" vs "branding requis".',
     '5. **Bundle strategy** — if unit retail < 30€, propose a 2-unit and 3-unit bundle to lift AOV. State the expected AOV after bundles.',
+    '6. **Storefront shape** — decide `suggested_mode` ("mono" for one hero SKU long-form, "collection" for 3-6 curated pieces) AND `suggested_template` (one of: mono / collection-grid / collection-editorial / luxury-minimal / gen-z-bold) based on the niche vibe. The operator should NOT have to re-pick.',
+    '7. **Media plan — DO NOT SKIP**. Produce a full `media_plan`: daily_budget_eur, channels (meta/tiktok/google/pinterest with weight_pct summing ~100, expected CPM/CPC/CPA per channel), geo (primary_countries + emphasis cities/régions + rationale), audience (demographics + interests + lookalike_seeds), schedule (best_hours_local + best_days + timezone Europe/Paris by default), expected_outcomes (daily_orders_low/high, target_cpa_eur, target_roas, breakeven_note), and 3 top_hooks. Anchor numbers in saturation + market benchmark. The operator wants to validate the full plan visually BEFORE creating the store.',
     '',
     '- The operator paid Opus 4.7 to do the pricing work — never propose a retail price without having benchmarked it against the market. Never lazily round `cost × 2.2`.',
     '- A healthy gross margin floor is ~12€ on the chosen retail (otherwise FB Ads débutant burns cash). Reject any combo that gives < 10€ margin.',
-    '- ALWAYS call `shortlist_niche` once the analysis above is complete. It is how the UI surfaces the "Lancer cette niche" button.',
+    '- ALWAYS call `shortlist_niche` once the analysis above is complete. It is how the UI surfaces the "Lancer cette niche" button. Treat it as a contract: the operator should not have to re-pick mode/template/budget/audience after seeing your card.',
     '- When `shortlist_niche` is called, ALWAYS pass the winning candidate as `featured_product`. Set `suggested_price_cents` to YOUR balanced-scenario retail price (in cents) — not the naive supplier estimate. Set `pricing_rationale` to one short sentence explaining why this price (e.g. "Aligné Amazon FR 22-28€, marge 13€, sweet spot psychologique sous 25€").',
     '- No em-dashes (—). No three-beat triads. Write tight, concrete French. Numbers, ranges, names.',
     '',
