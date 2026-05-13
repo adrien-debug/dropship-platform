@@ -381,14 +381,17 @@ export function NicheResearchCopilot({ onApplyShortlist }: Props) {
         </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px] items-stretch">
         {/* Chat column — viewport-relative height so the scroll area
             adapts to the screen instead of being clipped by the parent
-            overflow-hidden when the sidebar grows longer. */}
-        <div className="flex flex-col h-[calc(100dvh-260px)] min-h-[480px] max-h-[820px] border-r border-zinc-200/70">
+            overflow-hidden when the sidebar grows longer.
+            min-w-0 is critical: without it, long URLs / JSON blocks inside
+            <pre> elements force the grid track to grow past the viewport,
+            shoving the composer and the "Lancer cette niche" CTA off-screen. */}
+        <div className="flex flex-col min-w-0 h-[calc(100dvh-260px)] min-h-[480px] max-h-[820px] border-r border-zinc-200/70">
           <div
             ref={scrollRef}
-            className="flex-1 overflow-y-auto px-5 py-5 space-y-4 bg-zinc-50/40"
+            className="flex-1 overflow-y-auto overflow-x-hidden px-5 py-5 space-y-4 bg-zinc-50/40"
           >
             {messages.length === 0 && !streaming && (
               <div className="text-center text-sm text-zinc-500 mt-12 max-w-md mx-auto">
@@ -582,13 +585,13 @@ function ResearchToolCard({ message, onApplyShortlist }: ResearchToolCardProps) 
             <div className="mt-2 space-y-2">
               <div>
                 <div className="text-kicker uppercase tracking-cta text-zinc-400">input</div>
-                <pre className="mt-1 bg-zinc-50 rounded p-2 overflow-x-auto font-mono text-xs">
+                <pre className="mt-1 bg-zinc-50 rounded p-2 overflow-x-auto font-mono text-xs whitespace-pre-wrap break-all max-w-full">
                   {JSON.stringify(message.tool_input ?? {}, null, 2)}
                 </pre>
               </div>
               <div>
                 <div className="text-kicker uppercase tracking-cta text-zinc-400">output</div>
-                <pre className="mt-1 bg-zinc-50 rounded p-2 overflow-x-auto font-mono text-xs">
+                <pre className="mt-1 bg-zinc-50 rounded p-2 overflow-x-auto font-mono text-xs whitespace-pre-wrap break-all max-w-full">
                   {JSON.stringify(message.tool_output ?? {}, null, 2)}
                 </pre>
               </div>
@@ -617,7 +620,7 @@ function ShortlistCard({
       ? 'border-amber-200 bg-amber-50/40'
       : 'border-emerald-200 bg-emerald-50/40';
   return (
-    <div className={`rounded-xl border ${verdictTone} px-5 py-4 space-y-3`}>
+    <div className={`rounded-xl border ${verdictTone} px-5 py-4 space-y-3 min-w-0 max-w-full`}>
       <div className="flex items-baseline justify-between gap-3">
         <p className="text-kicker uppercase tracking-label text-zinc-500 font-medium">
           Recommandation IA
