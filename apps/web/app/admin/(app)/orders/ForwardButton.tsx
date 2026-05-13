@@ -4,6 +4,7 @@ import { apiFetch } from '@/lib/client-fetch';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 interface Props {
   orderId: string;
   alreadySent: boolean;
@@ -23,17 +24,9 @@ export function ForwardButton({ orderId, alreadySent }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState<'dry' | 'live' | null>(null);
   const [result, setResult] = useState<ForwardResponse | null>(null);
+  const [confirmLiveOpen, setConfirmLiveOpen] = useState(false);
 
   async function call(dryRun: boolean) {
-    if (!dryRun) {
-      const ok = window.confirm(
-        'Cette action passe une vraie commande chez AliExpress.\n\n' +
-          'AE crée la commande en statut « En attente de paiement ». ' +
-          'Tu devras ensuite te connecter sur aliexpress.com pour la payer.\n\n' +
-          'Continuer ?',
-      );
-      if (!ok) return;
-    }
     setBusy(dryRun ? 'dry' : 'live');
     setResult(null);
     try {
@@ -72,7 +65,7 @@ export function ForwardButton({ orderId, alreadySent }: Props) {
           {busy === 'dry' ? '…' : 'Dry-run'}
         </button>
         <button
-          onClick={() => call(false)}
+          onClick={() => setConfirmLiveOpen(true)}
           disabled={busy !== null || alreadySent}
           className="px-3 py-1.5 text-xs rounded-md bg-zinc-900 text-white hover:bg-zinc-800 disabled:bg-zinc-200 disabled:text-zinc-400 disabled:cursor-not-allowed transition-colors"
           title={alreadySent ? 'Déjà envoyée à AliExpress' : 'Place une vraie commande AE'}
@@ -80,6 +73,19 @@ export function ForwardButton({ orderId, alreadySent }: Props) {
           {busy === 'live' ? '…' : alreadySent ? 'Envoyée' : 'Envoyer à AE'}
         </button>
       </div>
+
+      <ConfirmDialog
+        open={confirmLiveOpen}
+        title="Passer une vraie commande AliExpress ?"
+        description={`AE crée la commande en statut « En attente de paiement ». Tu devras ensuite te connecter sur aliexpress.com pour la payer.\n\nCette action est irréversible.`}
+        confirmLabel="Envoyer à AE"
+        tone="destructive"
+        onConfirm={() => {
+          setConfirmLiveOpen(false);
+          call(false);
+        }}
+        onCancel={() => setConfirmLiveOpen(false)}
+      />
 
       {result && (
         <div

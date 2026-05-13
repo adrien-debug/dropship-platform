@@ -1,6 +1,7 @@
 'use client';
 
 import { apiFetch } from '@/lib/client-fetch';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 /**
  * Pre-creation niche research copilot.
@@ -25,6 +26,7 @@ import { apiFetch } from '@/lib/client-fetch';
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Trash2 } from 'lucide-react';
 interface SessionSummary {
   id: string;
   title: string | null;
@@ -141,6 +143,12 @@ interface CostSummary {
 
 interface Props {
   onApplyShortlist: (payload: ShortlistPayload) => void;
+  mode: 'mono' | 'collection';
+  onModeChange: (mode: 'mono' | 'collection') => void;
+  language: 'fr' | 'en';
+  onLanguageChange: (lang: 'fr' | 'en') => void;
+  skipVideo: boolean;
+  onSkipVideoChange: (skip: boolean) => void;
 }
 
 function fmtDate(iso: string) {
@@ -165,7 +173,15 @@ function fmtEur(n: number) {
   });
 }
 
-export function NicheResearchCopilot({ onApplyShortlist }: Props) {
+export function NicheResearchCopilot({
+  onApplyShortlist,
+  mode,
+  onModeChange,
+  language,
+  onLanguageChange,
+  skipVideo,
+  onSkipVideoChange,
+}: Props) {
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -176,6 +192,19 @@ export function NicheResearchCopilot({ onApplyShortlist }: Props) {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  const stop = useCallback(() => {
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
+    }
+    setStreaming(false);
+    // Marquer le dernier message assistant comme arrêté pour qu'il sorte du "thinking"
+    setMessages((prev) =>
+      prev.map((m) => (m.streaming ? { ...m, streaming: false } : m)),
+    );
+  }, []);
 
   // Stick to bottom whenever messages or streaming flag change.
   useEffect(() => {
@@ -235,6 +264,22 @@ export function NicheResearchCopilot({ onApplyShortlist }: Props) {
     }
   }, [refreshSessions]);
 
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+
+  const deleteSession = useCallback(async (id: string) => {
+    try {
+      const res = await apiFetch(`/api/agent/research/sessions/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      // Si on supprime la session active, on reset le chat
+      setSessionId((prev) => (prev === id ? null : prev));
+      setMessages((prev) => (sessionId === id ? [] : prev));
+      setCost((prev) => (sessionId === id ? { input_tokens: 0, output_tokens: 0, cost_eur: 0 } : prev));
+      await refreshSessions();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erreur suppression session');
+    }
+  }, [refreshSessions, sessionId]);
+
   // ── Send a chat turn ────────────────────────────────────────────────
   const sendMessage = useCallback(
     async (text: string) => {
@@ -266,11 +311,14 @@ export function NicheResearchCopilot({ onApplyShortlist }: Props) {
       ]);
 
       let currentSessionId = sessionId;
+      const controller = new AbortController();
+      abortRef.current = controller;
       try {
         const res = await apiFetch('/api/agent/research', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sessionId: currentSessionId ?? undefined, message: text }),
+          signal: controller.signal,
         });
         if (!res.ok || !res.body) {
           const errBody = await res.text();
@@ -366,8 +414,12 @@ export function NicheResearchCopilot({ onApplyShortlist }: Props) {
           }
         }
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Erreur SSE');
+        // Abort = utilisateur a cliqué Stop, pas une erreur à afficher
+        if (!(e instanceof DOMException && e.name === 'AbortError')) {
+          setError(e instanceof Error ? e.message : 'Erreur SSE');
+        }
       } finally {
+        abortRef.current = null;
         setStreaming(false);
         await refreshSessions();
         // Refresh cost preview after the turn settles.
@@ -402,7 +454,8 @@ export function NicheResearchCopilot({ onApplyShortlist }: Props) {
 
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      // Entrée → envoyer · Shift+Entrée → nouvelle ligne
+      if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         onSubmit();
       }
@@ -424,47 +477,57 @@ export function NicheResearchCopilot({ onApplyShortlist }: Props) {
   const messageCount = useMemo(() => messages.length, [messages]);
 
   return (
-    <section className="border border-zinc-200 bg-white rounded-xl overflow-hidden">
-      <header className="px-6 py-4 border-b border-zinc-200 flex items-center justify-between gap-4">
-        <div>
-          <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">
-            Pré-création · Recherche IA
-          </p>
-          <h2 className="mt-1 text-lg font-semibold tracking-tight text-zinc-900">
-            <em className="italic">Copilote</em> de niches.
+    <section className="border border-zinc-200 bg-white rounded-xl overflow-hidden flex flex-col flex-1 min-h-0">
+      <header className="px-4 py-2 border-b border-zinc-200 flex items-center justify-between gap-3 shrink-0">
+        <div className="flex items-baseline gap-3 min-w-0">
+          <h2 className="text-sm font-semibold tracking-tight text-zinc-900 shrink-0">
+            Copilote <em className="italic text-zinc-400">de niches</em>
           </h2>
+          {messageCount > 0 && (
+            <span className="text-[11px] text-zinc-400 truncate">
+              {messageCount} msg · {sessionId?.slice(0, 8)}
+            </span>
+          )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 shrink-0">
           <select
             value={sessionId ?? ''}
             onChange={(e) => loadSession(e.target.value || null)}
-            className="text-sm border border-zinc-200 rounded-lg px-2 py-1 bg-white max-w-[240px]"
+            className="text-xs border border-zinc-200 rounded-lg px-2 py-1 bg-white max-w-[200px]"
           >
             <option value="">Nouvelle session</option>
             {sessions.map((s) => (
               <option key={s.id} value={s.id}>
-                {fmtDate(s.updated_at)} · {s.preview?.slice(0, 40) ?? '—'}
+                {fmtDate(s.updated_at)} · {s.preview?.slice(0, 30) ?? '—'}
               </option>
             ))}
           </select>
+          {sessionId && (
+            <button
+              type="button"
+              onClick={() => setDeleteTargetId(sessionId)}
+              title="Supprimer cette session"
+              aria-label="Supprimer cette session"
+              className="inline-flex items-center justify-center w-7 h-7 rounded-lg border border-zinc-200 text-zinc-400 hover:text-zinc-900 hover:border-zinc-300 hover:bg-zinc-50 transition-colors"
+            >
+              <Trash2 size={13} strokeWidth={1.75} aria-hidden />
+            </button>
+          )}
           <button
             type="button"
             onClick={startNewSession}
-            className="text-sm px-3 py-1 rounded-lg border border-zinc-200 text-zinc-600 hover:bg-zinc-50"
+            title="Nouvelle session"
+            aria-label="Nouvelle session"
+            className="text-xs px-2.5 py-1 rounded-lg border border-zinc-200 text-zinc-500 hover:bg-zinc-50"
           >
-            Nouvelle
+            +
           </button>
         </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px] items-stretch">
-        {/* Chat column — viewport-relative height so the scroll area
-            adapts to the screen instead of being clipped by the parent
-            overflow-hidden when the sidebar grows longer.
-            min-w-0 is critical: without it, long URLs / JSON blocks inside
-            <pre> elements force the grid track to grow past the viewport,
-            shoving the composer and the "Lancer cette niche" CTA off-screen. */}
-        <div className="flex flex-col min-w-0 h-[calc(100dvh-260px)] min-h-[480px] max-h-[820px] border-r border-zinc-200/70">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_260px] items-stretch flex-1 min-h-0">
+        {/* Chat column — fills the available height from parent flex-1 */}
+        <div className="flex flex-col min-w-0 min-h-0 border-r border-zinc-200/70">
           <div
             ref={scrollRef}
             className="flex-1 overflow-y-auto overflow-x-hidden px-5 py-5 space-y-4 bg-zinc-50/40"
@@ -483,7 +546,7 @@ export function NicheResearchCopilot({ onApplyShortlist }: Props) {
               if (m.role === 'user') {
                 return (
                   <div key={m.id} className="flex justify-end">
-                    <div className="max-w-[78%] bg-zinc-900 text-white rounded-2xl rounded-tr-md px-4 py-2.5 text-sm whitespace-pre-wrap">
+                    <div className="max-w-[78%] bg-indigo-600 text-white rounded-2xl rounded-tr-md px-4 py-2.5 text-sm whitespace-pre-wrap">
                       {m.content}
                     </div>
                   </div>
@@ -518,79 +581,157 @@ export function NicheResearchCopilot({ onApplyShortlist }: Props) {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={onKeyDown}
-                placeholder="Demande quelque chose… (Cmd+Enter pour envoyer)"
+                placeholder="Demande quelque chose… (Entrée pour envoyer · Shift+Entrée pour saut de ligne)"
                 rows={2}
                 disabled={streaming}
-                className="flex-1 resize-none text-sm border border-zinc-200 rounded-lg px-3 py-2 focus:outline-none focus:border-zinc-400 disabled:opacity-50"
+                className="flex-1 resize-none text-sm bg-white text-zinc-900 placeholder:text-zinc-400 border border-zinc-200 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50 transition-colors"
               />
+              {streaming ? (
+                <button
+                  type="button"
+                  onClick={stop}
+                  className="text-sm px-4 py-2 rounded-lg bg-zinc-900 text-white hover:bg-zinc-800 shrink-0 transition-colors inline-flex items-center gap-1.5"
+                >
+                  <span className="w-2 h-2 rounded-sm bg-white" aria-hidden />
+                  Stop
+                </button>
+              ) : (
               <button
                 type="submit"
-                disabled={streaming || !input.trim()}
-                className="text-sm px-4 py-2 rounded-lg bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                disabled={!input.trim()}
+                className="text-sm px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed shrink-0 transition-colors"
               >
-                {streaming ? 'Envoi…' : 'Envoyer'}
+                Envoyer
               </button>
+              )}
             </div>
           </form>
         </div>
 
-        {/* Right context column — scrolls internally when content is taller
-            than the chat column it stretches against. */}
-        <aside className="px-5 py-5 space-y-5 bg-zinc-50/30 overflow-y-auto">
+        {/* Right context column */}
+        <aside className="px-4 py-4 space-y-4 bg-zinc-50/30 overflow-y-auto text-xs">
+          {/* Sélecteurs rapides */}
           <div>
-            <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium mb-2">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-400 font-semibold mb-2">
+              Format
+            </p>
+            <div className="grid grid-cols-2 gap-1.5">
+              <button
+                type="button"
+                onClick={() => onModeChange('mono')}
+                className={`px-2 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                  mode === 'mono'
+                    ? 'bg-indigo-600 text-white border-indigo-600'
+                    : 'bg-white text-zinc-500 border-zinc-200 hover:bg-indigo-50'
+                }`}
+              >
+                Mono
+              </button>
+              <button
+                type="button"
+                onClick={() => onModeChange('collection')}
+                className={`px-2 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                  mode === 'collection'
+                    ? 'bg-indigo-600 text-white border-indigo-600'
+                    : 'bg-white text-zinc-500 border-zinc-200 hover:bg-indigo-50'
+                }`}
+              >
+                Collection
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-400 font-semibold mb-2">
+              Langue
+            </p>
+            <div className="grid grid-cols-2 gap-1.5">
+              <button
+                type="button"
+                onClick={() => onLanguageChange('fr')}
+                className={`px-2 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                  language === 'fr'
+                    ? 'bg-indigo-600 text-white border-indigo-600'
+                    : 'bg-white text-zinc-500 border-zinc-200 hover:bg-indigo-50'
+                }`}
+              >
+                FR
+              </button>
+              <button
+                type="button"
+                onClick={() => onLanguageChange('en')}
+                className={`px-2 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                  language === 'en'
+                    ? 'bg-indigo-600 text-white border-indigo-600'
+                    : 'bg-white text-zinc-500 border-zinc-200 hover:bg-indigo-50'
+                }`}
+              >
+                EN
+              </button>
+            </div>
+          </div>
+
+          {mode === 'mono' && (
+            <div>
+              <label className="flex items-center justify-between gap-2 cursor-pointer">
+                <span className="text-[10px] uppercase tracking-[0.18em] text-zinc-400 font-semibold">
+                  Vidéo promo
+                </span>
+                <input
+                  type="checkbox"
+                  checked={!skipVideo}
+                  onChange={(e) => onSkipVideoChange(!e.target.checked)}
+                  className="accent-indigo-600 w-3.5 h-3.5"
+                />
+              </label>
+            </div>
+          )}
+
+          {/* Comment ça marche */}
+          <div className="border-t border-zinc-200 pt-3">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-400 font-semibold mb-2">
               Comment ça marche
             </p>
-            <ul className="text-xs text-zinc-600 space-y-2 leading-relaxed">
-              <li>
-                <span className="font-medium text-zinc-800">Recherche web</span> via Tavily &
-                Perplexity pour les tendances, l&apos;AOV et les concurrents.
-              </li>
-              <li>
-                <span className="font-medium text-zinc-800">Meta Ads Library</span> pour scorer la
-                saturation publicitaire (0-100) et lister les angles.
-              </li>
-              <li>
-                <span className="font-medium text-zinc-800">AliExpress & CJ</span> pour vérifier
-                que la supply existe et que la marge tient.
-              </li>
+            <ul className="text-[11px] text-zinc-500 space-y-1.5 leading-snug">
+              <li><span className="font-medium text-zinc-900">Recherche web</span> · Tavily + Perplexity</li>
+              <li><span className="font-medium text-zinc-900">Meta Ads</span> · saturation 0-100 + angles</li>
+              <li><span className="font-medium text-zinc-900">AliExpress + CJ</span> · supply + marge</li>
             </ul>
           </div>
 
-          <div className="border-t border-zinc-200 pt-4">
-            <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium mb-2">
-              Coût de la session
+          {/* Coût session */}
+          <div className="border-t border-zinc-200 pt-3">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-400 font-semibold mb-2">
+              Coût session
             </p>
-            <div className="text-sm text-zinc-700 space-y-1 tabular-nums">
+            <div className="space-y-1 tabular-nums text-[11px]">
               <div className="flex justify-between">
-                <span className="text-zinc-500">Tokens (in / out)</span>
-                <span className="text-zinc-800">
+                <span className="text-zinc-500">Tokens i/o</span>
+                <span className="text-zinc-900">
                   {cost.input_tokens.toLocaleString('fr-FR')} / {cost.output_tokens.toLocaleString('fr-FR')}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-zinc-500">Estimation</span>
-                <span className="font-medium text-zinc-900">{fmtEur(cost.cost_eur)}</span>
+                <span className="font-semibold text-zinc-900">{fmtEur(cost.cost_eur)}</span>
               </div>
             </div>
           </div>
-
-          <div className="border-t border-zinc-200 pt-4 text-xs text-zinc-500 leading-relaxed">
-            <p className="font-medium text-zinc-700 mb-1">Astuce</p>
-            <p>
-              Lorsque l&apos;IA propose une niche, clique sur <em>« Lancer cette niche »</em> pour
-              pré-remplir le formulaire ci-dessous. Tu pourras ensuite ajuster avant de lancer la
-              création.
-            </p>
-          </div>
-
-          {messageCount > 0 && (
-            <div className="border-t border-zinc-200 pt-4 text-xs text-zinc-400">
-              {messageCount} message{messageCount > 1 ? 's' : ''} · session {sessionId?.slice(0, 8)}
-            </div>
-          )}
         </aside>
       </div>
+      <ConfirmDialog
+        open={deleteTargetId !== null}
+        title="Supprimer cette session ?"
+        description="L'historique de recherche sera définitivement perdu."
+        confirmLabel="Supprimer"
+        tone="destructive"
+        onConfirm={() => {
+          const id = deleteTargetId;
+          setDeleteTargetId(null);
+          if (id) deleteSession(id);
+        }}
+        onCancel={() => setDeleteTargetId(null)}
+      />
     </section>
   );
 }
@@ -815,21 +956,23 @@ function ShortlistCard({
         />
       )}
 
-      <button
-        type="button"
-        onClick={() =>
-          onApply({
-            ...payload,
-            // Carry the picker's choice to the parent. If the agent
-            // didn't propose any design we just send the payload as-is
-            // — the store-creator will fall back to its default preset.
-            design_proposals: selectedDesign ? [selectedDesign] : payload.design_proposals,
-          })
-        }
-        className="w-full bg-zinc-900 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-zinc-800 transition-colors shadow-cta"
-      >
-        Lancer cette niche →
-      </button>
+      <div className="sticky bottom-0 -mx-5 -mb-4 px-5 pt-3 pb-4 bg-gradient-to-t from-white via-white to-white/0 backdrop-blur-sm">
+        <button
+          type="button"
+          onClick={() =>
+            onApply({
+              ...payload,
+              // Carry the picker's choice to the parent. If the agent
+              // didn't propose any design we just send the payload as-is
+              // — the store-creator will fall back to its default preset.
+              design_proposals: selectedDesign ? [selectedDesign] : payload.design_proposals,
+            })
+          }
+          className="w-full bg-zinc-900 text-white py-3 rounded-lg text-sm font-medium hover:bg-zinc-800 transition-colors shadow-cta"
+        >
+          Lancer cette niche →
+        </button>
+      </div>
     </div>
   );
 }

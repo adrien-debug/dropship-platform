@@ -2,8 +2,9 @@
 
 import { apiFetch } from '@/lib/client-fetch';
 
-import { useState, useTransition } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { useUnsavedChanges } from '@/lib/use-unsaved-changes';
 interface InitialValues {
   ga4MeasurementId: string;
   ga4ApiSecret: string;
@@ -36,6 +37,11 @@ export function StoreAnalyticsForm({ storeId, initial }: Props) {
   const [pending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<{ type: 'ok' | 'err'; msg: string } | null>(null);
   const router = useRouter();
+  const dirty = useMemo(
+    () => (Object.keys(values) as (keyof InitialValues)[]).some((k) => values[k] !== initial[k]),
+    [values, initial],
+  );
+  useUnsavedChanges(dirty && !pending);
 
   const set = (k: keyof InitialValues) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setValues((v) => ({ ...v, [k]: e.target.value }));
@@ -170,6 +176,11 @@ export function StoreAnalyticsForm({ storeId, initial }: Props) {
           <span className={`text-sm ${feedback.type === 'ok' ? 'text-indigo-600' : 'text-zinc-500'}`}>
             {feedback.msg}
           </span>
+        ) : dirty ? (
+          <span className="inline-flex items-center gap-1.5 text-xs text-amber-600">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+            Non sauvegardé
+          </span>
         ) : (
           <span className="text-xs text-zinc-400">
             Champ vide → la valeur est effacée. Champ inchangé → conservé.
@@ -178,8 +189,8 @@ export function StoreAnalyticsForm({ storeId, initial }: Props) {
         <button
           type="button"
           onClick={submit}
-          disabled={pending}
-          className="bg-indigo-600 text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-60"
+          disabled={pending || !dirty}
+          className="bg-indigo-600 text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {pending ? 'Enregistrement…' : 'Enregistrer'}
         </button>

@@ -97,7 +97,7 @@ function buildAppMenu(): Menu {
         {
           label: 'Open Observability',
           accelerator: 'Cmd+Shift+O',
-          click: () => openWindow({ kind: 'observability' }),
+          click: () => openWindow({ kind: 'marketing' }),
         },
         {
           label: 'Open Orders',
@@ -171,7 +171,7 @@ function buildAppMenu(): Menu {
 function registerShortcuts(): void {
   globalShortcut.register('Cmd+Shift+D', () => openWindow({ kind: 'dashboard' }));
   globalShortcut.register('Cmd+Shift+N', () => openWindow({ kind: 'new-store' }));
-  globalShortcut.register('Cmd+Shift+O', () => openWindow({ kind: 'observability' }));
+  globalShortcut.register('Cmd+Shift+O', () => openWindow({ kind: 'marketing' }));
 }
 
 function wireIpc(): void {
@@ -183,7 +183,7 @@ function wireIpc(): void {
       const validKinds = new Set([
         'dashboard',
         'new-store',
-        'observability',
+        'marketing',
         'orders',
         'store-detail',
       ]);

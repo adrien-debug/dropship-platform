@@ -13,7 +13,7 @@ import { urlForPath } from './config';
 export type WindowKind =
   | 'dashboard'
   | 'new-store'
-  | 'observability'
+  | 'marketing'
   | 'orders'
   | 'store-detail';
 
@@ -39,8 +39,8 @@ function pathForKind(kind: WindowKind, storeId?: string): string {
       return '/admin';
     case 'new-store':
       return '/admin/stores/new';
-    case 'observability':
-      return '/admin/observability';
+    case 'marketing':
+      return '/admin/marketing';
     case 'orders':
       return '/admin/orders';
     case 'store-detail': {
@@ -63,7 +63,7 @@ function titleForKind(kind: WindowKind, storeId?: string): string {
       return 'Hearst Dropship — Dashboard';
     case 'new-store':
       return 'Hearst Dropship — New store';
-    case 'observability':
+    case 'marketing':
       return 'Hearst Dropship — Observability';
     case 'orders':
       return 'Hearst Dropship — Orders';

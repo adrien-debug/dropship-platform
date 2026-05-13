@@ -85,7 +85,7 @@ function buildMenu(): Menu {
     {
       label: 'Observability',
       accelerator: 'Cmd+Shift+O',
-      click: () => openWindow({ kind: 'observability' }),
+      click: () => openWindow({ kind: 'marketing' }),
     },
     { type: 'separator' },
     {

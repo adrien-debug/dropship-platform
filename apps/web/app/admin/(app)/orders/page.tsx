@@ -123,7 +123,7 @@ export default async function OrdersPage() {
               ? `Total : ${formatMoney(awaitingTotal, awaitingCurrency)}`
               : 'Aucune en attente'
           }
-          tone={stats.awaitingPayment > 0 ? 'amber' : 'neutral'}
+          tone={stats.awaitingPayment > 0 ? 'emerald' : 'neutral'}
         />
         <StatCard
           label="Payées chez AE"
@@ -133,7 +133,7 @@ export default async function OrdersPage() {
         <StatCard
           label="Erreurs forward"
           value={String(stats.errors)}
-          tone={stats.errors > 0 ? 'red' : 'neutral'}
+          tone="neutral"
         />
       </section>
 
@@ -203,7 +203,7 @@ export default async function OrdersPage() {
                         </a>
                       </td>
                       <td className={`px-3 py-1.5 text-[11px] ${stale ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                        <StatusPill tone={stale ? 'red' : 'amber'}>il y a {ageLabel}</StatusPill>
+                        <StatusPill tone={stale ? 'neutral' : 'neutral'}>il y a {ageLabel}</StatusPill>
                         {stale && <div className="mt-0.5 text-[10px] font-medium text-zinc-500">proche annulation</div>}
                       </td>
                       <td className="px-3 py-1.5 text-right">
@@ -277,7 +277,7 @@ export default async function OrdersPage() {
                         {formatMoney(order.total, order.currency_code)}
                       </td>
                       <td className="px-3 py-1.5">
-                        <StatusPill tone={paymentOk ? 'emerald' : 'zinc'}>
+                        <StatusPill tone={paymentOk ? 'emerald' : 'neutral'}>
                           {order.payment_status ?? order.status ?? '—'}
                         </StatusPill>
                       </td>
@@ -285,7 +285,7 @@ export default async function OrdersPage() {
                         {forward ? (
                           forward.status === 'sent' && forward.ae_order_id ? (
                             <div className="flex flex-col gap-0.5">
-                              <StatusPill tone={forward.paid_at ? 'emerald' : 'amber'}>
+                              <StatusPill tone={forward.paid_at ? 'emerald' : 'neutral'}>
                                 {forward.paid_at ? 'payée' : 'à payer'}
                               </StatusPill>
                               <a
@@ -298,10 +298,10 @@ export default async function OrdersPage() {
                               </a>
                             </div>
                           ) : forward.status === 'dry_run' ? (
-                            <StatusPill tone="blue">dry-run prêt</StatusPill>
+                            <StatusPill tone="emerald">dry-run prêt</StatusPill>
                           ) : (
                             <div className="flex flex-col gap-0.5 max-w-[200px]">
-                              <StatusPill tone="red">erreur</StatusPill>
+                              <StatusPill tone="neutral">erreur</StatusPill>
                               {forward.error_message && (
                                 <span className="text-[10px] text-zinc-400 line-clamp-2" title={forward.error_message}>
                                   {forward.error_message}

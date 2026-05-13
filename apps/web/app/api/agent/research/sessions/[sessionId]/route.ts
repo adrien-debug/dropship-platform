@@ -1,7 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDbRead } from '@/lib/db';
+import { getDb, getDbRead } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
+
+/**
+ * DELETE /api/agent/research/sessions/:sessionId
+ * Supprime une session et toute son historique (cascade SQL).
+ */
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ sessionId: string }> },
+) {
+  const { sessionId } = await params;
+  const db = getDb();
+  const res = await db.query(
+    `DELETE FROM dropship_research_sessions WHERE id = $1`,
+    [sessionId],
+  );
+  if (res.rowCount === 0) {
+    return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+  }
+  return NextResponse.json({ ok: true });
+}
 
 /**
  * GET /api/agent/research/sessions/:sessionId

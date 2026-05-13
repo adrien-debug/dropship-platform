@@ -4,6 +4,7 @@ import { apiFetch } from '@/lib/client-fetch';
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { useUnsavedChanges } from '@/lib/use-unsaved-changes';
 export function StoreCustomDomainForm({
   storeId,
   initial,
@@ -18,6 +19,7 @@ export function StoreCustomDomainForm({
   const [error, setError] = useState<string | null>(null);
 
   const dirty = value.trim() !== initial.trim();
+  useUnsavedChanges(dirty && !pending);
 
   const submit = () => {
     setError(null);
@@ -88,6 +90,12 @@ export function StoreCustomDomainForm({
           >
             {pending ? 'Enregistrement…' : 'Enregistrer'}
           </button>
+          {dirty && !pending && (
+            <span className="inline-flex items-center gap-1.5 text-xs text-amber-600">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+              Non sauvegardé
+            </span>
+          )}
           {saved && !dirty && (
             <span className="text-xs text-indigo-600">Enregistré.</span>
           )}

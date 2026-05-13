@@ -5,13 +5,24 @@
  * `fetch('/api/x')` throws synchronously when the page was opened via a URL
  * like `http://admin:pwd@host/...` (a habit when bypassing local basic auth).
  *
- * Using `window.location.origin` here is intentional: the origin never
- * contains the userinfo component, even if `window.location.href` does.
+ * When credentials are present in the href, they are forwarded as an
+ * Authorization header so the browser doesn't silently drop them.
  */
 export function apiFetch(path: string, init?: RequestInit): Promise<Response> {
-  const base = typeof window !== 'undefined' ? window.location.origin : '';
-  // `path` is expected to start with `/`. If a caller passes an absolute URL
-  // we let it through unchanged.
+  if (typeof window === 'undefined') return fetch(path, init);
+
+  const href = window.location.href;
+  const base = window.location.origin;
   const url = /^https?:\/\//.test(path) ? path : `${base}${path}`;
+
+  // Extract user:pass from the current URL if present.
+  const credMatch = href.match(/^https?:\/\/([^:@/]+):([^@/]+)@/);
+  if (credMatch) {
+    const encoded = btoa(`${credMatch[1]}:${credMatch[2]}`);
+    const headers = new Headers(init?.headers);
+    headers.set('Authorization', `Basic ${encoded}`);
+    return fetch(url, { ...init, headers });
+  }
+
   return fetch(url, init);
 }

@@ -86,6 +86,7 @@ vi.mock('./research-copilot', () => ({
     executeTool: researchExec,
   },
   buildTemporalContext: () => '=== Temporal context (test) ===\nToday: test\n=== End temporal context ===',
+  RESEARCH_MODEL: 'claude-opus-4-7',
 }));
 
 vi.mock('./curation-copilot', () => ({

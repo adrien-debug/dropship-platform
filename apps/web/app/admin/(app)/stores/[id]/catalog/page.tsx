@@ -126,7 +126,7 @@ export default async function StoreCatalogPage({ params }: { params: Promise<{ i
                   const marginPct = p.cost_cents > 0
                     ? Math.round(((p.price_cents - p.cost_cents) / p.cost_cents) * 100)
                     : 0;
-                  const supplierTone: 'neutral' | 'blue' = p.supplier === 'ai-generated' ? 'neutral' : 'blue';
+                  const supplierTone: 'neutral' | 'emerald' = p.supplier === 'ai-generated' ? 'neutral' : 'emerald';
                   return (
                     <tr key={p.id} className="border-b border-zinc-200 last:border-0 hover:bg-zinc-50/60">
                       <td className="px-5 py-3 align-middle">

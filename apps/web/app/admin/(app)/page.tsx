@@ -228,7 +228,7 @@ export default async function PortfolioDashboard() {
             {topStores.map((s) => (
               <Link
                 key={s.slug}
-                href={`/admin/stores`}
+                href={`/admin/stores/${s.slug}`}
                 className="flex items-center gap-3 -mx-2 px-2 py-1.5 rounded-md hover:bg-zinc-100 transition-colors"
               >
                 <span className="text-indigo-600 inline-flex"><StoreLogo emoji={s.logo_emoji} size={20} /></span>

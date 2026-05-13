@@ -86,7 +86,7 @@ export default async function CatalogPage() {
                       <code className="text-xs text-zinc-400 font-mono">{p.handle}</code>
                     </td>
                     <td className="px-5 py-3">
-                      <StatusPill tone={p.status === 'published' ? 'emerald' : 'zinc'}>
+                      <StatusPill tone={p.status === 'published' ? 'emerald' : 'neutral'}>
                         {p.status}
                       </StatusPill>
                     </td>

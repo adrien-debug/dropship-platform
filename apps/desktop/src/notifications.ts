@@ -107,7 +107,7 @@ function showAnomalyNotification(newAlerts: AnomalyAlert[]): void {
     urgency: 'critical',
   });
   notification.on('click', () => {
-    openWindow({ kind: 'observability' });
+    openWindow({ kind: 'marketing' });
   });
   notification.show();
 }

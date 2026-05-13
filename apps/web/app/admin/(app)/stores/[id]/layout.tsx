@@ -3,17 +3,9 @@ import Link from 'next/link';
 import { getDbRead } from '@/lib/db';
 import { StoreLogo } from '@/components/ui';
 import { StoreTabs } from './StoreTabs';
-import { StoreLayoutClient } from './StoreLayoutClient';
 
 export const dynamic = 'force-dynamic';
 
-/**
- * Shared layout for the entire `/admin/stores/[id]/*` area.
- *
- * Activates the store copilot in the persistent chat panel so the chat
- * stays visible and stable across all store tabs (overview, catalog,
- * copilot, analytics, settings).
- */
 export default async function StoreLayout({
   children,
   params,
@@ -31,27 +23,24 @@ export default async function StoreLayout({
   if (!store) notFound();
 
   return (
-    <StoreLayoutClient storeId={id} storeSlug={store.slug} storeName={store.name}>
-      <div className="flex flex-col flex-1 min-h-0 gap-3">
-        <div className="flex items-center gap-2 text-sm shrink-0">
-          <Link href="/admin/stores" className="text-zinc-400 hover:text-zinc-900 transition-colors">
-            ← Stores
-          </Link>
-          <span className="text-zinc-300">/</span>
-          <span className="text-zinc-500 inline-flex"><StoreLogo emoji={store.logo_emoji} size={16} /></span>
-          <span className="font-medium text-zinc-900 truncate">{store.name}</span>
-          {store.status !== 'active' && (
-            <span className="text-xs px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full font-medium">
-              {store.status}
-            </span>
-          )}
-        </div>
-
-        <StoreTabs storeId={id} storeSlug={store.slug} />
-
-        <div className="flex-1 min-h-0 flex flex-col">{children}</div>
+    <div className="flex flex-col flex-1 min-h-0 gap-3">
+      <div className="flex items-center gap-2 text-sm shrink-0">
+        <Link href="/admin/stores" className="text-zinc-400 hover:text-zinc-900 transition-colors">
+          ← Stores
+        </Link>
+        <span className="text-zinc-300">/</span>
+        <span className="text-zinc-500 inline-flex"><StoreLogo emoji={store.logo_emoji} size={16} /></span>
+        <span className="font-medium text-zinc-900 truncate">{store.name}</span>
+        {store.status !== 'active' && (
+          <span className="text-xs px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full font-medium">
+            {store.status}
+          </span>
+        )}
       </div>
-    </StoreLayoutClient>
+
+      <StoreTabs storeId={id} storeSlug={store.slug} />
+
+      <div className="flex-1 min-h-0 flex flex-col">{children}</div>
+    </div>
   );
 }
-

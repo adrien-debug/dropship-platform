@@ -37,7 +37,7 @@ function pickStoreCover(s: StoreRow): string | null {
 
 function statusOf(s: StoreRow): { tone: Tone; label: string } {
   if (s.status === 'active') return { tone: 'emerald', label: 'En ligne' };
-  if (s.status === 'creating') return { tone: 'amber', label: 'Création en cours' };
+  if (s.status === 'creating') return { tone: 'neutral', label: 'Création en cours' };
   return { tone: 'neutral', label: 'Erreur' };
 }
 
@@ -99,7 +99,7 @@ export default async function StoresPage({
 
       <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <StatCard label="En ligne" value={String(active.length)} tone={active.length > 0 ? 'emerald' : 'neutral'} />
-        <StatCard label="En création" value={String(creating.length)} tone={creating.length > 0 ? 'amber' : 'neutral'} />
+        <StatCard label="En création" value={String(creating.length)} tone="neutral" />
         <StatCard label="En erreur" value={String(failed.length)} tone="neutral" />
         <StatCard label="Produits publiés" value={String(totalProducts)} hint="Cumul stores actifs" />
       </section>

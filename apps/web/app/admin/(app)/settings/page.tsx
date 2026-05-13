@@ -22,7 +22,7 @@ export default async function SettingsPage() {
   const expiresAt = aliExpires?.value ? new Date(parseInt(aliExpires.value)) : null;
   const isExpired = expiresAt ? Date.now() > expiresAt.getTime() : false;
 
-  const aliTone: Tone = isConnected && !isExpired ? 'emerald' : isConnected ? 'amber' : 'red';
+  const aliTone: Tone = isConnected && !isExpired ? 'emerald' : 'neutral';
   const aliLabel = isConnected && !isExpired ? 'Connecté' : isConnected ? 'Token expiré' : 'Non connecté';
 
   return (
@@ -99,7 +99,7 @@ export default async function SettingsPage() {
         <ProviderCard
           name="CJ Dropshipping API"
           meta="Email: adriennejkovic@gmail.com"
-          tone="amber"
+          tone="neutral"
           statusLabel="API Key manquante"
         >
           <p className="text-sm text-zinc-500 leading-relaxed">
