@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack --port 3063",
+    "dev": "next dev --turbopack --port 4302",
     "build": "next build",
     "start": "next start --hostname 0.0.0.0",
     "lint": "npm run typecheck && eslint .",
