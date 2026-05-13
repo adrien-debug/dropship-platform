@@ -1,8 +1,9 @@
 'use client';
 
+import { apiFetch } from '@/lib/client-fetch';
+
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-
 interface InitialValues {
   ga4MeasurementId: string;
   ga4ApiSecret: string;
@@ -43,7 +44,7 @@ export function StoreAnalyticsForm({ storeId, initial }: Props) {
     setFeedback(null);
     startTransition(async () => {
       try {
-        const res = await fetch(`/api/agent/stores/${storeId}`, {
+        const res = await apiFetch(`/api/agent/stores/${storeId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ analytics: values }),

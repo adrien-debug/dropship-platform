@@ -1,5 +1,7 @@
 'use client';
 
+import { apiFetch } from '@/lib/client-fetch';
+
 import { useState, useRef, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -155,7 +157,7 @@ function NewStoreForm() {
     startTimeRef.current = Date.now();
 
     try {
-      const res = await fetch('/api/agent/create-store', {
+      const res = await apiFetch('/api/agent/create-store', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ niche, storeName, mode, maxProducts, language, skipVideo }),
@@ -220,7 +222,7 @@ function NewStoreForm() {
     setValidationError(null);
     setValidation(null);
     try {
-      const res = await fetch('/api/agent/niches/validate', {
+      const res = await apiFetch('/api/agent/niches/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ niche: term, country: 'FR' }),

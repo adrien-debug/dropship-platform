@@ -1,8 +1,9 @@
 'use client';
 
+import { apiFetch } from '@/lib/client-fetch';
+
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-
 interface BatchResult {
   scanned: number;
   processed: number;
@@ -20,7 +21,7 @@ export function DryRunPendingButton() {
     setResult(null);
     setError(null);
     try {
-      const res = await fetch('/api/agent/orders/dry-run-pending', { method: 'POST' });
+      const res = await apiFetch('/api/agent/orders/dry-run-pending', { method: 'POST' });
       if (!res.ok) {
         setError(`HTTP ${res.status}`);
         return;

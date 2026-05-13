@@ -1,9 +1,10 @@
 'use client';
 
+import { apiFetch } from '@/lib/client-fetch';
+
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { firePixels } from '@/lib/analytics/pixel-client';
-
 interface Props {
   variantId: string;
   storeSlug?: string;
@@ -42,7 +43,7 @@ export function AddToCartButton({
     setError(null);
     startTransition(async () => {
       try {
-        const res = await fetch('/api/cart/add', {
+        const res = await apiFetch('/api/cart/add', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ variantId, quantity: qty, ...(storeSlug ? { slug: storeSlug } : {}) }),

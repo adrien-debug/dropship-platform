@@ -1,8 +1,9 @@
 'use client';
 
+import { apiFetch } from '@/lib/client-fetch';
+
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-
 interface Props {
   orderId: string;
 }
@@ -25,7 +26,7 @@ export function MarkPaidButton({ orderId }: Props) {
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch(`/api/agent/orders/${orderId}/mark-paid`, { method: 'POST' });
+      const res = await apiFetch(`/api/agent/orders/${orderId}/mark-paid`, { method: 'POST' });
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
         setError(data.error || `HTTP ${res.status}`);

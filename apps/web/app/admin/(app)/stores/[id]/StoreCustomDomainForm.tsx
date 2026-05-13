@@ -1,8 +1,9 @@
 'use client';
 
+import { apiFetch } from '@/lib/client-fetch';
+
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-
 export function StoreCustomDomainForm({
   storeId,
   initial,
@@ -23,7 +24,7 @@ export function StoreCustomDomainForm({
     setSaved(false);
     startTransition(async () => {
       try {
-        const res = await fetch(`/api/agent/stores/${storeId}`, {
+        const res = await apiFetch(`/api/agent/stores/${storeId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ customDomain: value.trim() }),

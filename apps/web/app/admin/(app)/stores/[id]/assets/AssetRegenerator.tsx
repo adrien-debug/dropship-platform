@@ -1,5 +1,7 @@
 'use client';
 
+import { apiFetch } from '@/lib/client-fetch';
+
 /**
  * Client component rendering one asset section (current preview, regen panel,
  * history strip). One instance per asset kind on the page. The SSE log lines
@@ -9,7 +11,6 @@
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import type { AssetKind } from '@/lib/agent/asset-regenerator';
-
 interface RunLite {
   id: string;
   prompt: string | null;
@@ -134,7 +135,7 @@ export function AssetRegenerator({
     setLogs([]);
 
     try {
-      const res = await fetch(`/api/agent/stores/${storeId}/assets/regenerate`, {
+      const res = await apiFetch(`/api/agent/stores/${storeId}/assets/regenerate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ kind, customPrompt: prompt.trim() || undefined }),
@@ -180,7 +181,7 @@ export function AssetRegenerator({
     setError(null);
     startSetTransition(async () => {
       try {
-        const res = await fetch(`/api/agent/stores/${storeId}/assets`, {
+        const res = await apiFetch(`/api/agent/stores/${storeId}/assets`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ runId, kind }),

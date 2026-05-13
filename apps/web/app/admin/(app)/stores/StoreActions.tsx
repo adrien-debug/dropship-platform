@@ -11,7 +11,11 @@ export function StoreActions({ storeId, storeName }: { storeId: string; storeNam
   const handleDelete = async () => {
     if (!confirm(`Supprimer le store « ${storeName} » et tous ses produits Medusa ?`)) return;
     setDeleting(true);
-    await fetch(`/api/agent/stores/${storeId}`, { method: 'DELETE' });
+    // Build the URL via window.location.origin so the request never inherits
+    // basic-auth credentials embedded in the current URL — the Fetch spec
+    // refuses to construct a Request from a URL that contains user:pass@.
+    const base = typeof window !== 'undefined' ? window.location.origin : '';
+    await fetch(`${base}/api/agent/stores/${storeId}`, { method: 'DELETE' });
     router.refresh();
   };
 

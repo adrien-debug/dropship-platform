@@ -1,8 +1,9 @@
 'use client';
 
+import { apiFetch } from '@/lib/client-fetch';
+
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-
 interface Props {
   orderId: string;
   alreadySent: boolean;
@@ -36,7 +37,7 @@ export function ForwardButton({ orderId, alreadySent }: Props) {
     setBusy(dryRun ? 'dry' : 'live');
     setResult(null);
     try {
-      const res = await fetch(`/api/agent/orders/${orderId}/forward`, {
+      const res = await apiFetch(`/api/agent/orders/${orderId}/forward`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

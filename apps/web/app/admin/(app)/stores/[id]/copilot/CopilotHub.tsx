@@ -1,5 +1,7 @@
 'use client';
 
+import { apiFetch } from '@/lib/client-fetch';
+
 /**
  * CopilotHub — client side of the per-store Copilote hub.
  *
@@ -185,7 +187,7 @@ export function CopilotHub({
 
   const refreshSessions = useCallback(async () => {
     try {
-      const res = await fetch(`/api/agent/stores/${storeId}/copilot/sessions`, { cache: 'no-store' });
+      const res = await apiFetch(`/api/agent/stores/${storeId}/copilot/sessions`, { cache: 'no-store' });
       if (res.ok) {
         const data = (await res.json()) as { sessions: SessionSummary[] };
         setSessions(data.sessions);
@@ -201,7 +203,7 @@ export function CopilotHub({
       return;
     }
     try {
-      const res = await fetch(`/api/agent/stores/${storeId}/copilot/sessions/${id}`, { cache: 'no-store' });
+      const res = await apiFetch(`/api/agent/stores/${storeId}/copilot/sessions/${id}`, { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = (await res.json()) as { messages: ChatMessage[] };
       setMessages(data.messages);
@@ -212,7 +214,7 @@ export function CopilotHub({
 
   const startNewSession = useCallback(async () => {
     try {
-      const res = await fetch(`/api/agent/stores/${storeId}/copilot/sessions`, {
+      const res = await apiFetch(`/api/agent/stores/${storeId}/copilot/sessions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mode }),
@@ -257,7 +259,7 @@ export function CopilotHub({
 
     let currentSessionId = sessionId;
     try {
-      const res = await fetch(`/api/agent/stores/${storeId}/copilot`, {
+      const res = await apiFetch(`/api/agent/stores/${storeId}/copilot`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

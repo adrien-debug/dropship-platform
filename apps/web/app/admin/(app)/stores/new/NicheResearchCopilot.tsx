@@ -1,5 +1,7 @@
 'use client';
 
+import { apiFetch } from '@/lib/client-fetch';
+
 /**
  * Pre-creation niche research copilot.
  *
@@ -23,7 +25,6 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-
 interface SessionSummary {
   id: string;
   title: string | null;
@@ -109,7 +110,7 @@ export function NicheResearchCopilot({ onApplyShortlist }: Props) {
   // ── Session loaders ─────────────────────────────────────────────────
   const refreshSessions = useCallback(async () => {
     try {
-      const res = await fetch('/api/agent/research/sessions', { cache: 'no-store' });
+      const res = await apiFetch('/api/agent/research/sessions', { cache: 'no-store' });
       if (!res.ok) return;
       const data = (await res.json()) as { sessions: SessionSummary[] };
       setSessions(data.sessions);
@@ -127,7 +128,7 @@ export function NicheResearchCopilot({ onApplyShortlist }: Props) {
       return;
     }
     try {
-      const res = await fetch(`/api/agent/research/sessions/${id}`, { cache: 'no-store' });
+      const res = await apiFetch(`/api/agent/research/sessions/${id}`, { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = (await res.json()) as {
         messages: ChatMessage[];
@@ -146,7 +147,7 @@ export function NicheResearchCopilot({ onApplyShortlist }: Props) {
 
   const startNewSession = useCallback(async () => {
     try {
-      const res = await fetch('/api/agent/research/sessions', { method: 'POST' });
+      const res = await apiFetch('/api/agent/research/sessions', { method: 'POST' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = (await res.json()) as { id: string };
       setSessionId(data.id);
@@ -190,7 +191,7 @@ export function NicheResearchCopilot({ onApplyShortlist }: Props) {
 
       let currentSessionId = sessionId;
       try {
-        const res = await fetch('/api/agent/research', {
+        const res = await apiFetch('/api/agent/research', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sessionId: currentSessionId ?? undefined, message: text }),
@@ -296,7 +297,7 @@ export function NicheResearchCopilot({ onApplyShortlist }: Props) {
         // Refresh cost preview after the turn settles.
         if (currentSessionId) {
           try {
-            const r = await fetch(`/api/agent/research/sessions/${currentSessionId}`, {
+            const r = await apiFetch(`/api/agent/research/sessions/${currentSessionId}`, {
               cache: 'no-store',
             });
             if (r.ok) {
