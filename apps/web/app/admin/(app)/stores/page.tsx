@@ -90,7 +90,7 @@ function EmptyState() {
   return (
     <div className="border border-dashed border-zinc-200 rounded-2xl px-6 py-20 text-center bg-white">
       <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">Premier pas</p>
-      <h3 className="mt-2 text-2xl font-serif text-zinc-900">
+      <h3 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-900">
         Lance ton <em className="italic text-zinc-500">premier store</em>.
       </h3>
       <p className="mt-3 text-sm text-zinc-500 max-w-md mx-auto leading-relaxed">
@@ -146,7 +146,7 @@ function StoreCard({ store }: { store: StoreRow }) {
 
       <div className="p-4 flex-1 flex flex-col">
         {store.tagline && (
-          <p className="text-sm font-serif italic text-zinc-500 mb-3 line-clamp-1">
+          <p className="text-sm text-zinc-500 mb-3 line-clamp-1">
             &laquo;&nbsp;{store.tagline}&nbsp;&raquo;
           </p>
         )}

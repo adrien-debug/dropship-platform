@@ -18,7 +18,7 @@ const SIZE: Record<NonNullable<Props['size']>, string> = {
 export function NumberMark({ value, color, size = 'lg' }: Props) {
   return (
     <div
-      className={`font-serif leading-none ${SIZE[size]}`}
+      className={`font-semibold leading-none ${SIZE[size]}`}
       style={color ? { color } : undefined}
     >
       {value}

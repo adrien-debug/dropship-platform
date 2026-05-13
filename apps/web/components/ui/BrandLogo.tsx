@@ -28,7 +28,7 @@ const SIZE = {
  * being prescriptive.
  *
  * Use it wherever the store identity appears (header, footer, transactional
- * email header). Do NOT inline an ad-hoc `<span className="font-serif">{name}</span>`
+ * email header). Do NOT inline an ad-hoc `<span className="font-semibold">{name}</span>`
  * for branding — go through this component so swapping the platform-wide
  * mark is a single-file change.
  */
@@ -76,7 +76,7 @@ export function BrandLogo({
       )}
       <span
         className={cn(
-          'font-serif leading-none [letter-spacing:-0.02em]',
+          'font-semibold leading-none [letter-spacing:-0.02em]',
           cfg.text,
         )}
       >

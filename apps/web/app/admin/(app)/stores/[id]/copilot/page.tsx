@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getDbRead } from '@/lib/db';
+import { StoreLogo } from '@/components/ui';
 import { CopilotHub } from './CopilotHub';
 import type { CopilotMode } from '@/lib/agent/copilot-router';
 
@@ -105,8 +106,8 @@ export default async function CopilotHubPage({
       <header className="flex items-end justify-between gap-4">
         <div>
           <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">Copilote hub</p>
-          <h1 className="mt-1 text-3xl font-serif text-zinc-900 leading-tight">
-            <span className="mr-2">{store.logo_emoji || '🛍️'}</span>
+          <h1 className="mt-1 text-3xl font-semibold tracking-tight text-zinc-900 leading-tight inline-flex items-center gap-3">
+            <StoreLogo emoji={store.logo_emoji} size={28} strokeWidth={1.5} />
             {store.name}
           </h1>
           <p className="mt-2 text-sm text-zinc-500">

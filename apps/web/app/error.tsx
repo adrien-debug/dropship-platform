@@ -21,7 +21,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
         <p className="text-kicker uppercase tracking-kicker text-zinc-400 font-medium mb-5">
           Erreur
         </p>
-        <h1 className="font-serif text-4xl sm:text-5xl leading-[1.05] tracking-tight mb-5">
+        <h1 className="font-semibold tracking-tight text-4xl sm:text-5xl leading-[1.05] tracking-tight mb-5">
           On vient de manquer une marche.
         </h1>
         <p className="text-base text-zinc-600 leading-relaxed mb-10">

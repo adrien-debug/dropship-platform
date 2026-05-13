@@ -1,21 +1,26 @@
 import type { Metadata } from 'next';
-import { Fraunces, Inter } from 'next/font/google';
+import localFont from 'next/font/local';
 import './globals.css';
 
 /**
- * Typography stack — set once, used everywhere. Fraunces (variable serif)
- * for editorial display headings, Inter for body. Self-hosted via next/font
- * so there's zero CLS and no external network call.
+ * Typography stack — Satoshi Variable everywhere. Self-hosted via next/font
+ * so there's zero CLS and no external network call. The variable axis spans
+ * weights 300–900; we drive the hierarchy through weight + size, not via a
+ * separate display font.
  */
-const fraunces = Fraunces({
-  subsets: ['latin'],
-  variable: '--font-display',
-  display: 'swap',
-  axes: ['SOFT'],
-});
-
-const inter = Inter({
-  subsets: ['latin'],
+const satoshi = localFont({
+  src: [
+    {
+      path: '../public/fonts/Satoshi-Variable.woff2',
+      weight: '300 900',
+      style: 'normal',
+    },
+    {
+      path: '../public/fonts/Satoshi-VariableItalic.woff2',
+      weight: '300 900',
+      style: 'italic',
+    },
+  ],
   variable: '--font-sans',
   display: 'swap',
 });
@@ -33,7 +38,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" className={`${fraunces.variable} ${inter.variable}`}>
+    <html lang="fr" className={satoshi.variable}>
       <body className="min-h-screen antialiased bg-white text-zinc-900 font-sans">
         {children}
       </body>

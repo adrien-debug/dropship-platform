@@ -16,7 +16,7 @@ export default async function CartPage() {
     return (
       <StoreShell store={store}>
         <div className="max-w-3xl mx-auto px-6 py-24 text-center">
-          <h1 className="font-serif text-4xl sm:text-5xl mb-6 text-zinc-900">Votre panier est vide</h1>
+          <h1 className="font-semibold tracking-tight text-4xl sm:text-5xl mb-6 text-zinc-900">Votre panier est vide</h1>
           <Link
             href={boutiqueHref}
             className="inline-block text-base underline underline-offset-4 hover:no-underline text-zinc-700"
@@ -31,7 +31,7 @@ export default async function CartPage() {
   return (
     <StoreShell store={store}>
       <section className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-12 py-14 sm:py-20">
-        <h1 className="font-serif text-4xl sm:text-5xl mb-12 text-zinc-900">Panier</h1>
+        <h1 className="font-semibold tracking-tight text-4xl sm:text-5xl mb-12 text-zinc-900">Panier</h1>
         <div className="border border-zinc-200 rounded-2xl overflow-hidden">
           <div className="overflow-x-auto">
           <table className="w-full min-w-[600px]">
@@ -83,7 +83,7 @@ export default async function CartPage() {
 function Row({ label, value, bold = false }: { label: string; value: string; bold?: boolean }) {
   return (
     <div
-      className={`flex justify-between ${bold ? 'font-serif text-2xl text-zinc-900 border-t border-zinc-200 pt-4 mt-2' : 'text-zinc-600'}`}
+      className={`flex justify-between ${bold ? 'font-semibold tracking-tight text-2xl text-zinc-900 border-t border-zinc-200 pt-4 mt-2' : 'text-zinc-600'}`}
     >
       <span>{label}</span>
       <span className={bold ? '' : 'text-zinc-900 font-medium'}>{value}</span>

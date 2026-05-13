@@ -11,7 +11,7 @@ export default function NotFound() {
         <p className="text-kicker uppercase tracking-kicker text-zinc-400 font-medium mb-5">
           404
         </p>
-        <h1 className="font-serif text-4xl sm:text-5xl leading-[1.05] tracking-tight mb-5">
+        <h1 className="font-semibold tracking-tight text-4xl sm:text-5xl leading-[1.05] tracking-tight mb-5">
           Cette page n’existe pas.
         </h1>
         <p className="text-base text-zinc-600 leading-relaxed mb-10">

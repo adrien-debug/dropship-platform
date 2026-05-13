@@ -1,33 +1,12 @@
 /**
- * Conversational curation copilot — per-store chat agent.
+ * Curation copilot tool library — used by copilot-router.ts (Curation mode).
  *
- * The store-creator pipeline freezes the catalog at creation time. This module
- * lets the operator say "add 3 yoga blocks", "replace product #2 with a
- * premium alternative", "raise margins on the cheap ones" — without leaving
- * the admin. It exposes Anthropic tool_use blocks (not free-text JSON) so
- * Claude's arguments are typed and we never parse prose.
+ * Tool surface: add/remove/reprice/rewrite products in a store's catalog.
+ * Tools validate their inputs with Zod so Claude's arguments are always typed.
  *
- * Lifecycle of a single turn:
- *
- *   1. Load history from dropship_curation_messages (ordered ASC).
- *   2. Append the new `user` row.
- *   3. Loop:
- *      - Call Sonnet with tools enabled.
- *      - If stop_reason === 'end_turn' → persist assistant text, yield `done`.
- *      - If stop_reason === 'tool_use' → for each ToolUseBlock:
- *            * validate input with Zod (Claude can hallucinate fields)
- *            * execute the tool against the real backend
- *            * append a `tool` row with tool_input + tool_output
- *            * feed a tool_result block back to Claude
- *      - Loop again.
- *   4. Hard cap on tool-call loops (`MAX_TOOL_LOOPS`) prevents infinite tool
- *      calls if Claude misbehaves.
- *
- * Cost / safety:
- *   - Wrapped in `runContext.run({ storeId })` so every trackedMessage lands
- *     in `dropship_ai_runs` attributed to this store.
- *   - System prompt constrains Claude to ≤3 product additions per turn
- *     without confirmation and one clarifying question max.
+ * History is stored in `dropship_curation_messages` (legacy table shared with
+ * the old standalone curation routes). The turn loop and session persistence
+ * now live in copilot-router.ts, which writes to `dropship_copilot_messages`.
  */
 
 import type Anthropic from '@anthropic-ai/sdk';

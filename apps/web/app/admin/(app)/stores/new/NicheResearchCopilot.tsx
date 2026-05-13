@@ -353,7 +353,7 @@ export function NicheResearchCopilot({ onApplyShortlist }: Props) {
           <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">
             Pré-création · Recherche IA
           </p>
-          <h2 className="mt-1 text-lg font-serif text-zinc-900">
+          <h2 className="mt-1 text-lg font-semibold tracking-tight text-zinc-900">
             <em className="italic">Copilote</em> de niches.
           </h2>
         </div>
@@ -625,7 +625,7 @@ function ShortlistCard({
           <span className="text-xs text-zinc-500">Saturation {sat}/100</span>
         )}
       </div>
-      <h3 className="font-serif text-xl text-zinc-900">
+      <h3 className="font-semibold tracking-tight text-xl text-zinc-900">
         <em className="italic">{payload.niche}</em>
       </h3>
       <p className="text-sm text-zinc-700 leading-relaxed whitespace-pre-wrap">

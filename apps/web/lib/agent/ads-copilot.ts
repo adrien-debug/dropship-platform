@@ -2,9 +2,8 @@
  * Ads copilot tool library — used by copilot-router.ts (Ads mode).
  *
  * Tool surface: list variants, rewrite hook, generate visual (fal.ai),
- * suggest targeting, estimate budget. History is persisted into the legacy
- * `dropship_curation_messages` table when invoked via the old routes; new
- * sessions go through copilot-router which writes to `dropship_copilot_messages`.
+ * suggest targeting, estimate budget.
+ * The turn loop and session persistence live in copilot-router.ts.
  */
 
 import type Anthropic from '@anthropic-ai/sdk';

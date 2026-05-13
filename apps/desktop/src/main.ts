@@ -53,13 +53,14 @@ function installAuthHeader(): void {
     return;
   }
 
-  const url = new URL(origin);
-  const filter = {
-    urls: [`${url.protocol}//${url.host}/*`, `${url.protocol}//${url.host}/`],
-  };
-
-  session.defaultSession.webRequest.onBeforeSendHeaders(filter, (details, callback) => {
-    details.requestHeaders.Authorization = basicAuthHeader;
+  // No URL filter: Electron's pattern filter is applied before the URL is
+  // fully resolved for main-frame navigations and can miss the first request.
+  // We filter manually inside the callback so the header is only injected on
+  // requests that target our own origin.
+  session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
+    if (details.url.startsWith(origin)) {
+      details.requestHeaders.Authorization = basicAuthHeader;
+    }
     callback({ requestHeaders: details.requestHeaders });
   });
 }

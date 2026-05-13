@@ -3,6 +3,19 @@
 import { useState, useRef, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import {
+  Home,
+  Smartphone,
+  Sparkles,
+  PawPrint,
+  HeartPulse,
+  Dumbbell,
+  Baby,
+  Gamepad2,
+  Leaf,
+  Plane,
+  type LucideIcon,
+} from 'lucide-react';
 import { PageHeader, StatCard, StatusPill, type Tone } from '../../../_components/AdminUI';
 import { NicheResearchCopilot, type ShortlistPayload } from './NicheResearchCopilot';
 
@@ -35,17 +48,23 @@ interface LogLine {
   ts: string;
 }
 
-const NICHE_PRESETS = [
-  { label: '🏠 Home decor', value: 'home decor' },
-  { label: '📱 Phone accessories', value: 'phone accessories' },
-  { label: '🧘 Yoga & bien-être', value: 'yoga wellness' },
-  { label: '🐾 Animaux', value: 'pet accessories' },
-  { label: '💄 Beauté', value: 'beauty skincare' },
-  { label: '🏋️ Fitness', value: 'fitness equipment' },
-  { label: '👶 Bébé', value: 'baby products' },
-  { label: '🎮 Gaming', value: 'gaming accessories' },
-  { label: '🌿 Jardinage', value: 'garden outdoor' },
-  { label: '✈️ Voyage', value: 'travel accessories' },
+interface NichePreset {
+  Icon: LucideIcon;
+  label: string;
+  value: string;
+}
+
+const NICHE_PRESETS: NichePreset[] = [
+  { Icon: Home,       label: 'Home decor',         value: 'home decor' },
+  { Icon: Smartphone, label: 'Phone accessories',  value: 'phone accessories' },
+  { Icon: Sparkles,   label: 'Yoga & bien-être',   value: 'yoga wellness' },
+  { Icon: PawPrint,   label: 'Animaux',            value: 'pet accessories' },
+  { Icon: HeartPulse, label: 'Beauté',             value: 'beauty skincare' },
+  { Icon: Dumbbell,   label: 'Fitness',            value: 'fitness equipment' },
+  { Icon: Baby,       label: 'Bébé',               value: 'baby products' },
+  { Icon: Gamepad2,   label: 'Gaming',             value: 'gaming accessories' },
+  { Icon: Leaf,       label: 'Jardinage',          value: 'garden outdoor' },
+  { Icon: Plane,      label: 'Voyage',             value: 'travel accessories' },
 ];
 
 function FieldLabel({
@@ -286,17 +305,19 @@ function NewStoreForm() {
           <div className="flex flex-wrap gap-1.5 mb-3">
             {NICHE_PRESETS.map((p) => {
               const active = niche === p.value;
+              const Icon = p.Icon;
               return (
                 <button
                   key={p.value}
                   type="button"
                   onClick={() => setNiche(p.value)}
-                  className={`px-3 py-1.5 rounded-full text-xs border transition-colors ${
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs border transition-colors ${
                     active
                       ? 'bg-zinc-900 text-white border-zinc-900'
                       : 'border-zinc-200 text-zinc-600 hover:border-zinc-400 hover:text-zinc-900'
                   }`}
                 >
+                  <Icon size={13} strokeWidth={1.75} aria-hidden />
                   {p.label}
                 </button>
               );
@@ -426,7 +447,7 @@ function NewStoreForm() {
           <p className="text-kicker uppercase tracking-label text-emerald-600 font-medium">
             Store en ligne
           </p>
-          <h2 className="text-3xl font-serif text-zinc-900">
+          <h2 className="text-3xl font-semibold tracking-tight text-zinc-900">
             <em className="italic">{result.storeName}</em> est prêt.
           </h2>
           <p className="text-sm text-zinc-500 max-w-md mx-auto">
@@ -544,7 +565,7 @@ function RunStatus({
           </p>
         </div>
         <div className="text-right shrink-0 tabular-nums">
-          <div className="font-serif text-2xl text-zinc-900">{progress}%</div>
+          <div className="font-semibold tracking-tight text-2xl text-zinc-900">{progress}%</div>
           <div className="text-kicker text-zinc-400">{elapsed}s écoulées</div>
         </div>
       </div>
@@ -650,7 +671,7 @@ function NicheValidationPanel({ result }: { result: NicheValidationResult }) {
           <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">
             Validation niche · {sourceLabel}
           </p>
-          <h3 className="mt-1 text-base font-serif text-zinc-900">
+          <h3 className="mt-1 text-base font-semibold tracking-tight text-zinc-900">
             <em className="italic">{verdictLabel}</em>
           </h3>
         </div>

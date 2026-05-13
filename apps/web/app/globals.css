@@ -2,6 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Satoshi Variable — global typographic baseline.
+ *
+ * We deliberately DO NOT set `font-variation-settings: 'wght' XXX` here:
+ * once set, it overrides `font-weight` everywhere downstream, so utility
+ * classes like `font-bold` (700) silently become 400. Letting font-weight
+ * drive the variable axis is what every utility-first stack expects.
+ *
+ * What stays: kerning + ligatures + contextual alternates as a global
+ * baseline, ss01 (stylistic alt 'a') on display headings, and macOS/Windows
+ * smoothing so Satoshi renders crisp on Retina.
+ */
+body {
+  font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-feature-settings: 'kern' 1, 'liga' 1, 'ss01' 1;
+}
+
 @keyframes brisaSlowZoom {
   0%, 100% { transform: scale(1.04) translateX(0); }
   50%      { transform: scale(1.12) translateX(-1.5%); }

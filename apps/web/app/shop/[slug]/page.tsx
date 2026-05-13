@@ -5,6 +5,7 @@ import { getStoreBySlug } from '@/lib/store-config';
 import { formatMoney, listProducts } from '@/lib/medusa-store';
 import { breadcrumbList, organizationSchema, storeUrl, withCanonical } from '@/lib/seo';
 import { TrackPageView } from '@/components/analytics/TrackPageView';
+import { StoreLogo } from '@/components/ui';
 import type { StoreTemplate } from '@/lib/store-config';
 import { MonoProductLanding } from './MonoProductLanding';
 import { CollectionEditorialLanding } from './CollectionEditorialLanding';
@@ -110,7 +111,7 @@ export default async function ShopPage({ params }: { params: Promise<{ slug: str
         style={{ backgroundColor: store.primaryColor }}
       >
         <div className="max-w-3xl mx-auto px-4">
-          <div className="text-6xl mb-4">{store.logoEmoji}</div>
+          <div className="inline-flex mb-5"><StoreLogo emoji={store.logoEmoji} size={56} strokeWidth={1.25} /></div>
           <h1 className="text-4xl font-bold mb-3">{store.name}</h1>
           {store.tagline && <p className="text-xl opacity-90 mb-2">{store.tagline}</p>}
           {store.description && (
@@ -158,8 +159,8 @@ export default async function ShopPage({ params }: { params: Promise<{ slug: str
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-4xl">
-                      {store.logoEmoji}
+                    <div className="w-full h-full flex items-center justify-center text-zinc-400">
+                      <StoreLogo emoji={store.logoEmoji} size={40} strokeWidth={1.25} />
                     </div>
                   )}
                 </div>

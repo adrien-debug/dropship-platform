@@ -12,6 +12,7 @@
  * is injected on every request whose host matches the base URL host.
  */
 import { existsSync, readFileSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 
 export interface ResolvedConfig {
@@ -70,6 +71,12 @@ function parseDotenv(contents: string): Record<string, string> {
  */
 function readWebEnvLocal(): Record<string, string> {
   const candidates = [
+    // Packaged app: user-managed credentials file. Stable absolute path so
+    // signing the app bundle stays untouched (touching Resources/ after
+    // codesign breaks macOS Sequoia's signature check and silently kills
+    // the app at launch).
+    path.join(os.homedir(), 'Library', 'Application Support', 'Hearst Dropship', 'credentials.env'),
+    // Dev / unpackaged layouts: read from the web app's .env.local.
     path.resolve(__dirname, '..', '..', 'web', '.env.local'),
     path.resolve(__dirname, '..', '..', '..', 'web', '.env.local'),
     path.resolve(__dirname, '..', '..', '..', '..', 'apps', 'web', '.env.local'),

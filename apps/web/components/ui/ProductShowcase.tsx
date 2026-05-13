@@ -80,7 +80,7 @@ export function ProductShowcase({
                 </p>
               )}
               {headline && (
-                <h2 className="font-serif tracking-tight leading-[1.05] text-3xl sm:text-4xl lg:text-5xl xl:text-6xl text-white">
+                <h2 className="font-semibold tracking-tight leading-[1.05] text-3xl sm:text-4xl lg:text-5xl xl:text-6xl text-white">
                   {headline}
                 </h2>
               )}

@@ -44,7 +44,7 @@ export default async function CatalogPage() {
 
       {!error && products.length === 0 && (
         <div className="border border-dashed border-zinc-200 rounded-xl px-6 py-16 text-center bg-white">
-          <p className="text-sm font-serif text-zinc-600">Aucun produit publié pour le moment.</p>
+          <p className="text-sm font-semibold tracking-tight text-zinc-600">Aucun produit publié pour le moment.</p>
           <p className="mt-1 text-xs text-zinc-400">Lance l’agent pour publier les premiers SKU.</p>
         </div>
       )}

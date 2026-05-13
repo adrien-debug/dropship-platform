@@ -6,9 +6,13 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
+        // Satoshi Variable everywhere. The serif/display aliases stay
+        // pointed at the same family so existing `font-serif` / `font-display`
+        // usages keep working — visual hierarchy now comes from weight + size,
+        // not from a separate display font.
         sans: ['var(--font-sans)', ...defaultTheme.fontFamily.sans],
-        serif: ['var(--font-display)', ...defaultTheme.fontFamily.serif],
-        display: ['var(--font-display)', ...defaultTheme.fontFamily.serif],
+        serif: ['var(--font-sans)', ...defaultTheme.fontFamily.sans],
+        display: ['var(--font-sans)', ...defaultTheme.fontFamily.sans],
       },
       letterSpacing: {
         kicker: '0.30em',

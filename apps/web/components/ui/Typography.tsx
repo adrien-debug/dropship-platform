@@ -1,36 +1,53 @@
 import type { ReactNode, ElementType } from 'react';
 import { cn } from './cn';
 
-type HeadingSize = 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'hero';
+/**
+ * Typographic scale — Satoshi Variable.
+ *
+ * The scale relies on weight + size + tracking, all driven from the same
+ * variable family. Pick a level (h1/h2/h3/h4); the component handles size,
+ * weight, tracking and leading. The `as` prop swaps the rendered element
+ * for semantic accuracy (a hero might be `<h1>` but rendered like an h2).
+ */
 
-const HEADING_SIZE: Record<HeadingSize, string> = {
-  sm: 'text-2xl sm:text-3xl',
-  md: 'text-3xl sm:text-4xl',
-  lg: 'text-4xl sm:text-5xl',
-  xl: 'text-4xl sm:text-5xl lg:text-6xl',
-  '2xl': 'text-5xl sm:text-6xl lg:text-7xl',
-  hero: 'text-5xl sm:text-6xl lg:text-7xl xl:text-8xl',
+type HeadingLevel = 'h1' | 'h2' | 'h3' | 'h4';
+
+const HEADING_STYLES: Record<HeadingLevel, string> = {
+  // Display / hero — Satoshi at max weight, tight tracking, near-flush lines.
+  h1: 'text-[clamp(2.75rem,7vw,6.5rem)] font-black tracking-[-0.045em] leading-[0.95]',
+  // Section title — clear weight contrast vs body without competing with h1.
+  h2: 'text-[clamp(2rem,4.5vw,4rem)] font-extrabold tracking-[-0.035em] leading-[1.02]',
+  // Sub-section / card header.
+  h3: 'text-[clamp(1.5rem,2.6vw,2.25rem)] font-bold tracking-[-0.025em] leading-[1.1]',
+  // Block / list header.
+  h4: 'text-[clamp(1.125rem,1.5vw,1.375rem)] font-semibold tracking-[-0.015em] leading-[1.25]',
 };
 
 interface HeadingProps {
+  /** Override the rendered HTML element (semantic vs visual). */
   as?: ElementType;
+  /** Visual level. Defaults to h2 (the most common "section title" use case). */
+  level?: HeadingLevel;
   children: ReactNode;
-  size?: HeadingSize;
   className?: string;
   id?: string;
 }
 
 /**
- * The single way to render a display-style heading. Always serif (Fraunces),
- * tight tracking, snug leading. Pick a size; let the component handle responsive
- * scaling.
+ * Single headline primitive. `level` controls the visual size, `as` controls
+ * the rendered element (defaults to the same level). Use `as="h1" level="h2"`
+ * when a page's main heading should look smaller than a hero.
  */
-export function Heading({ as = 'h2', children, size = 'lg', className, id }: HeadingProps) {
-  // TS gets confused by polymorphic ElementType + strict children inference;
-  // a runtime-stable cast is the cleanest escape hatch.
-  const Tag = as as 'h2';
+export function Heading({
+  as,
+  level = 'h2',
+  children,
+  className,
+  id,
+}: HeadingProps) {
+  const Tag = (as ?? level) as 'h2';
   return (
-    <Tag id={id} className={cn('font-serif tracking-tight leading-[1.05]', HEADING_SIZE[size], className)}>
+    <Tag id={id} className={cn('font-sans text-zinc-900', HEADING_STYLES[level], className)}>
       {children}
     </Tag>
   );
@@ -49,7 +66,15 @@ interface LedeProps {
 export function Lede({ children, className, tone = 'default' }: LedeProps) {
   const colorClass = tone === 'inverse' ? 'text-white/80' : 'text-zinc-600';
   return (
-    <p className={cn('text-lg sm:text-xl leading-relaxed', colorClass, className)}>{children}</p>
+    <p
+      className={cn(
+        'text-lg sm:text-xl leading-relaxed font-normal tracking-[-0.01em]',
+        colorClass,
+        className,
+      )}
+    >
+      {children}
+    </p>
   );
 }
 

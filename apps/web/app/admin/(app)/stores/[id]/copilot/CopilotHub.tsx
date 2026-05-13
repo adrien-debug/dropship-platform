@@ -34,6 +34,19 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import {
+  Target,
+  ShoppingBag,
+  Megaphone,
+  Palette,
+  Code2,
+  Check,
+  Pause,
+  Rocket,
+  Folder,
+  FileText,
+  type LucideIcon,
+} from 'lucide-react';
 
 export type CopilotMode = 'research' | 'curation' | 'ads' | 'medias' | 'dev';
 
@@ -78,12 +91,12 @@ interface Props {
   initialProducts: ProductRow[];
 }
 
-const MODE_LABELS: Record<CopilotMode, { emoji: string; label: string; tagline: string }> = {
-  research: { emoji: '🎯', label: 'Recherche', tagline: 'Trouver une niche' },
-  curation: { emoji: '🛍️', label: 'Curation', tagline: 'Catalogue produits' },
-  ads: { emoji: '📣', label: 'Ads', tagline: 'Hooks et ciblages' },
-  medias: { emoji: '🎨', label: 'Médias', tagline: 'Hero, lifestyle, promo' },
-  dev: { emoji: '💻', label: 'Dev', tagline: 'Code de la plateforme' },
+const MODE_LABELS: Record<CopilotMode, { Icon: LucideIcon; label: string; tagline: string }> = {
+  research: { Icon: Target, label: 'Recherche', tagline: 'Trouver une niche' },
+  curation: { Icon: ShoppingBag, label: 'Curation', tagline: 'Catalogue produits' },
+  ads: { Icon: Megaphone, label: 'Ads', tagline: 'Hooks et ciblages' },
+  medias: { Icon: Palette, label: 'Médias', tagline: 'Hero, lifestyle, promo' },
+  dev: { Icon: Code2, label: 'Dev', tagline: 'Code de la plateforme' },
 };
 
 const MODE_ORDER: CopilotMode[] = ['research', 'curation', 'ads', 'medias', 'dev'];
@@ -386,7 +399,7 @@ export function CopilotHub({
                     : 'bg-zinc-50 text-zinc-700 hover:bg-zinc-100 border border-zinc-200',
                 )}
               >
-                <span>{meta.emoji}</span>
+                <meta.Icon size={16} strokeWidth={1.75} aria-hidden />
                 <span className="font-medium">{meta.label}</span>
               </button>
             );
@@ -441,7 +454,13 @@ export function CopilotHub({
           <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-5 space-y-4 bg-zinc-50/40">
             {messages.length === 0 && !streaming && (
               <div className="text-center text-sm text-zinc-400 mt-12">
-                <p className="font-medium text-zinc-500">{MODE_LABELS[mode].emoji} {MODE_LABELS[mode].label}</p>
+                <p className="font-medium text-zinc-500 flex items-center justify-center gap-2">
+                  {(() => {
+                    const ModeIcon = MODE_LABELS[mode].Icon;
+                    return <ModeIcon size={16} strokeWidth={1.75} aria-hidden />;
+                  })()}
+                  {MODE_LABELS[mode].label}
+                </p>
                 <p className="mt-1">{getModeHint(mode, storeName)}</p>
               </div>
             )}
@@ -522,7 +541,7 @@ export function CopilotHub({
               <p className="text-kicker uppercase tracking-cta text-zinc-400 text-xs font-medium">
                 Mode Dev
               </p>
-              <h3 className="mt-1 text-lg font-serif text-zinc-900">
+              <h3 className="mt-1 text-lg font-semibold tracking-tight text-zinc-900">
                 L&apos;agent veut pousser en prod
               </h3>
               <p className="mt-2 text-sm text-zinc-600">
@@ -806,7 +825,8 @@ function SpecialisedRenderer({
     if (out.empty) return <p className="text-xs text-zinc-500">Rien à commiter.</p>;
     return (
       <div className="inline-flex items-center gap-2 text-xs bg-emerald-50 text-emerald-800 px-2 py-1 rounded-full">
-        <span>✓ commit</span>
+        <Check size={12} strokeWidth={2.5} aria-hidden />
+        <span>commit</span>
         <code className="font-mono">{String(out.short_sha ?? '')}</code>
         <span>{String(out.message ?? '').slice(0, 60)}</span>
       </div>
@@ -815,14 +835,16 @@ function SpecialisedRenderer({
   if (name === 'git_push') {
     if (out.confirm_required) {
       return (
-        <p className="text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded">
-          ⏸ En attente de confirmation utilisateur.
+        <p className="text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded inline-flex items-center gap-1.5">
+          <Pause size={12} strokeWidth={2.5} aria-hidden />
+          En attente de confirmation utilisateur.
         </p>
       );
     }
     return (
       <div className="inline-flex items-center gap-2 text-xs bg-sky-50 text-sky-800 px-2 py-1 rounded-full">
-        🚀 pushed to {String(out.branch ?? 'origin')}
+        <Rocket size={12} strokeWidth={2} aria-hidden />
+        pushed to {String(out.branch ?? 'origin')}
       </div>
     );
   }
@@ -852,7 +874,12 @@ function SpecialisedRenderer({
     return (
       <div className="text-xs font-mono space-y-0.5 max-h-48 overflow-y-auto">
         {entries.slice(0, 30).map((e, i) => (
-          <div key={i}><span className="text-zinc-400">{e.type === 'dir' ? '📁' : '📄'}</span> {e.path}</div>
+          <div key={i} className="flex items-center gap-1.5">
+            <span className="text-zinc-400 inline-flex">
+              {e.type === 'dir' ? <Folder size={12} strokeWidth={1.75} aria-hidden /> : <FileText size={12} strokeWidth={1.75} aria-hidden />}
+            </span>
+            <span>{e.path}</span>
+          </div>
         ))}
         {entries.length > 30 && <p className="text-zinc-400">…et {entries.length - 30} de plus</p>}
       </div>

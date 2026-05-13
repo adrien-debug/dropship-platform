@@ -5,7 +5,9 @@ import { getStoreBySlug } from '@/lib/store-config';
 import { formatMoney, getProduct } from '@/lib/medusa-store';
 import { AddToCartButton } from '@/app/products/[handle]/AddToCartButton';
 import { breadcrumbList, productSchema, productUrl, storeUrl, withCanonical } from '@/lib/seo';
+import { Truck, ShieldCheck, RotateCcw } from 'lucide-react';
 import { TrackPageView } from '@/components/analytics/TrackPageView';
+import { StoreLogo } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -96,8 +98,13 @@ export default async function ShopProductPage({
         variantId={variant?.id}
       />
       <nav className="mb-8 text-sm text-zinc-500">
-        <Link href={`/shop/${slug}`} className="hover:underline" style={{ color: store.accentColor }}>
-          {store.logoEmoji} {store.name}
+        <Link
+          href={`/shop/${slug}`}
+          className="hover:underline inline-flex items-center gap-1.5"
+          style={{ color: store.accentColor }}
+        >
+          <StoreLogo emoji={store.logoEmoji} size={14} strokeWidth={1.75} />
+          {store.name}
         </Link>
         <span className="mx-2">›</span>
         <span className="text-zinc-900">{product.title}</span>
@@ -110,8 +117,8 @@ export default async function ShopProductPage({
             // eslint-disable-next-line @next/next/no-img-element
             <img src={imageUrl} alt={product.title} className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-8xl">
-              {store.logoEmoji}
+            <div className="w-full h-full flex items-center justify-center text-zinc-400">
+              <StoreLogo emoji={store.logoEmoji} size={80} strokeWidth={1.25} />
             </div>
           )}
         </div>
@@ -133,16 +140,16 @@ export default async function ShopProductPage({
           )}
 
           <div className="space-y-3 mb-8">
-            <div className="flex items-center gap-2 text-sm text-zinc-600">
-              <span>✅</span>
+            <div className="flex items-center gap-2.5 text-sm text-zinc-600">
+              <Truck size={16} strokeWidth={1.75} className="text-zinc-500" aria-hidden />
               <span>Livraison internationale disponible</span>
             </div>
-            <div className="flex items-center gap-2 text-sm text-zinc-600">
-              <span>🔒</span>
+            <div className="flex items-center gap-2.5 text-sm text-zinc-600">
+              <ShieldCheck size={16} strokeWidth={1.75} className="text-zinc-500" aria-hidden />
               <span>Paiement 100% sécurisé</span>
             </div>
-            <div className="flex items-center gap-2 text-sm text-zinc-600">
-              <span>↩️</span>
+            <div className="flex items-center gap-2.5 text-sm text-zinc-600">
+              <RotateCcw size={16} strokeWidth={1.75} className="text-zinc-500" aria-hidden />
               <span>Retours faciles sous 30 jours</span>
             </div>
           </div>

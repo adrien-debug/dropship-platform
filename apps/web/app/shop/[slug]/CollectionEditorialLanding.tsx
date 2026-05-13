@@ -10,6 +10,7 @@ import {
   NumberMark,
   TrustItem,
   Parallax,
+  StoreLogo,
 } from '@/components/ui';
 
 interface MedusaImage {
@@ -41,7 +42,7 @@ interface Props {
  *
  * Stands between MonoProductLanding (1 SKU, long form) and the bare grid
  * (4 columns of cards). Optimised for 3-6 products tied by a narrative —
- * lifestyle / craft / premium niches where each product is a "moment"
+ * lifestyle / craft / premium niches where each product is a"moment"
  * rather than an interchangeable SKU.
  *
  * Layout: hero → intro (store description) → alternating product
@@ -89,12 +90,12 @@ export function CollectionEditorialLanding({ store, products }: Props) {
             </div>
 
             <div className="brisa-fade-1">
-              <Heading size="hero" className="text-white [letter-spacing:-0.025em]">
+              <Heading level="h1" className="text-white">
                 {taglineWithAccent.head}
                 {taglineWithAccent.tail && (
                   <>
                     {' '}
-                    <em className="font-serif italic text-white/85">{taglineWithAccent.tail}</em>
+                    <em className="text-white/85">{taglineWithAccent.tail}</em>
                     {taglineWithAccent.trailing}
                   </>
                 )}
@@ -117,7 +118,7 @@ export function CollectionEditorialLanding({ store, products }: Props) {
             kicker="La sélection"
             title={
               <>
-                Six pièces, <em className="font-serif italic text-zinc-500">une intention</em>.
+                Six pièces, <em className="text-zinc-500">une intention</em>.
               </>
             }
           />
@@ -152,15 +153,15 @@ export function CollectionEditorialLanding({ store, products }: Props) {
                       <img src={image} alt={product.title} className="w-full h-full object-cover" />
                     </div>
                   ) : (
-                    <div className="aspect-[5/4] rounded-2xl bg-zinc-100 flex items-center justify-center text-7xl">
-                      {store.logoEmoji}
+                    <div className="aspect-[5/4] rounded-2xl bg-zinc-100 flex items-center justify-center text-zinc-400">
+                      <StoreLogo emoji={store.logoEmoji} size={64} strokeWidth={1.25} />
                     </div>
                   )}
                 </div>
 
                 <div className={`md:col-span-5 ${flipped ? 'md:order-1' : ''}`}>
                   <NumberMark value={num} color={store.primaryColor} size="lg" />
-                  <Heading as="h2" size="md" className="mt-5">
+                  <Heading as="h2" level="h3" className="mt-5">
                     {product.title}
                   </Heading>
                   {product.description && (
@@ -169,7 +170,7 @@ export function CollectionEditorialLanding({ store, products }: Props) {
                     </p>
                   )}
                   {formattedPrice && (
-                    <div className="mt-6 font-serif text-3xl text-zinc-900">{formattedPrice}</div>
+                    <div className="mt-6 font-semibold tracking-tight text-3xl text-zinc-900">{formattedPrice}</div>
                   )}
                   {variant && (
                     <div className="mt-6 max-w-xs">
@@ -202,8 +203,8 @@ export function CollectionEditorialLanding({ store, products }: Props) {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,rgba(255,255,255,0.18),transparent_55%)]" />
         <div className="relative max-w-3xl mx-auto px-6 sm:px-8 lg:px-12 text-center text-white">
           <Kicker tone="inverse">Choisir une pièce</Kicker>
-          <Heading size="2xl" className="text-white mt-5">
-            La <em className="font-serif italic">collection</em> vous attend.
+          <Heading level="h1" className="text-white mt-5">
+            La <em className="">collection</em> vous attend.
           </Heading>
           <div className="mt-6">
             <Lede tone="inverse" className="max-w-xl mx-auto">

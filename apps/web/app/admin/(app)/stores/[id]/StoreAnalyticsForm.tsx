@@ -62,7 +62,7 @@ export function StoreAnalyticsForm({ storeId, initial }: Props) {
     <div className="border rounded-xl bg-white">
       <div className="px-6 py-4 border-b flex items-baseline justify-between">
         <div>
-          <h3 className="text-base font-serif">
+          <h3 className="text-base font-semibold tracking-tight">
             Analytics & <em className="italic text-zinc-700">attribution</em>
           </h3>
           <p className="text-xs text-zinc-500 mt-0.5">

@@ -164,7 +164,7 @@ export default async function ObservabilityPage() {
 
       {steps.length === 0 && (
         <div className="border border-dashed border-zinc-200 rounded-xl px-6 py-16 text-center bg-white">
-          <p className="text-sm font-serif text-zinc-600">Aucun appel agent ces 7 derniers jours.</p>
+          <p className="text-sm font-semibold tracking-tight text-zinc-600">Aucun appel agent ces 7 derniers jours.</p>
           <p className="mt-1 text-xs text-zinc-400">Lance un store de test pour voir les premières lignes.</p>
         </div>
       )}
@@ -172,7 +172,7 @@ export default async function ObservabilityPage() {
       {steps.length > 0 && (
         <section className="border border-zinc-200 rounded-xl overflow-hidden bg-white">
           <div className="px-5 py-4 border-b border-zinc-200/60 flex items-baseline gap-3">
-            <h3 className="text-base font-serif">
+            <h3 className="text-base font-semibold tracking-tight">
               Par <em className="italic text-zinc-700">étape</em>
             </h3>
             <span className="text-xs uppercase tracking-wider text-zinc-400">· {steps.length} steps</span>
@@ -196,7 +196,7 @@ export default async function ObservabilityPage() {
                     <tr key={s.step} className="hover:bg-zinc-50/60 transition-colors">
                       <td className="px-5 py-3 font-mono text-xs text-zinc-700">{s.step}</td>
                       <td className="px-5 py-3 text-right tabular-nums">{fmtInt(s.call_count)}</td>
-                      <td className="px-5 py-3 text-right tabular-nums font-serif">{fmtEur(s.total_cost)}</td>
+                      <td className="px-5 py-3 text-right tabular-nums font-semibold">{fmtEur(s.total_cost)}</td>
                       <td className="px-5 py-3 text-right tabular-nums text-zinc-600">{fmtMs(s.avg_latency_ms)}</td>
                       <td className="px-5 py-3 text-right tabular-nums text-zinc-500">{fmtMs(s.p95_latency_ms)}</td>
                       <td className="px-5 py-3 text-right">
@@ -220,7 +220,7 @@ export default async function ObservabilityPage() {
       {topStores.length > 0 && (
         <section className="border border-zinc-200 rounded-xl overflow-hidden bg-white">
           <div className="px-5 py-4 border-b border-zinc-200/60 flex items-baseline gap-3">
-            <h3 className="text-base font-serif">
+            <h3 className="text-base font-semibold tracking-tight">
               Top 10 par <em className="italic text-zinc-700">coût</em>
             </h3>
           </div>
@@ -252,7 +252,7 @@ export default async function ObservabilityPage() {
                       )}
                     </td>
                     <td className="px-5 py-3 text-right tabular-nums">{fmtInt(s.call_count)}</td>
-                    <td className="px-5 py-3 text-right tabular-nums font-serif">{fmtEur(s.total_cost)}</td>
+                    <td className="px-5 py-3 text-right tabular-nums font-semibold">{fmtEur(s.total_cost)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -264,7 +264,7 @@ export default async function ObservabilityPage() {
       {errors.length > 0 && (
         <section className="border border-red-200 bg-red-50/30 rounded-xl overflow-hidden">
           <div className="px-5 py-4 border-b border-red-200/60 bg-red-50/60">
-            <h3 className="text-base font-serif text-red-900">
+            <h3 className="text-base font-semibold tracking-tight text-red-900">
               Erreurs <em className="italic">récentes</em>
             </h3>
           </div>

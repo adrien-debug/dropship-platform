@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { Bot, type LucideIcon } from 'lucide-react';
 
 /**
  * Sticky tab navigation for the per-store admin area. Renders the same
@@ -17,6 +18,7 @@ interface Tab {
   href: string;
   label: string;
   exact?: boolean;
+  Icon?: LucideIcon;
 }
 
 function buildTabs(storeId: string, storeSlug: string): Tab[] {
@@ -25,7 +27,7 @@ function buildTabs(storeId: string, storeSlug: string): Tab[] {
     { href: `/admin/stores/${storeId}/catalog`, label: 'Catalogue' },
     { href: `/admin/stores/${storeId}/assets`, label: 'Médias' },
     { href: `/admin/stores/${storeId}/analytics`, label: 'Analytics' },
-    { href: `/admin/stores/${storeId}/copilot`, label: '🤖 Copilote' },
+    { href: `/admin/stores/${storeId}/copilot`, label: 'Copilote', Icon: Bot },
     { href: `/admin/stores/${storeId}/settings`, label: 'Réglages' },
     { href: `/shop/${storeSlug}`, label: 'Voir le store ↗' },
   ];
@@ -50,12 +52,13 @@ export function StoreTabs({ storeId, storeSlug }: { storeId: string; storeSlug: 
               key={tab.href}
               href={tab.href}
               target={isExternal ? '_blank' : undefined}
-              className={`relative whitespace-nowrap px-3 py-3 text-sm font-medium transition-colors ${
+              className={`relative whitespace-nowrap px-3 py-3 text-sm font-medium transition-colors inline-flex items-center gap-1.5 ${
                 active
                   ? 'text-zinc-900'
                   : 'text-zinc-500 hover:text-zinc-900'
               }`}
             >
+              {tab.Icon && <tab.Icon size={15} strokeWidth={1.75} aria-hidden />}
               {tab.label}
               {active && (
                 <span className="absolute left-3 right-3 -bottom-px h-0.5 bg-zinc-900" aria-hidden />

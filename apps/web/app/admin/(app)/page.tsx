@@ -1,6 +1,15 @@
 import Link from 'next/link';
+import {
+  Sparkles,
+  Package,
+  BarChart3,
+  Settings,
+  ShoppingBag,
+  type LucideIcon,
+} from 'lucide-react';
 import { getDbRead } from '@/lib/db';
 import { PageHeader, StatCard, StatusPill, SectionCard, type Tone } from '../_components/AdminUI';
+import { StoreLogo } from '@/components/ui';
 import { runAnomalyWatch } from '@/lib/ops/anomaly-watch';
 
 export const dynamic = 'force-dynamic';
@@ -305,7 +314,7 @@ export default async function PortfolioDashboard() {
                 href={`/admin/stores`}
                 className="flex items-center gap-3 -mx-2 px-2 py-1.5 rounded-md hover:bg-zinc-50 transition-colors"
               >
-                <span className="text-xl">{s.logo_emoji || '🛍️'}</span>
+                <span className="text-zinc-700 inline-flex"><StoreLogo emoji={s.logo_emoji} size={20} /></span>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium text-zinc-900 truncate">{s.name}</div>
                   <div className="text-xs text-zinc-400 truncate">/shop/{s.slug}</div>
@@ -341,7 +350,7 @@ export default async function PortfolioDashboard() {
         <SectionCard kicker="Coût Claude 30j" title={<span>Observabilité <em className="italic text-zinc-500">agent</em></span>}>
           <div className="p-6 space-y-4">
             <div>
-              <div className="text-3xl font-serif text-zinc-900">
+              <div className="text-3xl font-semibold tracking-tight text-zinc-900">
                 {totalCost.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
               </div>
               <div className="text-xs text-zinc-500 mt-1">
@@ -379,10 +388,10 @@ export default async function PortfolioDashboard() {
       {/* Quick links */}
       <SectionCard kicker="Actions" title={<span>Raccourcis <em className="italic text-zinc-500">opérations</em></span>}>
         <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-3">
-          <QuickLink href="/admin/stores/new" emoji="✨" label="Créer un store" hint="Agent en 25-40s" />
-          <QuickLink href="/admin/orders" emoji="📦" label="Commandes" hint="Forwards AE" />
-          <QuickLink href="/admin/observability" emoji="📊" label="Observabilité" hint="Coûts IA" />
-          <QuickLink href="/admin/settings" emoji="⚙️" label="Réglages" hint="Tokens & ops" />
+          <QuickLink href="/admin/stores/new" Icon={Sparkles} label="Créer un store" hint="Agent en 25-40s" />
+          <QuickLink href="/admin/orders" Icon={Package} label="Commandes" hint="Forwards AE" />
+          <QuickLink href="/admin/observability" Icon={BarChart3} label="Observabilité" hint="Coûts IA" />
+          <QuickLink href="/admin/settings" Icon={Settings} label="Réglages" hint="Tokens & ops" />
         </div>
       </SectionCard>
     </div>
@@ -453,21 +462,21 @@ function FunnelBar({
 
 function QuickLink({
   href,
-  emoji,
+  Icon,
   label,
   hint,
 }: {
   href: string;
-  emoji: string;
+  Icon: LucideIcon;
   label: string;
   hint: string;
 }) {
   return (
     <Link
       href={href}
-      className="border border-zinc-200 hover:border-zinc-400 rounded-lg px-4 py-3 transition-colors"
+      className="group border border-zinc-200 hover:border-zinc-400 rounded-lg px-4 py-3 transition-colors"
     >
-      <div className="text-2xl mb-1">{emoji}</div>
+      <Icon size={22} strokeWidth={1.5} className="text-zinc-700 group-hover:text-zinc-900 mb-2 transition-colors" aria-hidden />
       <div className="text-sm font-medium text-zinc-900">{label}</div>
       <div className="text-xs text-zinc-500">{hint}</div>
     </Link>

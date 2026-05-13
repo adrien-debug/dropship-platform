@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getDbRead } from '@/lib/db';
+import { StoreLogo } from '@/components/ui';
 import { StoreTabs } from './StoreTabs';
 
 export const dynamic = 'force-dynamic';
@@ -34,7 +35,7 @@ export default async function StoreLayout({
           ← Stores
         </Link>
         <span className="text-zinc-300">/</span>
-        <span className="text-xl">{store.logo_emoji || '🛍️'}</span>
+        <span className="text-zinc-700 inline-flex"><StoreLogo emoji={store.logo_emoji} size={18} /></span>
         <span className="font-medium text-zinc-900 truncate">{store.name}</span>
         {store.status !== 'active' && (
           <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full font-medium">

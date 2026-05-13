@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getDbRead } from '@/lib/db';
+import { StoreLogo } from '@/components/ui';
 import { StoreActions } from '../StoreActions';
 
 export const dynamic = 'force-dynamic';
@@ -95,7 +96,7 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
           Navigation lives in the StoreTabs rendered by the layout. */}
       <div className="border rounded-xl overflow-hidden shadow-sm">
         <div className="h-16 flex items-center px-6 gap-4" style={{ backgroundColor: store.primary_color || '#111827' }}>
-          <span className="text-3xl">{store.logo_emoji || '🛍️'}</span>
+          <span className="text-white inline-flex"><StoreLogo emoji={store.logo_emoji} size={28} strokeWidth={1.5} /></span>
           <div className="text-white">
             <h2 className="text-xl font-bold">{store.name}</h2>
             {store.tagline && <p className="text-sm opacity-75">{store.tagline}</p>}

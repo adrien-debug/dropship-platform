@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { CartIndicator } from './CartIndicator';
+import { StoreLogo } from '@/components/ui';
 import type { StoreConfig } from '@/lib/store-config';
 
 interface Props {
@@ -23,7 +24,7 @@ export function StoreShell({ children, store }: Props) {
           <Link href={homeHref} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             {store ? (
               <>
-                <span className="text-3xl">{store.logoEmoji}</span>
+                <StoreLogo emoji={store.logoEmoji} size={28} />
                 <div>
                   <div className="font-bold text-lg leading-tight">{store.name}</div>
                   {store.tagline && (

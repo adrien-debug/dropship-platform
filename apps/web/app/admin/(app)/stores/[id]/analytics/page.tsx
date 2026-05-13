@@ -116,7 +116,7 @@ export default async function StoreAnalyticsPage({ params, searchParams }: Props
           <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">
             Analytics · {store.name}
           </p>
-          <h2 className="mt-1 text-3xl font-serif">
+          <h2 className="mt-1 text-3xl font-semibold tracking-tight">
             Acquisition <em className="italic text-zinc-700">&amp; comportement</em>
           </h2>
           <p className="mt-2 text-sm text-zinc-500">Période : {cfg.label}.</p>
@@ -152,7 +152,7 @@ export default async function StoreAnalyticsPage({ params, searchParams }: Props
       {/* UX — Funnel */}
       <section className="border border-zinc-200 rounded-2xl overflow-hidden bg-white">
         <div className="px-6 py-4 border-b border-zinc-200/60">
-          <h3 className="text-base font-serif">
+          <h3 className="text-base font-semibold tracking-tight">
             Comportement <em className="italic text-zinc-700">(UX)</em>
           </h3>
           <p className="text-xs text-zinc-500 mt-0.5">
@@ -205,7 +205,7 @@ export default async function StoreAnalyticsPage({ params, searchParams }: Props
       {/* UA — Acquisition by source/campaign */}
       <section className="border border-zinc-200 rounded-2xl overflow-hidden bg-white">
         <div className="px-6 py-4 border-b border-zinc-200/60">
-          <h3 className="text-base font-serif">
+          <h3 className="text-base font-semibold tracking-tight">
             Acquisition <em className="italic text-zinc-700">(UA)</em>
           </h3>
           <p className="text-xs text-zinc-500 mt-0.5">
@@ -246,7 +246,7 @@ export default async function StoreAnalyticsPage({ params, searchParams }: Props
                         <span className="text-kicker text-zinc-400 ml-1.5">{conv.toFixed(0)} %</span>
                       )}
                     </td>
-                    <td className="px-5 py-3 text-right font-serif">
+                    <td className="px-5 py-3 text-right font-semibold tracking-tight">
                       {r.revenue_minor > 0 ? formatMoney(r.revenue_minor / 100, 'eur') : '—'}
                     </td>
                   </tr>
@@ -297,7 +297,7 @@ function Kpi({
   return (
     <div className="border border-zinc-200 bg-white rounded-xl px-5 py-4">
       <div className="text-kicker uppercase tracking-cta text-zinc-400 font-medium">{label}</div>
-      <div className={`mt-2 text-3xl font-serif ${cls[tone]}`}>{value}</div>
+      <div className={`mt-2 text-3xl font-semibold tracking-tight ${cls[tone]}`}>{value}</div>
     </div>
   );
 }

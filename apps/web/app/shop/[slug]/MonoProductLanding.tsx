@@ -45,7 +45,7 @@ interface Props {
  *   1. Hero (parallax bg, italic-accented H1, single bare CTA — no qty stepper)
  *   2. Trois raisons (numbered USPs)
  *   3. Showcase (dark stage with the headline integrated INSIDE the frame —
- *      no SectionHeader above to avoid the "empty stage" feeling)
+ *      no SectionHeader above to avoid the"empty stage" feeling)
  *   4. Beach moment (single full-bleed Kontext + parallax)
  *   5. Specs (10-row table)
  *   6. Trois gestes (process, with custom monoline icons)
@@ -88,7 +88,7 @@ export function MonoProductLanding({ store, product }: Props) {
 
       {/* ================== TROIS RAISONS ================== */}
       <Section tone="light" padding="lg">
-        <SectionHeader kicker="Conception" title={<>Pourquoi on l’a fait <em className="font-serif italic text-zinc-500">comme ça</em>.</>} />
+        <SectionHeader kicker="Conception" title={<>Pourquoi on l’a fait <em className="text-zinc-500">comme ça</em>.</>} />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-zinc-200 mt-14 border border-zinc-200 rounded-2xl overflow-hidden">
           {[
             {
@@ -115,7 +115,7 @@ export function MonoProductLanding({ store, product }: Props) {
               className="bg-white p-10 transition-[background-color,transform] duration-300 hover:bg-zinc-50/60 hover:-translate-y-0.5"
             >
               <NumberMark value={u.num} color={store.primaryColor} size="lg" />
-              <Heading as="h3" size="sm" className="mt-6 mb-3">
+              <Heading as="h3" level="h4" className="mt-6 mb-3">
                 {u.title}
               </Heading>
               <p className="text-sm text-zinc-600 leading-relaxed">{u.body}</p>
@@ -139,7 +139,7 @@ export function MonoProductLanding({ store, product }: Props) {
               headline={
                 <>
                   Un courant d’air,<br />
-                  <em className="font-serif italic text-white/75">jamais</em> une rafale.
+                  <em className="text-white/75">jamais</em> une rafale.
                 </>
               }
               lede="265 grammes posés sur le cou. Pas de pales apparentes, pas de bruit de moteur. On l’oublie au bout d’une minute."
@@ -179,9 +179,9 @@ export function MonoProductLanding({ store, product }: Props) {
             <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 pb-12 sm:pb-20 w-full">
               <Parallax speed={0.12} className="max-w-3xl">
                 <Kicker tone="inverse">En vacances</Kicker>
-                <Heading size="2xl" className="text-white mt-4">
+                <Heading level="h1" className="text-white mt-4">
                   Du bureau à la plage,<br />
-                  <em className="font-serif italic">sans transition.</em>
+                  <em className="">sans transition.</em>
                 </Heading>
               </Parallax>
             </div>
@@ -219,7 +219,7 @@ export function MonoProductLanding({ store, product }: Props) {
       <Section tone="dark" padding="lg">
         <SectionHeader
           kicker="Mode d’emploi"
-          title={<>Comment on <em className="font-serif italic text-white/60">s’en sert</em>.</>}
+          title={<>Comment on <em className="text-white/60">s’en sert</em>.</>}
           tone="inverse"
         />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10 sm:gap-12 mt-16">
@@ -254,7 +254,7 @@ export function MonoProductLanding({ store, product }: Props) {
                   <GestureIcon name={s.icon} size={56} />
                 </div>
               </div>
-              <Heading as="h3" size="sm" className="mt-6 mb-3 text-white">
+              <Heading as="h3" level="h4" className="mt-6 mb-3 text-white">
                 {s.title}
               </Heading>
               <p className="text-sm text-white/70 leading-relaxed">{s.body}</p>
@@ -296,8 +296,8 @@ export function MonoProductLanding({ store, product }: Props) {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,rgba(255,255,255,0.18),transparent_55%)]" />
         <div className="relative max-w-3xl mx-auto px-6 sm:px-8 lg:px-12 text-center text-white">
           <Kicker tone="inverse">Prêt à respirer ?</Kicker>
-          <Heading size="2xl" className="text-white mt-5">
-            L’été est <em className="font-serif italic">trop court</em><br />pour transpirer.
+          <Heading level="h1" className="text-white mt-5">
+            L’été est <em className="">trop court</em><br />pour transpirer.
           </Heading>
           <div className="mt-6">
             <Lede tone="inverse" className="max-w-xl mx-auto">
@@ -311,7 +311,7 @@ export function MonoProductLanding({ store, product }: Props) {
           )}
           {formattedPrice && (
             <p className="mt-8 text-sm text-white/85">
-              <span className="font-serif text-3xl mr-2">{formattedPrice}</span>
+              <span className="font-semibold tracking-tight text-3xl mr-2">{formattedPrice}</span>
               {compareAtPrice && (
                 <span className="line-through text-white/50 mr-2">{compareAtPrice}</span>
               )}
@@ -378,12 +378,12 @@ function HeroSection({
           </div>
 
           <div className="brisa-fade-1">
-            <Heading size="hero" className="text-white [letter-spacing:-0.025em]">
+            <Heading level="h1" className="text-white">
               {taglineHead}
               {taglineTail && (
                 <>
                   {' '}
-                  <em className="font-serif italic text-white/85">
+                  <em className="text-white/85">
                     {taglineTail}
                   </em>
                   {trailingPunct}
@@ -400,7 +400,7 @@ function HeroSection({
 
           {formattedPrice && (
             <div className="brisa-fade-3 flex items-baseline gap-4 mt-10">
-              <span className="font-serif text-5xl lg:text-6xl">{formattedPrice}</span>
+              <span className="font-semibold tracking-tight text-5xl lg:text-6xl">{formattedPrice}</span>
               {compareAtPrice && (
                 <span className="text-xl text-white/50 line-through">{compareAtPrice}</span>
               )}

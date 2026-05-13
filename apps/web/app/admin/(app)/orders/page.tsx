@@ -52,7 +52,7 @@ function StatCard({
         <span className="inline-block w-1 h-1 rounded-full bg-zinc-300" />
         {label}
       </div>
-      <div className={`mt-2 text-3xl font-serif ${toneClasses[tone]}`}>{value}</div>
+      <div className={`mt-2 text-3xl font-semibold tracking-tight ${toneClasses[tone]}`}>{value}</div>
       {hint && <div className="mt-1 text-xs text-zinc-500">{hint}</div>}
     </div>
   );
@@ -126,7 +126,7 @@ function AnomalyPanel({ data }: { data: AnomalyWatchResult | { ok: false; error:
           <div className="text-kicker uppercase tracking-cta text-amber-800/70 font-medium">
             Surveillance commandes · P1.3
           </div>
-          <h3 className="mt-1 text-base font-serif text-amber-900">
+          <h3 className="mt-1 text-base font-semibold tracking-tight text-amber-900">
             <strong>{total}</strong> anomalie{total > 1 ? 's' : ''} à <em className="italic">trier</em>
           </h3>
         </div>
@@ -139,7 +139,7 @@ function AnomalyPanel({ data }: { data: AnomalyWatchResult | { ok: false; error:
         <div className="px-5 py-4">
           <div className="flex items-baseline justify-between gap-2">
             <div className="text-sm font-medium text-amber-900">Stranded AE</div>
-            <div className="text-2xl font-serif text-amber-900">{counts.stranded}</div>
+            <div className="text-2xl font-semibold tracking-tight text-amber-900">{counts.stranded}</div>
           </div>
           <div className="mt-0.5 text-kicker text-amber-800/70">
             sent + impayé &gt; 15 jours
@@ -167,7 +167,7 @@ function AnomalyPanel({ data }: { data: AnomalyWatchResult | { ok: false; error:
         <div className="px-5 py-4">
           <div className="flex items-baseline justify-between gap-2">
             <div className="text-sm font-medium text-amber-900">Stripe → AE</div>
-            <div className="text-2xl font-serif text-amber-900">{counts.stuck}</div>
+            <div className="text-2xl font-semibold tracking-tight text-amber-900">{counts.stuck}</div>
           </div>
           <div className="mt-0.5 text-kicker text-amber-800/70">
             payé Stripe, pas de forward &gt; 4h
@@ -191,7 +191,7 @@ function AnomalyPanel({ data }: { data: AnomalyWatchResult | { ok: false; error:
         <div className="px-5 py-4">
           <div className="flex items-baseline justify-between gap-2">
             <div className="text-sm font-medium text-amber-900">Erreurs</div>
-            <div className="text-2xl font-serif text-amber-900">{counts.errors}</div>
+            <div className="text-2xl font-semibold tracking-tight text-amber-900">{counts.errors}</div>
           </div>
           <div className="mt-0.5 text-kicker text-amber-800/70">
             forwards en erreur &gt; 48h
@@ -317,7 +317,7 @@ export default async function OrdersPage() {
           <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">
             Production · Dropship
           </p>
-          <h2 className="mt-1 text-3xl font-serif">
+          <h2 className="mt-1 text-3xl font-semibold tracking-tight">
             Carnet de <em className="italic text-zinc-700">commandes</em>
           </h2>
           <p className="mt-2 text-sm text-zinc-500 max-w-2xl">
@@ -364,7 +364,7 @@ export default async function OrdersPage() {
         <section className="border border-amber-200 bg-amber-50/30 rounded-xl overflow-hidden">
           <div className="px-5 py-4 border-b border-amber-200/60 bg-amber-50/60">
             <div className="flex items-baseline gap-3">
-              <h3 className="text-base font-serif text-amber-900">
+              <h3 className="text-base font-semibold tracking-tight text-amber-900">
                 À payer <em className="italic">chez AliExpress</em>
               </h3>
               <span className="text-xs uppercase tracking-wider text-amber-700/70">
@@ -405,7 +405,7 @@ export default async function OrdersPage() {
                       <div className="text-kicker text-zinc-400 font-mono mt-0.5">{row.medusa_order_id}</div>
                     </td>
                     <td className="px-5 py-4 text-zinc-700">{row.customer_email ?? '—'}</td>
-                    <td className="px-5 py-4 font-serif text-base">
+                    <td className="px-5 py-4 font-semibold tracking-tight text-base">
                       {row.total_minor != null && row.currency_code
                         ? formatMoney(row.total_minor, row.currency_code)
                         : '—'}
@@ -442,7 +442,7 @@ export default async function OrdersPage() {
 
       {!fetchError && orders.length === 0 && (
         <div className="border border-dashed border-zinc-200 rounded-xl px-6 py-16 text-center bg-zinc-50/40">
-          <p className="text-sm font-serif text-zinc-600">Aucune commande pour le moment.</p>
+          <p className="text-sm font-semibold tracking-tight text-zinc-600">Aucune commande pour le moment.</p>
           <p className="mt-1 text-xs text-zinc-400">
             Les commandes Medusa payées apparaîtront ici dès qu&apos;un client passera commande.
           </p>
@@ -452,7 +452,7 @@ export default async function OrdersPage() {
       {orders.length > 0 && (
         <section className="border border-zinc-200 rounded-xl overflow-hidden bg-white">
           <div className="px-5 py-4 border-b border-zinc-200/60 flex items-baseline gap-3">
-            <h3 className="text-base font-serif">
+            <h3 className="text-base font-semibold tracking-tight">
               Toutes les <em className="italic text-zinc-700">commandes</em>
             </h3>
             <span className="text-xs uppercase tracking-wider text-zinc-400">
@@ -495,7 +495,7 @@ export default async function OrdersPage() {
                         <div className="text-xs text-zinc-400 mt-0.5">{order.shipping_address.city}</div>
                       )}
                     </td>
-                    <td className="px-5 py-4 font-serif">
+                    <td className="px-5 py-4 font-semibold">
                       {formatMoney(order.total, order.currency_code)}
                     </td>
                     <td className="px-5 py-4">

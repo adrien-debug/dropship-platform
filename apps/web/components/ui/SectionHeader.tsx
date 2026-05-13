@@ -9,7 +9,8 @@ interface Props {
   align?: 'left' | 'center';
   tone?: 'default' | 'inverse';
   className?: string;
-  size?: 'md' | 'lg' | 'xl';
+  /** Visual level of the title heading. Defaults to h2 (section-level). */
+  level?: 'h1' | 'h2' | 'h3';
 }
 
 /**
@@ -24,7 +25,7 @@ export function SectionHeader({
   align = 'center',
   tone = 'default',
   className,
-  size = 'lg',
+  level = 'h2',
 }: Props) {
   return (
     <div
@@ -38,7 +39,7 @@ export function SectionHeader({
           <Kicker tone={tone}>{kicker}</Kicker>
         </div>
       )}
-      <Heading size={size} className={tone === 'inverse' ? 'text-white' : 'text-zinc-900'}>
+      <Heading level={level} className={tone === 'inverse' ? 'text-white' : 'text-zinc-900'}>
         {title}
       </Heading>
       {lede && (

@@ -46,7 +46,7 @@ export function PageHeader({
         {kicker && (
           <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">{kicker}</p>
         )}
-        <h1 className="mt-1 text-3xl font-serif text-zinc-900 leading-tight">{title}</h1>
+        <h1 className="mt-1 text-4xl sm:text-5xl font-extrabold tracking-[-0.035em] text-zinc-900 leading-[1.02]">{title}</h1>
         {lede && <p className="mt-2 text-sm text-zinc-500 max-w-2xl leading-relaxed">{lede}</p>}
       </div>
       {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
@@ -71,7 +71,7 @@ export function StatCard({
         <span className="inline-block w-1 h-1 rounded-full bg-zinc-300" aria-hidden />
         {label}
       </div>
-      <div className={`mt-2 text-3xl font-serif ${valueTone[tone]}`}>{value}</div>
+      <div className={`mt-2 text-4xl font-bold tracking-[-0.03em] ${valueTone[tone]}`}>{value}</div>
       {hint && <div className="mt-1 text-xs text-zinc-500">{hint}</div>}
     </div>
   );
@@ -104,7 +104,7 @@ export function SectionCard({
           {kicker && (
             <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">{kicker}</p>
           )}
-          {title && <h3 className="mt-1 text-base font-serif text-zinc-900">{title}</h3>}
+          {title && <h3 className="mt-1 text-xl font-bold tracking-[-0.02em] text-zinc-900">{title}</h3>}
         </div>
       )}
       <div className="p-6">{children}</div>

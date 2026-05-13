@@ -42,7 +42,7 @@ export function StoreCustomDomainForm({
     <section className="border border-zinc-200 bg-white rounded-xl overflow-hidden">
       <div className="px-6 pt-5 pb-4 border-b border-zinc-200/70">
         <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">Domaine</p>
-        <h3 className="mt-1 text-base font-serif text-zinc-900">
+        <h3 className="mt-1 text-base font-semibold tracking-tight text-zinc-900">
           Domaine <em className="italic text-zinc-500">personnalisé</em>
         </h3>
         <p className="mt-1.5 text-xs text-zinc-500 max-w-2xl">

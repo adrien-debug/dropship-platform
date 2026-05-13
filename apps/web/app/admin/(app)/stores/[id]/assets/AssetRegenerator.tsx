@@ -203,7 +203,7 @@ export function AssetRegenerator({
           <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">
             {kind}
           </p>
-          <h3 className="mt-1 text-base font-serif text-zinc-900">{label.title}</h3>
+          <h3 className="mt-1 text-base font-semibold tracking-tight text-zinc-900">{label.title}</h3>
           <p className="mt-1.5 text-xs text-zinc-500 max-w-2xl">{label.hint}</p>
         </div>
         <button
