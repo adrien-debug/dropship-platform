@@ -52,10 +52,10 @@ export function PageHeader({
         {kicker && (
           <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">{kicker}</p>
         )}
-        <h1 className="mt-1 text-4xl sm:text-5xl font-extrabold tracking-[-0.035em] text-zinc-900 leading-[1.02]">
+        <h1 className="mt-1 text-3xl sm:text-4xl xl:text-5xl font-extrabold tracking-[-0.035em] text-zinc-900 leading-[1.02]">
           {title}
         </h1>
-        {lede && <p className="mt-2 text-sm text-zinc-500 max-w-2xl leading-relaxed">{lede}</p>}
+        {lede && <p className="mt-1.5 text-sm text-zinc-500 max-w-2xl leading-relaxed hidden xl:block">{lede}</p>}
       </div>
       {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
     </header>
@@ -74,12 +74,12 @@ export function StatCard({
   tone?: Tone;
 }) {
   return (
-    <div className="border border-zinc-200 bg-white rounded-2xl px-6 py-5 hover:border-zinc-300 transition-colors shadow-sm">
+    <div className="border border-zinc-200 bg-white rounded-2xl px-5 py-4 xl:px-6 xl:py-5 hover:border-zinc-300 transition-colors shadow-sm">
       <div className="flex items-center gap-2 text-kicker uppercase tracking-cta text-zinc-400 font-medium">
-        <span className="inline-block w-1.5 h-1.5 rounded-full bg-zinc-200" aria-hidden />
+        <span className="inline-block w-1.5 h-1.5 rounded-full bg-indigo-500" aria-hidden />
         {label}
       </div>
-      <div className={cn('mt-3 text-4xl font-bold tracking-[-0.03em]', valueTone[tone])}>{value}</div>
+      <div className={cn('mt-2 text-3xl xl:text-4xl font-bold tracking-[-0.03em]', valueTone[tone])}>{value}</div>
       {hint && <div className="mt-1.5 text-xs text-zinc-400">{hint}</div>}
     </div>
   );
@@ -108,14 +108,14 @@ export function SectionCard({
   return (
     <section className={cn('border border-zinc-200 bg-white rounded-2xl shadow-sm', className)}>
       {(kicker || title) && (
-        <div className="px-6 pt-6 pb-5 border-b border-zinc-100">
+        <div className="px-5 pt-5 pb-4 xl:px-6 xl:pt-6 xl:pb-5 border-b border-zinc-100">
           {kicker && (
             <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">{kicker}</p>
           )}
-          {title && <h3 className="mt-1 text-xl font-bold tracking-[-0.02em] text-zinc-900">{title}</h3>}
+          {title && <h3 className="mt-1 text-lg xl:text-xl font-semibold tracking-[-0.02em] text-zinc-900">{title}</h3>}
         </div>
       )}
-      <div className="p-6">{children}</div>
+      <div className="p-5 xl:p-6">{children}</div>
     </section>
   );
 }

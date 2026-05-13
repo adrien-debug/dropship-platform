@@ -1,15 +1,7 @@
 import Link from 'next/link';
-import {
-  Sparkles,
-  Package,
-  BarChart3,
-  Settings,
-  type LucideIcon,
-} from 'lucide-react';
 import { getDbRead } from '@/lib/db';
-import { PageHeader, StatCard, StatusPill, SectionCard, type Tone } from '../_components/AdminUI';
+import { PageHeader, StatCard, SectionCard } from '../_components/AdminUI';
 import { StoreLogo } from '@/components/ui';
-import { runAnomalyWatch } from '@/lib/ops/anomaly-watch';
 import { cn } from '@/lib/utils/cn';
 
 export const dynamic = 'force-dynamic';
@@ -81,7 +73,7 @@ function pct(num: number, denom: number): string {
 export default async function PortfolioDashboard() {
   const db = getDbRead();
 
-  const [stores, revenue, funnel, topStores, cost, anomalies] = await Promise.all([
+  const [stores, revenue, funnel, topStores, cost] = await Promise.all([
     safeQuery<StoresRow>(
       async () => {
         const { rows } = await db.query<StoresRow>(
@@ -169,19 +161,6 @@ export default async function PortfolioDashboard() {
       { total_cost_eur: '0', runs: 0, errors: 0, avg_cost_per_run: '0' },
     ),
 
-    safeQuery(
-      async () => runAnomalyWatch(),
-      {
-        ok: true as const,
-        generated_at: new Date().toISOString(),
-        total: 0,
-        counts: { stranded: 0, stuck: 0, errors: 0 },
-        stranded: [],
-        stuck: [],
-        errors: [],
-        warnings: [],
-      },
-    ),
   ]);
 
   const revenue30dCents = Number(revenue.revenue_30d_cents);
@@ -191,15 +170,12 @@ export default async function PortfolioDashboard() {
   const orders30d = revenue.orders_30d;
   const orders7d = revenue.orders_7d;
 
-  const alertsCount =
-    anomalies.stranded.length + anomalies.stuck.length + anomalies.errors.length;
-
   const totalCost = Number(cost.total_cost_eur || 0);
   const avgPerRun = Number(cost.avg_cost_per_run || 0);
   const errorRate = cost.runs ? (cost.errors / cost.runs) * 100 : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <PageHeader
         kicker="Portfolio"
         title={<span>Vue <em className="italic text-zinc-400">d&apos;ensemble</em></span>}
@@ -207,7 +183,7 @@ export default async function PortfolioDashboard() {
       />
 
       {/* Row 1 — store + revenue snapshot */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 xl:gap-4">
         <Link href="/admin/stores" className="block hover:opacity-90 transition-opacity">
           <StatCard
             label="Stores actifs"
@@ -242,66 +218,10 @@ export default async function PortfolioDashboard() {
         />
       </div>
 
-      {/* Row 2 — alerts banner */}
-      <SectionCard
-        kicker={alertsCount === 0 ? 'Statut ops' : `${alertsCount} alerte${alertsCount > 1 ? 's' : ''}`}
-        title={
-          alertsCount === 0 ? (
-            <span className="text-indigo-600">
-              Tout est sous contrôle <em className="italic text-zinc-400 font-light">(aucune anomalie)</em>
-            </span>
-          ) : (
-            <span className="text-zinc-500">
-              Anomalies à traiter <em className="italic text-zinc-400 font-light">(détectées par le watcher)</em>
-            </span>
-          )
-        }
-      >
-        <div className="px-6 py-5 space-y-2">
-          {alertsCount === 0 && (
-            <p className="text-sm text-zinc-400">
-              Aucun forward AliExpress en erreur, aucune commande Stripe orpheline, aucun token API expiré.
-            </p>
-          )}
-          {anomalies.stranded.slice(0, 5).map((a) => (
-            <AlertRow
-              key={`s-${a.medusa_order_id}`}
-              tone="red"
-              label="Forward AE bloqué"
-              detail={`Commande ${a.medusa_order_id.slice(0, 8)}… · ${Math.round(a.age_days)}j sans paiement (annulation AE proche)`}
-              href={`/admin/orders`}
-            />
-          ))}
-          {anomalies.stuck.slice(0, 5).map((a) => (
-            <AlertRow
-              key={`p-${a.medusa_order_id}`}
-              tone="amber"
-              label="Stripe payé sans forward"
-              detail={`Commande ${a.medusa_order_id.slice(0, 8)}… · ${Math.round(a.age_hours)}h depuis paiement`}
-              href={`/admin/orders`}
-            />
-          ))}
-          {anomalies.errors.slice(0, 5).map((a) => (
-            <AlertRow
-              key={`e-${a.medusa_order_id}`}
-              tone="red"
-              label="Forward en erreur"
-              detail={`Commande ${a.medusa_order_id.slice(0, 8)}… · ${a.error_message?.slice(0, 80) || 'erreur inconnue'}`}
-              href={`/admin/orders`}
-            />
-          ))}
-          {anomalies.warnings.length > 0 && (
-            <p className="text-xs text-zinc-400 italic mt-3">
-              {anomalies.warnings.join(' · ')}
-            </p>
-          )}
-        </div>
-      </SectionCard>
-
       {/* Row 3 — top stores + funnel + cost */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 xl:gap-4">
         <SectionCard kicker="Performance 7j" title={<span>Top <em className="italic text-zinc-400">stores</em></span>}>
-          <div className="p-6 space-y-3">
+          <div className="space-y-2">
             {topStores.length === 0 && (
               <p className="text-sm text-zinc-400">Aucun store actif avec des ventes 7j.</p>
             )}
@@ -311,7 +231,7 @@ export default async function PortfolioDashboard() {
                 href={`/admin/stores`}
                 className="flex items-center gap-3 -mx-2 px-2 py-1.5 rounded-md hover:bg-zinc-100 transition-colors"
               >
-                <span className="text-zinc-600 inline-flex"><StoreLogo emoji={s.logo_emoji} size={20} /></span>
+                <span className="text-indigo-600 inline-flex"><StoreLogo emoji={s.logo_emoji} size={20} /></span>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium text-zinc-900 truncate">{s.name}</div>
                   <div className="text-xs text-zinc-400 truncate">/shop/{s.slug}</div>
@@ -330,7 +250,7 @@ export default async function PortfolioDashboard() {
         </SectionCard>
 
         <SectionCard kicker="Funnel 30j" title={<span>Conversion <em className="italic text-zinc-400">globale</em></span>}>
-          <div className="p-6">
+          <div>
             <FunnelBar label="View content" value={funnel.view_content} reference={funnel.view_content} tone="neutral" />
             <FunnelBar label="Add to cart" value={funnel.add_to_cart} reference={funnel.view_content} tone="blue" />
             <FunnelBar label="Initiate checkout" value={funnel.initiate_checkout} reference={funnel.view_content} tone="amber" />
@@ -345,7 +265,7 @@ export default async function PortfolioDashboard() {
         </SectionCard>
 
         <SectionCard kicker="Coût Claude 30j" title={<span>Observabilité <em className="italic text-zinc-400">agent</em></span>}>
-          <div className="p-6 space-y-4">
+          <div className="space-y-3">
             <div>
               <div className="text-3xl font-semibold tracking-tight text-zinc-900">
                 {totalCost.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
@@ -382,44 +302,11 @@ export default async function PortfolioDashboard() {
         </SectionCard>
       </div>
 
-      {/* Quick links */}
-      <SectionCard kicker="Actions" title={<span>Raccourcis <em className="italic text-zinc-400">opérations</em></span>}>
-        <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-3">
-          <QuickLink href="/admin/stores/new" Icon={Sparkles} label="Créer un store" hint="Agent en 25-40s" />
-          <QuickLink href="/admin/orders" Icon={Package} label="Commandes" hint="Forwards AE" />
-          <QuickLink href="/admin/observability" Icon={BarChart3} label="Observabilité" hint="Coûts IA" />
-          <QuickLink href="/admin/settings" Icon={Settings} label="Réglages" hint="Tokens & ops" />
-        </div>
-      </SectionCard>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-
-function AlertRow({
-  tone,
-  label,
-  detail,
-  href,
-}: {
-  tone: Tone;
-  label: string;
-  detail: string;
-  href: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="flex items-start gap-3 -mx-2 px-2 py-2 rounded-md hover:bg-zinc-100 transition-colors"
-    >
-      <span className="mt-0.5">
-        <StatusPill tone={tone}>{label}</StatusPill>
-      </span>
-      <span className="text-xs text-zinc-600 leading-relaxed flex-1">{detail}</span>
-    </Link>
-  );
-}
 
 function FunnelBar({
   label,
@@ -433,14 +320,15 @@ function FunnelBar({
   tone: 'neutral' | 'blue' | 'amber' | 'emerald';
 }) {
   const ratio = reference > 0 ? Math.min(1, value / reference) : 0;
+  // Gradient d'intensité sur l'accent : du plus foncé (top of funnel) au plus clair (bottom)
   const barColor = {
-    neutral: 'bg-ds-text-muted',
-    blue: 'bg-[var(--accent-blue)]',
-    amber: 'bg-[#d97706]',
-    emerald: 'bg-[#16a34a]',
+    neutral: 'bg-indigo-200',
+    blue:    'bg-indigo-400',
+    amber:   'bg-indigo-500',
+    emerald: 'bg-indigo-600',
   }[tone];
   return (
-    <div className="mb-3 last:mb-0">
+    <div className="mb-2.5 last:mb-0">
       <div className="flex justify-between text-xs mb-1">
         <span className="text-zinc-600">{label}</span>
         <span className="font-medium text-zinc-900">
@@ -451,31 +339,9 @@ function FunnelBar({
         </span>
       </div>
       <div className="h-2 bg-zinc-100 rounded-full overflow-hidden">
-        <div className={cn('h-full', barColor)} style={{ width: `${ratio * 100}%`, opacity: 0.7 }} />
+        <div className={cn('h-full', barColor)} style={{ width: `${ratio * 100}%` }} />
       </div>
     </div>
   );
 }
 
-function QuickLink({
-  href,
-  Icon,
-  label,
-  hint,
-}: {
-  href: string;
-  Icon: LucideIcon;
-  label: string;
-  hint: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="group border border-zinc-200 hover:border-zinc-300 rounded-xl px-4 py-3 transition-colors bg-white hover:bg-zinc-100"
-    >
-      <Icon size={22} strokeWidth={1.5} className="text-zinc-600 group-hover:text-zinc-900 mb-2 transition-colors" aria-hidden />
-      <div className="text-sm font-medium text-zinc-900">{label}</div>
-      <div className="text-xs text-zinc-400">{hint}</div>
-    </Link>
-  );
-}
