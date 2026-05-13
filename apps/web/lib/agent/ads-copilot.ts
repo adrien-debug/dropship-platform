@@ -15,6 +15,7 @@ import { falGenerateImage } from './fal-client';
 import { uploadToR2, isR2Configured } from '@/lib/storage/r2';
 import { pushMetaCampaign, isMetaAdsConfigured } from '@/lib/ads/meta-ads';
 import { pushTiktokCampaign, isTiktokAdsConfigured } from '@/lib/ads/tiktok-ads';
+import { pushGoogleAdsCampaign, isGoogleAdsConfigured } from '@/lib/ads/google-ads';
 
 const ADS_MODEL = 'claude-sonnet-4-6';
 
@@ -52,6 +53,12 @@ const PublishMetaInput = z.object({
 });
 
 const PublishTiktokInput = z.object({
+  variant_id: z.string().uuid(),
+  daily_budget_eur: z.number().positive().min(1).max(10_000),
+  days: z.number().int().positive().max(90),
+});
+
+const PublishGoogleInput = z.object({
   variant_id: z.string().uuid(),
   daily_budget_eur: z.number().positive().min(1).max(10_000),
   days: z.number().int().positive().max(90),
@@ -148,6 +155,20 @@ const TOOLS: Anthropic.Messages.Tool[] = [
         variant_id: { type: 'string', description: 'UUID of dropship_ad_variants.' },
         daily_budget_eur: { type: 'number', description: 'Daily budget in euros.' },
         days: { type: 'number', description: 'Number of days to run.' },
+      },
+      required: ['variant_id', 'daily_budget_eur', 'days'],
+    },
+  },
+  {
+    name: 'publish_to_google',
+    description:
+      "Publish a Search campaign on Google Ads (Budget + Campaign + AdGroup + Responsive Search Ad). The campaign is created in PAUSED state on first push so the operator activates it manually in Google Ads UI after a final visual check — first push must NEVER auto-spend. The operator MUST confirm before calling this.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        variant_id: { type: 'string', description: 'UUID of dropship_ad_variants.' },
+        daily_budget_eur: { type: 'number', description: 'Daily budget in euros (will be set on the budget; campaign starts PAUSED).' },
+        days: { type: 'number', description: 'Number of days the campaign should run once activated.' },
       },
       required: ['variant_id', 'daily_budget_eur', 'days'],
     },
@@ -321,6 +342,7 @@ function buildSystemPrompt(store: StoreContext): string {
     '- estimate_budget: quick CPM-based forecast for a daily budget over N days.',
     '- **publish_to_meta** : LIVE PUSH on Meta Marketing API (Facebook + Instagram). Creates real campaign + adset + ad spending real money. REQUIRES explicit confirmation from the operator before calling. Variant must have headline + primary_text + image_url + targeting filled in (run generate_visual + suggest_targeting first if missing).',
     '- **publish_to_tiktok** : LIVE PUSH on TikTok Ads API. Same confirmation rules.',
+    '- **publish_to_google** : Push a Search campaign on Google Ads (Budget + Campaign + AdGroup + Responsive Search Ad). FIRST PUSH IS ALWAYS CREATED IN PAUSED STATE — the operator activates manually in Google Ads UI. Safer default for the cold-start.',
     '',
     'Launch workflow (the operator paid for an agent that ships ads, not just brainstorms):',
     '1. Identify the winning variant (list_variants).',
@@ -849,6 +871,55 @@ async function execPublishMeta(
   };
 }
 
+async function execPublishGoogle(
+  store: StoreContext,
+  raw: unknown,
+): Promise<ToolExecutionResult> {
+  const input = PublishGoogleInput.parse(raw);
+
+  if (!isGoogleAdsConfigured()) {
+    return {
+      output: { status: 'error', error: 'Google Ads not configured (missing GOOGLE_ADS_* env vars).' },
+      summary: 'Publish Google — configuration manquante',
+    };
+  }
+
+  const loaded = await loadVariantForPush(store, input.variant_id);
+  if (!loaded) {
+    return {
+      output: { status: 'error', error: `Variant ${input.variant_id} not found for store ${store.id}` },
+      summary: 'Publish Google — variante introuvable',
+    };
+  }
+
+  const result = await pushGoogleAdsCampaign({
+    storeId: store.id,
+    storeSlug: store.slug,
+    variantId: loaded.variant.id,
+    headline: loaded.variant.headline,
+    primaryText: loaded.variant.primary_text,
+    description: loaded.variant.description,
+    cta: loaded.variant.cta,
+    imageUrl: loaded.variant.image_url,
+    productUrl: productPublicUrl(store.slug, loaded.product.handle),
+    dailyBudgetEur: input.daily_budget_eur,
+    days: input.days,
+  });
+
+  return {
+    output: {
+      status: result.status,
+      external_id: result.externalId,
+      campaign_db_id: result.campaignDbId,
+      error: result.error,
+    },
+    summary:
+      result.status === 'paused'
+        ? `Google ✓ Campagne créée en PAUSED (${result.externalId}). À activer manuellement dans Google Ads.`
+        : `Google — ${result.status}${result.error ? ` : ${result.error}` : ''}`,
+  };
+}
+
 async function execPublishTiktok(
   store: StoreContext,
   raw: unknown,
@@ -927,7 +998,8 @@ type ToolName =
   | 'suggest_targeting'
   | 'estimate_budget'
   | 'publish_to_meta'
-  | 'publish_to_tiktok';
+  | 'publish_to_tiktok'
+  | 'publish_to_google';
 
 async function executeTool(
   name: string,
@@ -951,6 +1023,8 @@ async function executeTool(
       return execPublishMeta(store, input);
     case 'publish_to_tiktok':
       return execPublishTiktok(store, input);
+    case 'publish_to_google':
+      return execPublishGoogle(store, input);
     default:
       throw new Error(`Tool inconnu: ${name}`);
   }
