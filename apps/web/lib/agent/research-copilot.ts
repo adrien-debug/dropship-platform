@@ -70,6 +70,11 @@ const SupplierSearchInput = z.object({
   limit: z.number().int().min(1).max(20).optional().default(10),
 });
 
+const AdBenchmarksInput = z.object({
+  niche: z.string().min(2).max(120),
+  country: z.enum(['FR', 'BE', 'CH', 'CA', 'US', 'UK']).optional().default('FR'),
+});
+
 const FeaturedProductInput = z.object({
   supplier: z.enum(['aliexpress', 'cj']),
   supplier_product_id: z.string().min(1).max(80),
@@ -220,6 +225,19 @@ const TOOLS: Anthropic.Messages.Tool[] = [
         limit: { type: 'number', description: 'Max results (1-20, default 10).' },
       },
       required: ['query'],
+    },
+  },
+  {
+    name: 'search_ad_benchmarks',
+    description:
+      'Recherche les benchmarks publicitaires réels (CPM, CPC, CPA moyen) pour une niche donnée sur Meta Ads (Facebook/Instagram), TikTok Ads, Google Ads et Pinterest Ads. À appeler OBLIGATOIREMENT avant shortlist_niche pour calibrer le media_plan avec des chiffres sourcés. Retourne les fourchettes de coûts, le canal le plus efficace pour la niche, et les créneaux horaires/jours optimaux si disponibles.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        niche: { type: 'string', description: 'Niche exacte (ex: "brumisateur nano visage", "veilleuse enfant silicone").' },
+        country: { type: 'string', enum: ['FR', 'BE', 'CH', 'CA', 'US', 'UK'], description: 'Marché cible, défaut FR.' },
+      },
+      required: ['niche'],
     },
   },
   {
@@ -688,10 +706,11 @@ function buildSystemPrompt(): string {
     '1. **Saturation check** — call meta_ads_library on the candidate niche. Reject niches with saturation > 75.',
     '2. **Supply check** — call aliexpress_search (and cj_search if relevant). Pick the strongest candidate: cost in EUR cents, ≥30 orders for social proof, rating ≥85%.',
     '3. **Market price benchmark — NON OPTIONAL**. Call web_search OR ask_perplexity to find the real retail price the product sells for on the French market (Amazon FR, established DTC competitors, prix moyen constaté). The `suggested_price_cents` returned by the supplier tools is a naive cost × 2.2 estimate — IGNORE IT for the operator-facing price.',
-    '4. **Unit economics check** — compute three pricing scenarios (aggressive / balanced / premium) with: retail TTC, shipping ~2€, cost, gross margin €. Then qualify each: CPA-cible (estimate from saturation), ROAS attendu, viability "FB Ads débutant" vs "branding requis".',
-    '5. **Bundle strategy** — if unit retail < 30€, propose a 2-unit and 3-unit bundle to lift AOV. State the expected AOV after bundles.',
-    '6. **Storefront shape** — decide `suggested_mode` ("mono" for one hero SKU long-form, "collection" for 3-6 curated pieces) AND `suggested_template` (one of: mono / collection-grid / collection-editorial / luxury-minimal / gen-z-bold) based on the niche vibe. The operator should NOT have to re-pick.',
-    '7. **Media plan — DO NOT SKIP**. Produce a full `media_plan`: daily_budget_eur, channels (meta/tiktok/google/pinterest with weight_pct summing ~100, expected CPM/CPC/CPA per channel), geo (primary_countries + emphasis cities/régions + rationale), audience (demographics + interests + lookalike_seeds), schedule (best_hours_local + best_days + timezone Europe/Paris by default), expected_outcomes (daily_orders_low/high, target_cpa_eur, target_roas, breakeven_note), and 3 top_hooks. Anchor numbers in saturation + market benchmark. The operator wants to validate the full plan visually BEFORE creating the store.',
+    '4. **Ad cost benchmarks — NON OPTIONAL**. Call `search_ad_benchmarks` with the exact niche and country. This tool fetches real CPM/CPC/CPA data for Meta Ads, TikTok Ads, Google Ads and Pinterest Ads specific to this niche and market. NEVER invent ad costs — use the numbers that come back. If `search_ad_benchmarks` returns data, use it verbatim in your media_plan.',
+    '5. **Unit economics check** — compute three pricing scenarios (aggressive / balanced / premium) with: retail TTC, shipping ~2€, cost, gross margin €. Then qualify each: CPA-cible (from the ad benchmarks data), ROAS attendu, viability "FB Ads débutant" vs "branding requis".',
+    '6. **Bundle strategy** — if unit retail < 30€, propose a 2-unit and 3-unit bundle to lift AOV. State the expected AOV after bundles.',
+    '7. **Storefront shape** — decide `suggested_mode` ("mono" for one hero SKU long-form, "collection" for 3-6 curated pieces) AND `suggested_template` (one of: mono / collection-grid / collection-editorial / luxury-minimal / gen-z-bold) based on the niche vibe. The operator should NOT have to re-pick.',
+    '8. **Media plan — DO NOT SKIP**. Produce a full `media_plan` using the REAL ad cost data from `search_ad_benchmarks`. Channels with weight_pct summing ~100, expected CPM/CPC/CPA per channel (from benchmarks), geo (primary_countries + emphasis cities/régions), audience (demographics + interests + lookalike_seeds), schedule (best_hours_local + best_days + timezone Europe/Paris), expected_outcomes (daily_orders_low/high, target_cpa_eur, target_roas, breakeven_note), and 3 top_hooks. The operator validates this visually BEFORE creating the store.',
     '',
     '- The operator paid Opus 4.7 to do the pricing work — never propose a retail price without having benchmarked it against the market. Never lazily round `cost × 2.2`.',
     '- A healthy gross margin floor is ~12€ on the chosen retail (otherwise FB Ads débutant burns cash). Reject any combo that gives < 10€ margin.',
@@ -845,6 +864,39 @@ async function execCjSearch(raw: unknown): Promise<ToolExecutionResult> {
   };
 }
 
+async function execAdBenchmarks(raw: unknown): Promise<ToolExecutionResult> {
+  const input = AdBenchmarksInput.parse(raw);
+  const country = input.country ?? 'FR';
+  const countryLabel: Record<string, string> = {
+    FR: 'France', BE: 'Belgique', CH: 'Suisse', CA: 'Canada', US: 'États-Unis', UK: 'Royaume-Uni',
+  };
+  const label = countryLabel[country] ?? country;
+
+  const query =
+    `Benchmarks publicitaires e-commerce dropshipping "${input.niche}" ${label} 2025 2026: ` +
+    `Meta Ads (Facebook/Instagram) CPM moyen EUR, CPC moyen EUR, CPA moyen EUR pour ce type de produit; ` +
+    `TikTok Ads CPM moyen EUR, CPC moyen EUR; ` +
+    `Google Shopping / Google Ads CPC moyen EUR; ` +
+    `Pinterest Ads CPM moyen EUR. ` +
+    `Quel canal a le meilleur ROAS pour ce type de produit et pourquoi? ` +
+    `Quels jours de la semaine et créneaux horaires ont les meilleurs taux de conversion pour la beauté/bien-être en ${label}?`;
+
+  try {
+    const result = await perplexityAnswer(query);
+    return {
+      output: { niche: input.niche, country, benchmarks: result.answer, citations: result.citations },
+      summary: `Ad benchmarks "${input.niche}" (${country}) — données coûts Meta/TikTok/Google`,
+    };
+  } catch {
+    // Fallback vers Tavily si Perplexity échoue
+    const results = await tavilySearch({ query, max_results: 5 });
+    return {
+      output: { niche: input.niche, country, benchmarks: results.map((r) => r.snippet).join('\n\n'), citations: results.map((r) => r.url) },
+      summary: `Ad benchmarks "${input.niche}" (${country}) — web search`,
+    };
+  }
+}
+
 function execShortlistNiche(raw: unknown): ToolExecutionResult {
   const input = ShortlistNicheInput.parse(raw);
   const payload: ShortlistPayload = {
@@ -885,6 +937,7 @@ type ToolName =
   | 'meta_ads_library'
   | 'aliexpress_search'
   | 'cj_search'
+  | 'search_ad_benchmarks'
   | 'shortlist_niche';
 
 async function executeTool(name: string, input: unknown): Promise<ToolExecutionResult> {
@@ -899,6 +952,8 @@ async function executeTool(name: string, input: unknown): Promise<ToolExecutionR
       return execAliexpressSearch(input);
     case 'cj_search':
       return execCjSearch(input);
+    case 'search_ad_benchmarks':
+      return execAdBenchmarks(input);
     case 'shortlist_niche':
       return execShortlistNiche(input);
     default:
