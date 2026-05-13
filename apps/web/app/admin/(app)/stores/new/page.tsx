@@ -29,7 +29,7 @@ function NewStoreForm() {
   const [language, setLanguage] = useState<'fr' | 'en'>('fr');
   const [skipVideo, setSkipVideo] = useState(false);
   const [running, setRunning] = useState(false);
-  const [, setLogs] = useState<LogLine[]>([]);
+  const [logs, setLogs] = useState<LogLine[]>([]);
   const [progress, setProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState<string>('');
   const [result, setResult] = useState<{ slug: string; storeName: string; productCount: number } | null>(null);
@@ -260,6 +260,20 @@ function NewStoreForm() {
         onLanguageChange={setLanguage}
         skipVideo={skipVideo}
         onSkipVideoChange={setSkipVideo}
+        creationProgress={
+          running || result || error
+            ? {
+                running,
+                percent: progress,
+                elapsed,
+                currentStep,
+                storeName,
+                logs,
+                result,
+                error,
+              }
+            : null
+        }
       />
     </div>
   );

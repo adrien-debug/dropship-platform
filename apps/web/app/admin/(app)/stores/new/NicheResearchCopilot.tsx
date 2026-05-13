@@ -141,6 +141,17 @@ interface CostSummary {
   cost_eur: number;
 }
 
+export interface CreationProgress {
+  running: boolean;
+  percent: number;
+  elapsed: number;
+  currentStep: string;
+  storeName: string;
+  logs: { id: number; type: string; message: string; ts: string }[];
+  result: { slug: string; storeName: string; productCount: number } | null;
+  error: string | null;
+}
+
 interface Props {
   onApplyShortlist: (payload: ShortlistPayload) => void;
   mode: 'mono' | 'collection';
@@ -149,6 +160,12 @@ interface Props {
   onLanguageChange: (lang: 'fr' | 'en') => void;
   skipVideo: boolean;
   onSkipVideoChange: (skip: boolean) => void;
+  /**
+   * When the parent's create-store SSE stream is running, the live state
+   * is passed here so the copilot can render the progression inline in
+   * the chat (instead of leaving the operator staring at silence).
+   */
+  creationProgress?: CreationProgress | null;
 }
 
 function fmtDate(iso: string) {
@@ -181,6 +198,7 @@ export function NicheResearchCopilot({
   onLanguageChange,
   skipVideo,
   onSkipVideoChange,
+  creationProgress,
 }: Props) {
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -206,11 +224,14 @@ export function NicheResearchCopilot({
     );
   }, []);
 
-  // Stick to bottom whenever messages or streaming flag change.
+  // Stick to bottom whenever messages, streaming flag, or live creation
+  // progress change. The creationProgress object reference changes each
+  // parent render while a store is being created — that's exactly when we
+  // want the inline progress card to remain in view.
   useEffect(() => {
     if (!scrollRef.current) return;
     scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [messages, streaming]);
+  }, [messages, streaming, creationProgress]);
 
   // ── Session loaders ─────────────────────────────────────────────────
   const refreshSessions = useCallback(async () => {
@@ -566,6 +587,7 @@ export function NicheResearchCopilot({
                 <ResearchToolCard key={m.id} message={m} onApplyShortlist={applyShortlist} />
               );
             })}
+            {creationProgress && <CreationProgressInline progress={creationProgress} />}
           </div>
 
           {error && (
@@ -738,6 +760,100 @@ export function NicheResearchCopilot({
 
 // ── Bits & pieces ────────────────────────────────────────────────────
 
+/**
+ * Inline progress card rendered inside the chat scroll area while the
+ * parent's create-store SSE stream is alive. Three modes:
+ *   - running → live spinner, current step, progress bar, step log
+ *   - result  → success banner with "Ouvrir le store" CTA
+ *   - error   → red banner with the error message
+ */
+function CreationProgressInline({ progress }: { progress: CreationProgress }) {
+  const { running, percent, elapsed, currentStep, logs, result, error, storeName } = progress;
+
+  if (result) {
+    return (
+      <div className="flex justify-start">
+        <div className="max-w-[88%] rounded-2xl rounded-tl-md px-4 py-3 text-sm border border-indigo-200 bg-indigo-50/60">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="w-2 h-2 rounded-full bg-indigo-600" aria-hidden />
+            <span className="font-medium text-zinc-900">
+              {result.storeName} est en ligne
+            </span>
+          </div>
+          <p className="text-zinc-600 text-xs mb-3">
+            {result.productCount} produit{result.productCount > 1 ? 's' : ''} importé
+            {result.productCount > 1 ? 's' : ''} · prêt à vendre
+          </p>
+          <a
+            href={`/shop/${result.slug}`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+          >
+            Ouvrir le store →
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-start">
+        <div className="max-w-[88%] rounded-2xl rounded-tl-md px-4 py-3 text-sm border border-rose-200 bg-rose-50/60">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="w-2 h-2 rounded-full bg-rose-500" aria-hidden />
+            <span className="font-medium text-zinc-900">Création interrompue</span>
+          </div>
+          <p className="text-xs text-zinc-600 whitespace-pre-wrap">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!running) return null;
+
+  const recentLogs = logs.slice(-8);
+
+  return (
+    <div className="flex justify-start">
+      <div className="max-w-[88%] w-full rounded-2xl rounded-tl-md px-4 py-3 text-sm border border-indigo-200 bg-white shadow-sm">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse" aria-hidden />
+          <span className="font-medium text-zinc-900 truncate">
+            Création de {storeName || '…'}
+          </span>
+          <span className="ml-auto text-[11px] tabular-nums text-zinc-400 shrink-0">
+            {percent}% · {elapsed}s
+          </span>
+        </div>
+        {currentStep && (
+          <p className="text-xs text-zinc-600 italic mb-2 truncate" title={currentStep}>
+            {currentStep}
+          </p>
+        )}
+        <div className="h-1 w-full rounded-full bg-zinc-100 overflow-hidden">
+          <div
+            className="h-full bg-indigo-600 transition-all duration-300"
+            style={{ width: `${Math.max(2, Math.min(100, percent))}%` }}
+            aria-hidden
+          />
+        </div>
+        {recentLogs.length > 0 && (
+          <ul className="mt-3 space-y-1 text-[11px] text-zinc-500 max-h-32 overflow-y-auto pr-1">
+            {recentLogs.map((l) => (
+              <li key={l.id} className="flex items-start gap-2">
+                <span className="text-zinc-300 mt-px shrink-0">·</span>
+                <span className="break-words">{l.message}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function TypingDots() {
   return (
     <span className="inline-flex items-center gap-1">
@@ -767,7 +883,7 @@ function ResearchToolCard({ message, onApplyShortlist }: ResearchToolCardProps) 
   return (
     <div
       className={`rounded-xl border bg-white text-sm overflow-hidden ${
-        isError ? 'border-zinc-200' : 'border-zinc-200'
+        isError ? 'border-red-200 bg-red-50/20' : 'border-zinc-200'
       }`}
     >
       <button
