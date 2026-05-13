@@ -269,27 +269,32 @@ function NewStoreForm() {
   const canLaunch = !!niche.trim() && !!storeName.trim() && !running;
   const formDisabled = running || !!result;
 
-  // Apply a shortlist payload from the research copilot. Pre-fills niche
-  // and store name, clears any prior validation panel (since the niche
-  // changed), and keeps the existing form 100% functional — the operator
-  // can still tweak any field before pressing "Lancer l'agent".
-  const applyShortlist = useCallback((payload: ShortlistPayload) => {
+  // Apply a shortlist payload from the research copilot — fires
+  // create-store directly. Plain function (no useCallback) so it always
+  // captures the freshest `launch` closure; the cost of an extra child
+  // render is negligible compared to the bug of a stale closure that
+  // silently no-ops.
+  const applyShortlist = (payload: ShortlistPayload) => {
     setValidation(null);
     setValidationError(null);
-    // Operator clicked "Lancer cette niche" on the shortlist card — they
-    // already validated everything visually (mode, template, featured
-    // product, media plan). No need to send them through the legacy form
-    // below; fire create-store immediately with the agent's choices.
     const effMode: 'mono' | 'collection' =
       payload.suggested_mode === 'mono' || payload.suggested_mode === 'collection'
         ? payload.suggested_mode
         : 'mono';
-    void launch({
-      niche: payload.niche,
-      storeName: payload.suggested_store_name,
-      mode: effMode,
+    const niche = payload.niche?.trim();
+    const storeName = payload.suggested_store_name?.trim();
+    if (!niche || !storeName) {
+      console.error('[applyShortlist] payload missing niche/storeName', payload);
+      setError('Shortlist invalide (niche ou nom manquant). Relance une session.');
+      return;
+    }
+    // eslint-disable-next-line no-console
+    console.info('[applyShortlist] launching create-store', { niche, storeName, mode: effMode });
+    launch({ niche, storeName, mode: effMode }).catch((e) => {
+      console.error('[applyShortlist] launch failed', e);
+      setError(e instanceof Error ? e.message : 'Erreur de lancement');
     });
-  }, [launch]);
+  };
 
   return (
     <div className="max-w-5xl space-y-8">
