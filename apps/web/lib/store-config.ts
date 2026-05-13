@@ -45,7 +45,13 @@ export interface StoreConfig {
   customDomain: string | null;
 }
 
-export type StoreTemplate = 'auto' | 'mono' | 'collection-grid' | 'collection-editorial';
+export type StoreTemplate =
+  | 'auto'
+  | 'mono'
+  | 'collection-grid'
+  | 'collection-editorial'
+  | 'luxury-minimal'
+  | 'gen-z-bold';
 
 interface StoreRow {
   id: string;

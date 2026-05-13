@@ -25,6 +25,16 @@ const OPTIONS = [
     label: 'Collection éditoriale',
     hint: '3 à 6 pièces en sections alternées, ton narratif',
   },
+  {
+    value: 'luxury-minimal',
+    label: 'Luxury minimal',
+    hint: 'Noir & blanc, typo Satoshi black, blanc généreux, photos pleine page',
+  },
+  {
+    value: 'gen-z-bold',
+    label: 'Gen-Z bold',
+    hint: 'Couleur saturée full-bleed, gros titres, marquee, grain, motion',
+  },
 ] as const;
 
 type Template = (typeof OPTIONS)[number]['value'];

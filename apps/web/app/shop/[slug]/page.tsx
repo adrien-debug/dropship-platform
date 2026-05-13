@@ -9,6 +9,8 @@ import { StoreLogo } from '@/components/ui';
 import type { StoreTemplate } from '@/lib/store-config';
 import { MonoProductLanding } from './MonoProductLanding';
 import { CollectionEditorialLanding } from './CollectionEditorialLanding';
+import { LuxuryMinimalLanding } from './LuxuryMinimalLanding';
+import { GenZBoldLanding } from './GenZBoldLanding';
 
 export const dynamic = 'force-dynamic';
 
@@ -97,6 +99,26 @@ export default async function ShopPage({ params }: { params: Promise<{ slug: str
         {jsonLdHead}
         <TrackPageView slug={slug} eventName="page_view" />
         <CollectionEditorialLanding store={store} products={products} />
+      </>
+    );
+  }
+
+  if (!error && resolved === 'luxury-minimal' && products.length >= 1) {
+    return (
+      <>
+        {jsonLdHead}
+        <TrackPageView slug={slug} eventName="page_view" />
+        <LuxuryMinimalLanding store={store} products={products} />
+      </>
+    );
+  }
+
+  if (!error && resolved === 'gen-z-bold' && products.length >= 1) {
+    return (
+      <>
+        {jsonLdHead}
+        <TrackPageView slug={slug} eventName="page_view" />
+        <GenZBoldLanding store={store} products={products} />
       </>
     );
   }

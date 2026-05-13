@@ -40,7 +40,12 @@ import * as cj from '@/lib/suppliers/cj';
 import { tavilySearch, isTavilyConfigured } from '@/lib/research/tavily';
 import { perplexityAnswer, isPerplexityConfigured } from '@/lib/research/perplexity';
 
-const RESEARCH_MODEL = 'claude-sonnet-4-6';
+// Niche research is the most strategic step in the pipeline — the choice of
+// niche dictates everything downstream (visuals, copy, ad angles). We run
+// the research loop on Opus 4.7 (vs Sonnet on the other modes) so the
+// reasoning and the shortlist quality are as strong as we can get them.
+// Bounded by MAX_TOOL_LOOPS so a single research session stays under ~$1.
+const RESEARCH_MODEL = 'claude-opus-4-7';
 const MAX_TOOL_LOOPS = 6;
 const MAX_TOOLS_PER_TURN = 8;
 

@@ -72,7 +72,14 @@ const analyticsSchema = z.object({
   googleAdsMerchantId: safeId(/^\d{6,20}$/),
 });
 
-const templateSchema = z.enum(['auto', 'mono', 'collection-grid', 'collection-editorial']);
+const templateSchema = z.enum([
+  'auto',
+  'mono',
+  'collection-grid',
+  'collection-editorial',
+  'luxury-minimal',
+  'gen-z-bold',
+]);
 
 // P1.1: custom domain — apex hostname like "maison-chic.com". Empty string clears it.
 // Accepts: lowercase alphanumeric, hyphens, dots; at least one dot; valid TLD (2+ chars).
