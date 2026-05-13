@@ -37,8 +37,19 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // TikTok Developer Portal domain verification. They issue a token when
+  // you click "Verify URL properties" on the app submission form; we
+  // surface it as a <meta> in the document head. Set
+  // NEXT_PUBLIC_TIKTOK_SITE_VERIFICATION in the Vercel env after copying
+  // the value from TikTok, redeploy, then click Verify in the portal.
+  const tiktokVerif = process.env.NEXT_PUBLIC_TIKTOK_SITE_VERIFICATION;
   return (
     <html lang="fr" className={satoshi.variable}>
+      <head>
+        {tiktokVerif && (
+          <meta name="tiktok-developers-site-verification" content={tiktokVerif} />
+        )}
+      </head>
       <body className="min-h-screen antialiased bg-white text-zinc-900 font-sans">
         {children}
       </body>
