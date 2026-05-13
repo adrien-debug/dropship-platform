@@ -443,10 +443,83 @@ function stringifyToolOutput(out: unknown): string {
 
 // ── System prompt ──────────────────────────────────────────────────────
 
+/**
+ * Compute the current temporal context the agent needs.
+ *
+ * Claude's training cutoff is mid-2025; without an anchor it will hallucinate
+ * dates (operators reported it saying "we're in mid-November" while it was
+ * May). We inject the actual server clock + the upcoming commercial events
+ * so seasonal recommendations (Noël, Black Friday, fête des mères…) are
+ * grounded in reality.
+ */
+export function buildTemporalContext(): string {
+  const now = new Date();
+  const isoDate = now.toISOString().slice(0, 10);
+  const longFr = now.toLocaleDateString('fr-FR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+  const month = now.getMonth(); // 0-11
+  const day = now.getDate();
+  const year = now.getFullYear();
+
+  const SEASON_BY_MONTH = [
+    'hiver', 'hiver',                                  // jan, feb
+    'printemps', 'printemps', 'printemps',             // mar, apr, may
+    'été', 'été', 'été',                                // jun, jul, aug
+    'automne', 'automne', 'automne',                   // sep, oct, nov
+    'hiver',                                           // dec
+  ];
+  const season = SEASON_BY_MONTH[month];
+
+  // Upcoming commercial events relevant for dropshipping in FR.
+  // Roughly ordered by date. We surface the next 2 within ~90 days.
+  const events: Array<{ date: Date; label: string }> = [
+    { date: new Date(year, 0, 6),  label: 'soldes d\'hiver (FR, début janvier)' },
+    { date: new Date(year, 1, 14), label: 'Saint-Valentin (14 février)' },
+    { date: new Date(year, 4, 25), label: 'fête des mères FR (dernier dim. mai)' },
+    { date: new Date(year, 5, 1),  label: 'soldes d\'été (FR, fin juin → fin juillet)' },
+    { date: new Date(year, 5, 16), label: 'fête des pères FR (3e dim. juin)' },
+    { date: new Date(year, 8, 1),  label: 'rentrée scolaire (début septembre)' },
+    { date: new Date(year, 9, 31), label: 'Halloween (31 octobre)' },
+    { date: new Date(year, 10, 28),label: 'Black Friday (dernier vendredi nov.)' },
+    { date: new Date(year, 11, 2), label: 'Cyber Monday (lundi suivant Black Friday)' },
+    { date: new Date(year, 11, 25),label: 'Noël (25 décembre)' },
+  ];
+  const upcoming = events
+    .map((e) => ({ ...e, daysAway: Math.round((e.date.getTime() - now.getTime()) / 86_400_000) }))
+    .filter((e) => e.daysAway >= -7 && e.daysAway <= 100)
+    .sort((a, b) => a.daysAway - b.daysAway)
+    .slice(0, 3)
+    .map((e) => `${e.label} ${e.daysAway >= 0 ? `dans ${e.daysAway}j` : `il y a ${-e.daysAway}j`}`)
+    .join(' · ');
+
+  return [
+    '=== Temporal context (server clock, do not override) ===',
+    `Aujourd'hui : ${longFr} (ISO ${isoDate}). Mois en cours : ${monthFr(month)} ${year}. Saison : ${season}.`,
+    upcoming
+      ? `Événements commerciaux proches : ${upcoming}.`
+      : 'Aucun événement commercial majeur dans les 100 prochains jours.',
+    `Jour ${day} du mois. NEVER assume a different date or month. NEVER say "on est en novembre" unless ISO date confirms it. If a temporal claim matters (trend "actuel", produit "tendance", saisonnalité), call web_search with a query that includes the current year (${year}) before answering.`,
+    '=== End temporal context ===',
+  ].join('\n');
+}
+
+function monthFr(monthIndex: number): string {
+  return [
+    'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+    'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre',
+  ][monthIndex] ?? 'mois';
+}
+
 function buildSystemPrompt(): string {
   const tavilyOk = isTavilyConfigured();
   const perplexityOk = isPerplexityConfigured();
   return [
+    buildTemporalContext(),
+    '',
     'You are a senior dropshipping market analyst embedded in the admin of a French AI dropshipping platform.',
     '',
     'Your job is to help the operator find a winning niche BEFORE they create a store. You research via tools (web search, Perplexity, Meta Ads Library, AliExpress / CJ supplier search) and converge on a single recommendation.',

@@ -85,6 +85,7 @@ vi.mock('./research-copilot', () => ({
     buildSystemPrompt: () => 'research-system',
     executeTool: researchExec,
   },
+  buildTemporalContext: () => '=== Temporal context (test) ===\nToday: test\n=== End temporal context ===',
 }));
 
 vi.mock('./curation-copilot', () => ({

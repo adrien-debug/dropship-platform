@@ -33,7 +33,7 @@ import { trackedMessage } from './anthropic';
 import { runContext } from './run-context';
 import { __internals as curationInternals } from './curation-copilot';
 import { __internals as adsInternals } from './ads-copilot';
-import { __internals as researchInternals } from './research-copilot';
+import { __internals as researchInternals, buildTemporalContext } from './research-copilot';
 import {
   DEV_TOOLS,
   DEV_MODEL,
@@ -575,12 +575,21 @@ export async function* runCopilotTurn(
         while (loops < binding.maxToolLoops) {
           loops++;
 
+          // Prepend a temporal anchor so every mode (research / curation /
+          // ads / medias / dev) reasons against the server clock instead of
+          // the model's stale training cutoff. Research already injects it
+          // itself; for the others this is the only injection point.
+          const baseSystem = binding.buildSystem(store);
+          const systemWithTemporal = baseSystem.startsWith('=== Temporal context')
+            ? baseSystem
+            : `${buildTemporalContext()}\n\n${baseSystem}`;
+
           const response = await trackedMessage(
             { step: `copilot-${mode}-turn`, storeId },
             {
               model: binding.model,
               max_tokens: 4096,
-              system: binding.buildSystem(store),
+              system: systemWithTemporal,
               tools: binding.tools,
               messages,
             },
