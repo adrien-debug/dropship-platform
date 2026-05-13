@@ -14,7 +14,7 @@
  * finishes loading is safe — the call is queued and replayed on load.
  */
 
-export type ClientEventName =
+type ClientEventName =
   | 'page_view'
   | 'view_content'
   | 'add_to_cart'
@@ -37,7 +37,7 @@ const TIKTOK_EVENT_MAP: Record<ClientEventName, string> = {
   purchase: 'CompletePayment',
 };
 
-export interface PixelEventParams {
+interface PixelEventParams {
   /** Money amount in major units (e.g. 19.99 for €19.99). */
   value?: number;
   /** ISO 4217 (uppercase). */

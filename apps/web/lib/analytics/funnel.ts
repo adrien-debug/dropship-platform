@@ -20,7 +20,7 @@ export type FunnelEventName =
   | 'initiate_checkout'
   | 'purchase';
 
-export interface UtmAttribution {
+interface UtmAttribution {
   utm_source?: string;
   utm_medium?: string;
   utm_campaign?: string;
@@ -129,7 +129,7 @@ export function ensureSessionId(cookieValue: string | undefined): { id: string; 
  * Bag of params commonly threaded through cart/checkout routes — keeps
  * the wiring concise.
  */
-export interface FunnelContext {
+interface FunnelContext {
   store: StoreConfig;
   sessionId: string;
   attribution: UtmAttribution;

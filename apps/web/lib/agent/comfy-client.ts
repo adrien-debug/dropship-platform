@@ -47,12 +47,12 @@
  * deployment selection are invisible above this layer.
  */
 
-export interface WorkflowInputs {
+interface WorkflowInputs {
   /** Prompt slot name → value. The workflow defines which slots exist. */
   [key: string]: string | number | boolean;
 }
 
-export interface WorkflowResult {
+interface WorkflowResult {
   /** Base64-encoded image bytes if the workflow produced an image. */
   images: Buffer[];
   /** Base64-encoded MP4 if the workflow produced a video. */
@@ -67,7 +67,7 @@ export interface WorkflowResult {
   deploymentId: string;
 }
 
-export type ComfyBackend = 'deploy' | 'local' | 'none';
+type ComfyBackend = 'deploy' | 'local' | 'none';
 
 function detectBackend(): ComfyBackend {
   if (process.env.COMFY_DEPLOY_API_KEY) return 'deploy';
@@ -331,7 +331,7 @@ async function fetchBinary(url: string): Promise<Buffer | null> {
  * Public surface
  * ============================================================ */
 
-export interface RunOptions {
+interface RunOptions {
   /**
    * Deploy backend: deployment id(s). Accepts a single string (legacy, for
    * one-deployment configs) or an array (round-robin pool).

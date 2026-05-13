@@ -31,7 +31,7 @@ import { extractJson } from '@/lib/agent/json';
  * niche on a fine grain we don't have data for.
  */
 
-export interface NicheValidationResult {
+interface NicheValidationResult {
   /** Saturation index 0-100. Higher = more crowded ad inventory. */
   saturation: number;
   verdict: 'go' | 'caution' | 'no-go';

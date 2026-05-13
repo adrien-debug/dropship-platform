@@ -10,7 +10,7 @@ import { medusa, type MedusaOrder } from '@/lib/medusa';
 import { placeOrder, type AliExpressPlaceOrderInput, type AliExpressLogisticsAddress } from '@/lib/suppliers/aliexpress';
 import { getDb } from '@/lib/db';
 
-export interface OrderAttribution {
+interface OrderAttribution {
   /** Visitor session id — joins dropship_funnel_events.session_id. */
   session_id?: string;
   /** Shared event UUID with the funnel purchase row + Meta/TikTok dedup. */
@@ -19,7 +19,7 @@ export interface OrderAttribution {
   attribution?: Record<string, unknown>;
 }
 
-export interface ForwardOptions {
+interface ForwardOptions {
   dryRun: boolean;
   /** Override the province if the Medusa shipping address has none. AE requires it. */
   provinceOverride?: string;
@@ -34,7 +34,7 @@ export interface ForwardOptions {
   attribution?: OrderAttribution;
 }
 
-export interface ForwardResult {
+interface ForwardResult {
   ok: boolean;
   status: 'dry_run' | 'sent' | 'error';
   forwardId: string;            // dropship_order_forwards.id

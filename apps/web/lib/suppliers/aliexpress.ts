@@ -14,7 +14,7 @@ const APP_SECRET = (process.env.ALIEXPRESS_APP_SECRET || '').trim();
 const API_BASE = 'https://api-sg.aliexpress.com/sync';
 const REST_BASE = 'https://api-sg.aliexpress.com/rest';
 
-export interface AliExpressProduct {
+interface AliExpressProduct {
   product_id: string;
   product_title: string;
   product_main_image_url: string;
@@ -31,7 +31,7 @@ export interface AliExpressProduct {
   thirty_days_sold_count: string;
 }
 
-export interface AliExpressSearchResult {
+interface AliExpressSearchResult {
   current_page_no: number;
   current_record_count: number;
   total_record_count: number;
@@ -99,7 +99,7 @@ async function refreshAccessToken(refreshToken: string): Promise<string | null> 
  * and to Sentry. On success we persist the new access token + expiry (and
  * the new refresh token if AE rotated it).
  */
-export interface AliExpressRefreshResult {
+interface AliExpressRefreshResult {
   ok: boolean;
   access_token?: string;
   expires_at?: number;        // epoch ms (mirrors `aliexpress_token_expires`)
@@ -325,7 +325,7 @@ export interface AliExpressLogisticsAddress {
   address2?: string;
 }
 
-export interface AliExpressOrderItem {
+interface AliExpressOrderItem {
   product_count: number;
   product_id: string;         // AE itemId
   sku_attr?: string;          // optional SKU selector (e.g. "14:175;5:100")
@@ -338,7 +338,7 @@ export interface AliExpressPlaceOrderInput {
   out_order_id: string;       // our id, used for idempotency
 }
 
-export interface AliExpressPlaceOrderResult {
+interface AliExpressPlaceOrderResult {
   success: boolean;
   ae_order_id?: string;
   raw: unknown;

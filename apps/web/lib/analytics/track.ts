@@ -23,7 +23,7 @@ import { clientIp } from '@/lib/rate-limit';
 const SESSION_COOKIE = 'session_id';
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
 
-export interface TrackInput {
+interface TrackInput {
   store: StoreConfig;
   request: Request;
   eventName: FunnelEventName;

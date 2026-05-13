@@ -10,7 +10,7 @@ const API_BASE = 'https://developers.cjdropshipping.com/api2.0/v1';
 let accessToken: string | null = null;
 let tokenExpiresAt = 0;
 
-export interface CJProduct {
+interface CJProduct {
   pid: string;
   productNameEn: string;
   productImage: string;
@@ -28,7 +28,7 @@ export interface CJProduct {
   }[];
 }
 
-export interface CJSearchResult {
+interface CJSearchResult {
   total: number;
   pageNum: number;
   pageSize: number;
