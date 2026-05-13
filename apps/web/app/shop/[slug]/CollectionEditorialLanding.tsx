@@ -118,9 +118,11 @@ export function CollectionEditorialLanding({ store, products }: Props) {
             kicker="La sélection"
             title={
               <>
-                Six pièces, <em className="text-zinc-500">une intention</em>.
+                {displayProducts.length} pièce{displayProducts.length > 1 ? 's' : ''},{' '}
+                <em className="text-zinc-500">une intention</em>.
               </>
             }
+            lede={store.description || undefined}
           />
         </div>
       </Section>
@@ -204,11 +206,16 @@ export function CollectionEditorialLanding({ store, products }: Props) {
         <div className="relative max-w-3xl mx-auto px-6 sm:px-8 lg:px-12 text-center text-white">
           <Kicker tone="inverse">Choisir une pièce</Kicker>
           <Heading level="h1" className="text-white mt-5">
-            La <em className="">collection</em> vous attend.
+            {store.tagline || (
+              <>
+                La <em className="">collection</em> vous attend.
+              </>
+            )}
           </Heading>
           <div className="mt-6">
             <Lede tone="inverse" className="max-w-xl mx-auto">
-              Livraison incluse en France. Trente jours pour essayer. Si une pièce ne vous plaît pas, on la reprend.
+              {store.description ||
+                'Livraison soignée en France métropolitaine. 30 jours pour essayer chez vous. Si une pièce ne vous plaît pas, on la reprend.'}
             </Lede>
           </div>
         </div>

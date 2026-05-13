@@ -4,6 +4,7 @@ import * as aliexpress from '@/lib/suppliers/aliexpress';
 import * as cj from '@/lib/suppliers/cj';
 import { filterByImageQuality, type ImageQualityVerdict } from './image-quality';
 import { generateMonoAssets } from './asset-generator';
+import { writeLandingContent } from './landing-writer';
 import { extractJson } from './json';
 import { trackedMessage } from './anthropic';
 import { runContext } from './run-context';
@@ -599,6 +600,33 @@ export async function* createStore(input: StoreCreationInput): AsyncGenerator<Ag
           branding.logoEmoji, channel.id, apiKey.token, imported, storeId,
         ],
       );
+
+      // Structured landing copy. We run this AFTER the store is marked
+      // active so the storefront is already browseable; templates fall
+      // back to generic strings until landing_content is filled in.
+      // Failure here is non-fatal — the store still works.
+      if (enriched[0]) {
+        emit({ type: 'step', message: 'Rédaction de la landing...' });
+        const heroProduct = enriched[0];
+        try {
+          const landing = await writeLandingContent({
+            storeName: input.storeName,
+            niche: input.niche,
+            tagline: branding.tagline,
+            storeDescription: branding.description,
+            productTitle: heroProduct.enrichedTitle,
+            productDescription: heroProduct.enrichedDescription,
+            mode,
+          });
+          await db.query(
+            `UPDATE dropship_stores SET landing_content = $1 WHERE id = $2`,
+            [JSON.stringify(landing), storeId],
+          );
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : 'erreur inconnue';
+          emit({ type: 'progress', message: `⚠ Landing writer: ${msg}` });
+        }
+      }
 
       // Mono mode: kick off the asset generation pipeline. We do this AFTER
       // the store row is marked 'active' so the storefront is already

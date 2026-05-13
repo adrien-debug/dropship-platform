@@ -43,6 +43,40 @@ export interface StoreConfig {
   template: StoreTemplate;
   // P1.1: custom domain. e.g. "maison-chic.com". Null when not configured.
   customDomain: string | null;
+  // 024: structured copy for the storefront template, generated once at
+  // store creation by lib/agent/landing-writer.ts. Null on legacy stores
+  // that predate the column — templates fall back to generic strings.
+  landingContent: LandingContent | null;
+}
+
+/**
+ * Mirrors the shape used by lib/agent/landing-writer.ts. Kept loose so
+ * legacy / partial fills don't break the storefront.
+ */
+export interface LandingContent {
+  hero?: {
+    kicker?: string;
+    headline_html?: string;
+    lede?: string;
+  };
+  selling_points?: Array<{ title: string; body: string }>;
+  showcase?: {
+    kicker?: string;
+    headline_html?: string;
+    lede?: string;
+  };
+  beach_moment?: {
+    kicker?: string;
+    headline_html?: string;
+  };
+  specs?: Array<{ key: string; value: string }>;
+  trust_promises?: Array<{ title: string; body: string }>;
+  included_items?: Array<{ qty: string; label: string }>;
+  final_cta?: {
+    kicker?: string;
+    headline_html?: string;
+    lede?: string;
+  };
 }
 
 export type StoreTemplate =
@@ -91,6 +125,7 @@ interface StoreRow {
   assets_status: 'none' | 'pending' | 'generating' | 'ready' | 'error';
   template: StoreTemplate;
   custom_domain: string | null;
+  landing_content: unknown; // JSONB — partial LandingContent or null
 }
 
 const STORE_COLUMNS = `
@@ -107,7 +142,7 @@ const STORE_COLUMNS = `
   google_ads_conversion_action, google_merchant_id,
   mode, hero_image_url, cutout_image_url, lifestyle_images,
   promo_video_url, assets_status, template,
-  custom_domain
+  custom_domain, landing_content
 `;
 
 function rowToStore(r: StoreRow): StoreConfig {
@@ -156,6 +191,10 @@ function rowToStore(r: StoreRow): StoreConfig {
     assetsStatus: r.assets_status,
     template: r.template,
     customDomain: r.custom_domain,
+    landingContent:
+      r.landing_content && typeof r.landing_content === 'object'
+        ? (r.landing_content as LandingContent)
+        : null,
   };
 }
 

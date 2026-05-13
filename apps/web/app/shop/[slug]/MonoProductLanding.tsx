@@ -282,13 +282,18 @@ export function MonoProductLanding({ store, product }: Props) {
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,rgba(255,255,255,0.18),transparent_55%)]" />
         <div className="relative max-w-3xl mx-auto px-6 sm:px-8 lg:px-12 text-center text-white">
-          <Kicker tone="inverse">Prêt&nbsp;?</Kicker>
+          <Kicker tone="inverse">{store.landingContent?.final_cta?.kicker || 'Prêt ?'}</Kicker>
           <Heading level="h1" className="text-white mt-5">
-            {store.tagline || product.title}
+            {store.landingContent?.final_cta?.headline_html ? (
+              <span dangerouslySetInnerHTML={{ __html: store.landingContent.final_cta.headline_html }} />
+            ) : (
+              store.tagline || product.title
+            )}
           </Heading>
           <div className="mt-6">
             <Lede tone="inverse" className="max-w-xl mx-auto">
-              {store.description ||
+              {store.landingContent?.final_cta?.lede ||
+                store.description ||
                 `Commandez aujourd'hui, livraison sous 3 à 7 jours en France. 30 jours pour l'essayer chez vous, remboursé si vous changez d'avis.`}
             </Lede>
           </div>
@@ -325,6 +330,17 @@ function deriveSellingPoints(
   product: MonoProductLandingProduct,
   store: StoreConfig,
 ): Array<{ num: string; title: string; body: string }> {
+  // 1. Agent-written landing content wins when available.
+  const fromAgent = store.landingContent?.selling_points;
+  if (Array.isArray(fromAgent) && fromAgent.length >= 3) {
+    return fromAgent.slice(0, 3).map((sp, i) => ({
+      num: String(i + 1).padStart(2, '0'),
+      title: sp.title,
+      body: sp.body,
+    }));
+  }
+
+  // 2. Fall back to splitting the product description into sentences.
   const desc = (product.description || store.description || '').trim();
   const sentences = desc
     .split(/(?<=[.!?])\s+/)
@@ -344,7 +360,7 @@ function deriveSellingPoints(
     ];
   }
 
-  // Generic trust fallback — works for any niche, never reads as wrong.
+  // 3. Generic trust fallback — works for any niche, never reads as wrong.
   return [
     {
       num: '01',
@@ -449,7 +465,8 @@ function HeroSection({
 
           <div className="brisa-fade-2 mt-8 max-w-md">
             <Lede tone="inverse">
-              {store.description ||
+              {store.landingContent?.hero?.lede ||
+                store.description ||
                 product.description?.slice(0, 220) ||
                 product.title}
             </Lede>
