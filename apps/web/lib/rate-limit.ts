@@ -10,6 +10,9 @@ import { getDb } from '@/lib/db';
  * Behaviour:
  * - One bucket per `floor(now / windowSec)`. Atomic UPSERT bumps the counter so
  *   concurrent requests can't race past the limit.
+ * - The atomic check uses a single CTE: INSERT ... ON CONFLICT DO UPDATE, then
+ *   SELECT count in the same statement. This guarantees that two concurrent
+ *   requests see each other's increments — no race condition.
  * - Once we cross `max`, subsequent calls in the same bucket return ok=false
  *   without further DB writes (the SQL still runs, but it's still a single
  *   round-trip — no Redis to add to the stack).
@@ -25,11 +28,17 @@ export async function checkRateLimit(
   const bucket = Math.floor(nowSec / windowSec);
   const db = getDb();
 
+  // Atomic CTE: upsert then read the final count in one round-trip.
+  // The RETURNING from the UPSERT gives us the post-increment count;
+  // concurrent requests are serialized by the row lock.
   const { rows } = await db.query<{ count: number }>(
-    `INSERT INTO dropship_rate_limits (key, bucket, count) VALUES ($1, $2, 1)
+    `WITH upsert AS (
+       INSERT INTO dropship_rate_limits (key, bucket, count) VALUES ($1, $2, 1)
        ON CONFLICT (key, bucket)
        DO UPDATE SET count = dropship_rate_limits.count + 1
-     RETURNING count`,
+       RETURNING count
+     )
+     SELECT count FROM upsert`,
     [key, bucket],
   );
   const count = rows[0]?.count ?? 1;

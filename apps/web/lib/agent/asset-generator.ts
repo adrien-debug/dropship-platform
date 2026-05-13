@@ -27,11 +27,11 @@ import { isR2Configured, uploadToR2 } from '@/lib/storage/r2';
  * Output layout (filesystem mode, kept for parity):
  *
  *   apps/web/public/generated/{slug}/run-{ts}/
- *     hero.png           (1920×1080, cinematic editorial — full-bleed)
- *     cutout.png         (1600×1000, product on dark stage — for ProductShowcase)
- *     lifestyle-1.png    (1600×1000, in-context shot)
- *     lifestyle-2.png    (1600×1000, alt context)
- *     lifestyle-3.png    (1600×1000, alt context)
+ *     hero.png           (~5500×3072, flux-pro/v1.1-ultra + clarity 2× upscale)
+ *     cutout.png         (1024×576, kontext on supplier ref — for ProductShowcase)
+ *     lifestyle-1.png    (1024×576, kontext, in-context shot)
+ *     lifestyle-2.png    (1024×576, kontext, alt context)
+ *     lifestyle-3.png    (1024×576, kontext, alt context)
  *     promo.mp4          (5s, 1080×1920 vertical, image-to-video)
  *
  *   apps/web/public/generated/{slug}/current        (symlink → latest run-*)
@@ -56,6 +56,20 @@ export interface AssetGenInput {
   language?: 'fr' | 'en';
   /** Skip video generation (faster, cheaper). Default false. */
   skipVideo?: boolean;
+  /**
+   * Locked design context — when provided, the prompt builder steers FLUX
+   * toward imagery that matches the storefront's typography mood + palette.
+   * The brand colors here are recommendations to FLUX (atmosphere, accent
+   * lighting), not literal overlays. The reference image still drives the
+   * actual product appearance.
+   */
+  design?: {
+    presetSlug: string;
+    /** One-line mood string sourced from `lib/design/presets.ts → imageryMood`. */
+    imageryMood: string;
+    primaryColor: string;
+    accentColor: string;
+  };
 }
 
 export interface AssetGenOutput {
@@ -108,6 +122,17 @@ async function buildPromptsWithClaude(input: AssetGenInput): Promise<PromptBundl
 Product: "${input.product.title}"
 Niche: "${input.niche}"
 Description excerpt: "${input.product.description.slice(0, 300)}"
+${
+  input.design
+    ? `
+Brand design system (locked — every asset must visually match the storefront):
+- Mood: ${input.design.imageryMood}
+- Primary brand color: ${input.design.primaryColor} (use as the dominant scene tone — wall paint, sky tint, fabric, surface — NOT painted onto the product itself)
+- Accent brand color: ${input.design.accentColor} (one small punctuation element: a single flower, fruit, sweater, fabric square in the corner, glow of a window — used sparingly to tie the scene to the brand)
+- Preset reference: ${input.design.presetSlug}
+`
+    : ''
+}
 
 Write FLUX prompts for a premium DTC landing page (think Apple, Dyson, Bose, On Running). Hard rules:
 
@@ -350,9 +375,12 @@ export async function persistAsset(args: {
  * filesystem subdir. Single source of truth so the regenerator and the
  * initial pipeline stay aligned.
  */
+import { randomUUID } from 'node:crypto';
+
 export function buildRunDirName(): string {
   const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 16);
-  return `run-${ts}-flux-kontext`;
+  const unique = randomUUID().slice(0, 8);
+  return `run-${ts}-${unique}-flux-kontext`;
 }
 
 // Backwards-compatible internal aliases used by generateMonoAssets below.

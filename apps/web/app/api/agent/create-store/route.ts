@@ -6,6 +6,8 @@ import { checkRateLimit, clientIp } from '@/lib/rate-limit';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
+const Hex = z.string().regex(/^#[0-9a-fA-F]{6}$/);
+
 const schema = z.object({
   niche: z.string().min(2).max(100),
   storeName: z.string().min(2).max(80),
@@ -17,6 +19,20 @@ const schema = z.object({
   language: z.enum(['fr', 'en']).optional().default('fr'),
   // Mono mode only: skip the 5s promo video (faster + saves credits).
   skipVideo: z.boolean().optional().default(false),
+  // Design system locked at creation: which preset + the primary/accent the
+  // operator confirmed in the chat. Optional — store-creator falls back to
+  // editorial-serif + neutral palette if missing (legacy callers).
+  designPreset: z
+    .enum([
+      'editorial-serif',
+      'tech-mono',
+      'brutalist-luxe',
+      'gen-z-bold',
+      'lifestyle-warm',
+    ])
+    .optional(),
+  primaryColor: Hex.optional(),
+  accentColor: Hex.optional(),
 });
 
 export async function POST(req: NextRequest) {

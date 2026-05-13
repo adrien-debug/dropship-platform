@@ -5,9 +5,12 @@ import { fal } from '@fal-ai/client';
  * (no COMFY_DEPLOY_API_KEY / no deployment IDs) but FAL_KEY is set.
  *
  * Model choices (locked here so the rest of the pipeline doesn't care):
- *   - Images: `fal-ai/flux-pro/v1.1` with `image_url` for Kontext-style
- *     reference preservation. Cheaper than Kontext, similar quality on
- *     product photography.
+ *   - Hero: `fal-ai/flux-pro/v1.1-ultra` (2752×1536 native 4MP) then
+ *     `fal-ai/clarity-upscaler` 2× → ~5500×3072. Needed because the hero is
+ *     displayed full-bleed; standard 1024-wide renders look pixelated on 4K.
+ *   - Cutout + lifestyles: `fal-ai/flux-pro/kontext` (with supplier ref image)
+ *     or `fal-ai/flux-pro/v1.1` otherwise. landscape_16_9 preset is fine here
+ *     because these assets are displayed at smaller sizes.
  *   - Videos: `fal-ai/kling-video/v2/master/image-to-video` — 5 seconds,
  *     vertical 9:16. Slower (60-90s) but cheap and decent for promo loops.
  *
@@ -45,19 +48,28 @@ export async function falGenerateImage(args: {
   quality?: 'standard' | 'hero';
 }): Promise<Buffer> {
   ensureConfigured();
+  const hero = args.quality === 'hero';
+
+  // Hero path: flux-pro/v1.1-ultra renders natively at 2752×1536 (4MP),
+  // then Clarity Upscaler 2× brings it to ~5500×3072 for crisp full-bleed
+  // display on 4K retina screens. Total cost ~0.07€/hero vs ~0.02€ standard.
+  // The reference image is dropped on this path — ultra doesn't support
+  // image-to-image, but the editorial prompt already carries enough context.
+  if (hero) {
+    const ultraUrl = await falUltraGenerate(args.prompt);
+    return falClarityUpscale(ultraUrl);
+  }
+
+  // Standard path (cutout + 3 lifestyles): kontext when we have a reference
+  // photo of the supplier product, plain v1.1 otherwise.
   const model = args.referenceImageUrl
     ? 'fal-ai/flux-pro/kontext'
     : 'fal-ai/flux-pro/v1.1';
-  const hero = args.quality === 'hero';
   const input: Record<string, unknown> = {
     prompt: args.prompt,
     image_size: 'landscape_16_9',
-    // Hero gets significantly more denoising steps; this is the image
-    // every visitor will see first. Cost stays sub-10 cents per render.
-    num_inference_steps: hero ? 50 : 32,
-    // Slightly higher guidance keeps the product faithful + composition
-    // tight. Above 4.5 we get over-cooked photos.
-    guidance_scale: hero ? 4.0 : 3.5,
+    num_inference_steps: 32,
+    guidance_scale: 3.5,
     output_format: 'png',
     safety_tolerance: '2',
     enable_safety_checker: true,
@@ -73,6 +85,58 @@ export async function falGenerateImage(args: {
   const imageUrl = data.images?.[0]?.url;
   if (!imageUrl) throw new Error('fal: no image returned');
   return fetchBytes(imageUrl);
+}
+
+/**
+ * Render with `fal-ai/flux-pro/v1.1-ultra`. Returns the hosted URL (not bytes)
+ * because the next step (Clarity Upscaler) wants a URL as input — saves one
+ * download/upload round-trip.
+ */
+async function falUltraGenerate(prompt: string): Promise<string> {
+  const result = await fal.subscribe('fal-ai/flux-pro/v1.1-ultra', {
+    input: {
+      prompt,
+      aspect_ratio: '16:9',
+      output_format: 'png',
+      safety_tolerance: '2',
+      raw: false,
+    },
+  });
+  const data = result.data as { images?: { url: string }[] };
+  const url = data.images?.[0]?.url;
+  if (!url) throw new Error('fal: no ultra image returned');
+  return url;
+}
+
+/**
+ * 2× upscale via `fal-ai/clarity-upscaler`. Preserves fine detail (skin,
+ * fabric, product textures) without the smeared-plastic look of naive ESRGAN.
+ * Falls back to fetching the source URL if the upscaler fails — better to
+ * ship a 2752px hero than no hero at all.
+ */
+async function falClarityUpscale(imageUrl: string): Promise<Buffer> {
+  try {
+    const result = await fal.subscribe('fal-ai/clarity-upscaler', {
+      input: {
+        image_url: imageUrl,
+        upscale_factor: 2,
+        creativity: 0.35,
+        resemblance: 0.6,
+        guidance_scale: 4,
+        num_inference_steps: 18,
+      },
+    });
+    const data = result.data as { image?: { url: string } };
+    const upscaledUrl = data.image?.url;
+    if (!upscaledUrl) throw new Error('fal: no upscaled image returned');
+    return fetchBytes(upscaledUrl);
+  } catch (err) {
+    // Clarity sometimes times out or refuses on edge content. Don't fail
+    // the whole store creation over the upscale — the 2752px ultra render
+    // is already sharp enough for most viewports.
+    console.warn('[fal] clarity upscale failed, falling back to ultra-only:', err);
+    return fetchBytes(imageUrl);
+  }
 }
 
 export async function falGenerateVideo(args: {

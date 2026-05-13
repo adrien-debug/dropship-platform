@@ -10,6 +10,7 @@ import { trackedMessage } from './anthropic';
 import { runContext } from './run-context';
 import { rankAndKeepTop } from './product-scorer';
 import { buildMedusaHandle, slugifyTitle } from './handle';
+import { buildPaletteFromPreset, getPreset } from '@/lib/design/presets';
 
 export interface StoreCreationInput {
   niche: string;
@@ -23,6 +24,20 @@ export interface StoreCreationInput {
   mode?: 'mono' | 'collection';
   /** Skip the 5s promo video (faster + cheaper). Only relevant when mode='mono'. */
   skipVideo?: boolean;
+  /**
+   * Design system locked at creation. The chat picker writes these three
+   * fields once and they become the source of truth — every storefront
+   * component reads from `dropship_stores.design_preset` + `.palette`
+   * instead of inventing colors or fonts on each render.
+   */
+  designPreset?:
+    | 'editorial-serif'
+    | 'tech-mono'
+    | 'brutalist-luxe'
+    | 'gen-z-bold'
+    | 'lifestyle-warm';
+  primaryColor?: string;
+  accentColor?: string;
 }
 
 export interface AgentEvent {
@@ -481,6 +496,13 @@ export async function* createStore(input: StoreCreationInput): AsyncGenerator<Ag
         branding = result.branding;
       }
 
+      // Operator-locked palette: if the chat picker confirmed colors, those
+      // OVERRIDE whatever Claude generated during enrichment. The whole point
+      // of the picker is that the operator decides once and nothing else
+      // gets to change them.
+      if (input.primaryColor) branding.primaryColor = input.primaryColor;
+      if (input.accentColor) branding.accentColor = input.accentColor;
+
       emit({ type: 'step', message: 'Création du canal de vente Medusa...' });
       const channel = await medusa.createSalesChannel(
         input.storeName,
@@ -589,17 +611,30 @@ export async function* createStore(input: StoreCreationInput): AsyncGenerator<Ag
         await Promise.all(enriched.slice(i, i + IMPORT_CONCURRENCY).map(importOne));
       }
 
+      // Locked design system: the picker passed (or defaulted) a preset slug.
+      // Resolve it to a curated preset and freeze the palette in DB so every
+      // storefront component reads the same source of truth from now on.
+      const presetSlug = input.designPreset ?? 'editorial-serif';
+      const preset = getPreset(presetSlug);
+      const palette = buildPaletteFromPreset(
+        preset,
+        branding.primaryColor,
+        branding.accentColor,
+      );
+
       await db.query(
         `UPDATE dropship_stores SET
            status = 'active', tagline = $1, description = $2,
            primary_color = $3, secondary_color = $4, accent_color = $5,
            logo_emoji = $6, medusa_sales_channel_id = $7,
-           medusa_publishable_key = $8, product_count = $9, updated_at = now()
-         WHERE id = $10`,
+           medusa_publishable_key = $8, product_count = $9,
+           design_preset = $10, palette = $11, updated_at = now()
+         WHERE id = $12`,
         [
           branding.tagline, branding.description,
           branding.primaryColor, branding.secondaryColor, branding.accentColor,
-          branding.logoEmoji, channel.id, apiKey.token, imported, storeId,
+          branding.logoEmoji, channel.id, apiKey.token, imported,
+          preset.slug, JSON.stringify(palette), storeId,
         ],
       );
 
@@ -653,6 +688,12 @@ export async function* createStore(input: StoreCreationInput): AsyncGenerator<Ag
               niche: input.niche,
               language,
               skipVideo: input.skipVideo,
+              design: {
+                presetSlug: preset.slug,
+                imageryMood: preset.imageryMood,
+                primaryColor: palette.primary,
+                accentColor: palette.accent,
+              },
             },
             (msg) => emit({ type: 'progress', message: msg }),
           );

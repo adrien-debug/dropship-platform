@@ -1,33 +1,36 @@
 import type { ReactNode } from 'react';
+import { cn } from '@/lib/utils/cn';
 
 export type Tone = 'neutral' | 'zinc' | 'amber' | 'emerald' | 'red' | 'blue';
 
 const dotTone: Record<Tone, string> = {
-  neutral: 'bg-zinc-300',
-  zinc: 'bg-zinc-300',
-  amber: 'bg-amber-500',
-  emerald: 'bg-emerald-500',
-  red: 'bg-red-500',
-  blue: 'bg-blue-500',
+  neutral: 'bg-ds-text-muted',
+  zinc: 'bg-ds-text-muted',
+  amber: 'bg-[var(--warning)]',
+  emerald: 'bg-[var(--success)]',
+  red: 'bg-[var(--danger)]',
+  blue: 'bg-[var(--info)]',
 };
 
 const labelTone: Record<Tone, string> = {
-  neutral: 'text-zinc-700',
-  zinc: 'text-zinc-500',
-  amber: 'text-amber-700',
-  emerald: 'text-emerald-700',
-  red: 'text-red-700',
-  blue: 'text-blue-700',
+  neutral: 'text-ds-text-secondary',
+  zinc: 'text-ds-text-muted',
+  amber: 'text-[var(--warning)]',
+  emerald: 'text-[var(--success)]',
+  red: 'text-[var(--danger)]',
+  blue: 'text-[var(--info)]',
 };
 
 const valueTone: Record<Tone, string> = {
-  neutral: 'text-zinc-900',
-  zinc: 'text-zinc-900',
-  amber: 'text-amber-700',
-  emerald: 'text-emerald-700',
-  red: 'text-red-700',
-  blue: 'text-blue-700',
+  neutral: 'text-ds-text-primary',
+  zinc: 'text-ds-text-primary',
+  amber: 'text-[var(--warning)]',
+  emerald: 'text-[var(--success)]',
+  red: 'text-[var(--danger)]',
+  blue: 'text-[var(--info)]',
 };
+
+// ── Dark theme variants ──
 
 export function PageHeader({
   kicker,
@@ -44,10 +47,12 @@ export function PageHeader({
     <header className="flex flex-wrap items-end justify-between gap-4">
       <div className="min-w-0">
         {kicker && (
-          <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">{kicker}</p>
+          <p className="text-kicker uppercase tracking-label text-ds-text-muted font-medium">{kicker}</p>
         )}
-        <h1 className="mt-1 text-4xl sm:text-5xl font-extrabold tracking-[-0.035em] text-zinc-900 leading-[1.02]">{title}</h1>
-        {lede && <p className="mt-2 text-sm text-zinc-500 max-w-2xl leading-relaxed">{lede}</p>}
+        <h1 className="mt-1 text-4xl sm:text-5xl font-extrabold tracking-[-0.035em] text-ds-text-primary leading-[1.02]">
+          {title}
+        </h1>
+        {lede && <p className="mt-2 text-sm text-ds-text-muted max-w-2xl leading-relaxed">{lede}</p>}
       </div>
       {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
     </header>
@@ -66,21 +71,21 @@ export function StatCard({
   tone?: Tone;
 }) {
   return (
-    <div className="border border-zinc-200 bg-white rounded-xl px-5 py-4">
-      <div className="flex items-center gap-2 text-kicker uppercase tracking-cta text-zinc-400 font-medium">
-        <span className="inline-block w-1 h-1 rounded-full bg-zinc-300" aria-hidden />
+    <div className="border border-ds-border-subtle bg-ds-surface-subtle rounded-xl px-5 py-4 hover:border-ds-border-default transition-colors">
+      <div className="flex items-center gap-2 text-kicker uppercase tracking-cta text-ds-text-muted font-medium">
+        <span className="inline-block w-1 h-1 rounded-full bg-ds-text-muted" aria-hidden />
         {label}
       </div>
-      <div className={`mt-2 text-4xl font-bold tracking-[-0.03em] ${valueTone[tone]}`}>{value}</div>
-      {hint && <div className="mt-1 text-xs text-zinc-500">{hint}</div>}
+      <div className={cn('mt-2 text-4xl font-bold tracking-[-0.03em]', valueTone[tone])}>{value}</div>
+      {hint && <div className="mt-1 text-xs text-ds-text-muted">{hint}</div>}
     </div>
   );
 }
 
 export function StatusPill({ tone, children }: { tone: Tone; children: ReactNode }) {
   return (
-    <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${labelTone[tone]}`}>
-      <span className={`inline-block w-1.5 h-1.5 rounded-full ${dotTone[tone]}`} aria-hidden />
+    <span className={cn('inline-flex items-center gap-1.5 text-xs font-medium', labelTone[tone])}>
+      <span className={cn('inline-block w-1.5 h-1.5 rounded-full', dotTone[tone])} aria-hidden />
       {children}
     </span>
   );
@@ -98,13 +103,13 @@ export function SectionCard({
   className?: string;
 }) {
   return (
-    <section className={`border border-zinc-200 bg-white rounded-xl ${className}`}>
+    <section className={cn('border border-ds-border-subtle bg-ds-surface-subtle rounded-xl', className)}>
       {(kicker || title) && (
-        <div className="px-6 pt-5 pb-4 border-b border-zinc-200/70">
+        <div className="px-6 pt-5 pb-4 border-b border-ds-border-subtle">
           {kicker && (
-            <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">{kicker}</p>
+            <p className="text-kicker uppercase tracking-label text-ds-text-muted font-medium">{kicker}</p>
           )}
-          {title && <h3 className="mt-1 text-xl font-bold tracking-[-0.02em] text-zinc-900">{title}</h3>}
+          {title && <h3 className="mt-1 text-xl font-bold tracking-[-0.02em] text-ds-text-primary">{title}</h3>}
         </div>
       )}
       <div className="p-6">{children}</div>
@@ -127,8 +132,8 @@ export function IconButton({
 }) {
   const styles =
     tone === 'danger'
-      ? 'border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300'
-      : 'border-zinc-200 text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900 hover:border-zinc-300';
+      ? 'border-[var(--danger-muted)] text-[var(--danger)] hover:bg-[var(--danger-muted)] hover:border-[var(--danger)]'
+      : 'border-ds-border-subtle text-ds-text-muted hover:bg-ds-surface-default hover:text-ds-text-primary hover:border-ds-border-default';
   return (
     <button
       type="button"
@@ -136,7 +141,10 @@ export function IconButton({
       disabled={disabled}
       aria-label={label}
       title={label}
-      className={`inline-flex items-center justify-center w-9 h-9 rounded-lg border bg-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${styles}`}
+      className={cn(
+        'inline-flex items-center justify-center w-9 h-9 rounded-lg border bg-ds-surface-subtle transition-colors disabled:opacity-40 disabled:cursor-not-allowed',
+        styles,
+      )}
     >
       {children}
     </button>

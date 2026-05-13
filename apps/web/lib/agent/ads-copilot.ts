@@ -16,6 +16,7 @@ import { uploadToR2, isR2Configured } from '@/lib/storage/r2';
 import { pushMetaCampaign, isMetaAdsConfigured } from '@/lib/ads/meta-ads';
 import { pushTiktokCampaign, isTiktokAdsConfigured } from '@/lib/ads/tiktok-ads';
 import { pushGoogleAdsCampaign, isGoogleAdsConfigured } from '@/lib/ads/google-ads';
+import { rebuildMessages } from './copilot-shared';
 
 const ADS_MODEL = 'claude-sonnet-4-6';
 
@@ -175,16 +176,6 @@ const TOOLS: Anthropic.Messages.Tool[] = [
   },
 ];
 
-interface StoredMessage {
-  id: string;
-  role: 'user' | 'assistant' | 'tool';
-  content: string;
-  tool_name: string | null;
-  tool_input: unknown;
-  tool_output: unknown;
-  created_at: string;
-}
-
 interface StoreContext {
   id: string;
   slug: string;
@@ -211,11 +202,16 @@ async function loadStore(storeId: string): Promise<StoreContext | null> {
   return { id: r.id, slug: r.slug, name: r.name, niche: r.niche };
 }
 
-async function loadHistory(sessionId: string): Promise<StoredMessage[]> {
+/**
+ * Load history from the unified copilot_messages table.
+ */
+async function loadHistory(sessionId: string) {
   const db = getDb();
-  const { rows } = await db.query<StoredMessage>(
+  const { rows } = await db.query<
+    import('./copilot-shared').StoredMessage
+  >(
     `SELECT id, role, content, tool_name, tool_input, tool_output, created_at
-       FROM dropship_curation_messages
+       FROM dropship_copilot_messages
        WHERE session_id = $1
        ORDER BY created_at ASC, id ASC`,
     [sessionId],
@@ -223,6 +219,9 @@ async function loadHistory(sessionId: string): Promise<StoredMessage[]> {
   return rows;
 }
 
+/**
+ * Insert a message into the unified copilot_messages table.
+ */
 async function insertMessage(
   sessionId: string,
   msg: {
@@ -235,7 +234,7 @@ async function insertMessage(
 ): Promise<void> {
   const db = getDb();
   await db.query(
-    `INSERT INTO dropship_curation_messages
+    `INSERT INTO dropship_copilot_messages
        (session_id, role, content, tool_name, tool_input, tool_output)
      VALUES ($1,$2,$3,$4,$5,$6)`,
     [
@@ -248,86 +247,9 @@ async function insertMessage(
     ],
   );
   await db.query(
-    `UPDATE dropship_curation_sessions SET updated_at = now() WHERE id = $1`,
+    `UPDATE dropship_copilot_sessions SET updated_at = now() WHERE id = $1`,
     [sessionId],
   );
-}
-
-function rebuildMessages(
-  history: StoredMessage[],
-): Anthropic.Messages.MessageParam[] {
-  const out: Anthropic.Messages.MessageParam[] = [];
-  let pendingToolUses: Array<{ id: string; name: string; input: unknown }> = [];
-  let pendingAssistantText = '';
-
-  const flushAssistant = () => {
-    const blocks: Anthropic.Messages.ContentBlockParam[] = [];
-    if (pendingAssistantText.trim()) {
-      blocks.push({ type: 'text', text: pendingAssistantText });
-    }
-    for (const tu of pendingToolUses) {
-      blocks.push({ type: 'tool_use', id: tu.id, name: tu.name, input: tu.input ?? {} });
-    }
-    if (blocks.length) out.push({ role: 'assistant', content: blocks });
-    pendingAssistantText = '';
-    pendingToolUses = [];
-  };
-
-  for (const row of history) {
-    if (row.role === 'user') {
-      flushAssistant();
-      out.push({ role: 'user', content: row.content });
-    } else if (row.role === 'assistant') {
-      flushAssistant();
-      pendingAssistantText = row.content;
-    } else if (row.role === 'tool') {
-      const useId =
-        row.tool_input && typeof row.tool_input === 'object' && '__tool_use_id' in row.tool_input
-          ? String((row.tool_input as { __tool_use_id?: unknown }).__tool_use_id)
-          : `toolu_${row.id}`;
-      pendingToolUses.push({
-        id: useId,
-        name: row.tool_name ?? 'unknown',
-        input: stripToolUseId(row.tool_input),
-      });
-      flushAssistant();
-      out.push({
-        role: 'user',
-        content: [
-          {
-            type: 'tool_result',
-            tool_use_id: useId,
-            content: stringifyToolOutput(row.tool_output),
-            is_error: Boolean(
-              row.tool_output &&
-                typeof row.tool_output === 'object' &&
-                'error' in (row.tool_output as Record<string, unknown>) &&
-                (row.tool_output as { error?: unknown }).error,
-            ),
-          },
-        ],
-      });
-    }
-  }
-  flushAssistant();
-  return out;
-}
-
-function stripToolUseId(input: unknown): unknown {
-  if (!input || typeof input !== 'object') return input ?? {};
-  const clone = { ...(input as Record<string, unknown>) };
-  delete clone.__tool_use_id;
-  return clone;
-}
-
-function stringifyToolOutput(out: unknown): string {
-  if (out == null) return '';
-  if (typeof out === 'string') return out;
-  try {
-    return JSON.stringify(out);
-  } catch {
-    return String(out);
-  }
 }
 
 function buildSystemPrompt(store: StoreContext): string {
@@ -370,13 +292,7 @@ function buildSystemPrompt(store: StoreContext): string {
 
 // ── Tool executors ──────────────────────────────────────────────────────
 
-interface ToolExecutionResult {
-  output: unknown;
-  summary: string;
-  mutated?: boolean;
-}
-
-async function execListVariants(store: StoreContext, raw: unknown): Promise<ToolExecutionResult> {
+async function execListVariants(store: StoreContext, raw: unknown): Promise<import('./copilot-shared').ToolExecutionResult> {
   ListVariantsInput.parse(raw);
   const db = getDb();
   const { rows } = await db.query<{
@@ -427,7 +343,7 @@ async function execListVariants(store: StoreContext, raw: unknown): Promise<Tool
   };
 }
 
-async function execListProducts(store: StoreContext, raw: unknown): Promise<ToolExecutionResult> {
+async function execListProducts(store: StoreContext, raw: unknown): Promise<import('./copilot-shared').ToolExecutionResult> {
   ListProductsInput.parse(raw);
   const db = getDb();
   const { rows } = await db.query<{
@@ -456,7 +372,7 @@ async function execListProducts(store: StoreContext, raw: unknown): Promise<Tool
   };
 }
 
-async function execRewriteHook(store: StoreContext, raw: unknown): Promise<ToolExecutionResult> {
+async function execRewriteHook(store: StoreContext, raw: unknown): Promise<import('./copilot-shared').ToolExecutionResult> {
   const input = RewriteHookInput.parse(raw);
   const db = getDb();
   const { rows } = await db.query<{
@@ -557,7 +473,7 @@ Retourne UNIQUEMENT ce JSON:
   };
 }
 
-async function execGenerateVisual(store: StoreContext, raw: unknown): Promise<ToolExecutionResult> {
+async function execGenerateVisual(store: StoreContext, raw: unknown): Promise<import('./copilot-shared').ToolExecutionResult> {
   const input = GenerateVisualInput.parse(raw);
   const db = getDb();
   const { rows } = await db.query<{
@@ -609,7 +525,7 @@ async function execGenerateVisual(store: StoreContext, raw: unknown): Promise<To
   };
 }
 
-async function execSuggestTargeting(store: StoreContext, raw: unknown): Promise<ToolExecutionResult> {
+async function execSuggestTargeting(store: StoreContext, raw: unknown): Promise<import('./copilot-shared').ToolExecutionResult> {
   const input = SuggestTargetingInput.parse(raw);
   const db = getDb();
   const { rows } = await db.query<{
@@ -710,7 +626,7 @@ const CONVERSION_RATE: Record<'meta' | 'tiktok' | 'google', { ctr: number; cvr: 
   google: { ctr: 0.04, cvr: 0.03 },
 };
 
-async function execEstimateBudget(store: StoreContext, raw: unknown): Promise<ToolExecutionResult> {
+async function execEstimateBudget(store: StoreContext, raw: unknown): Promise<import('./copilot-shared').ToolExecutionResult> {
   const input = EstimateBudgetInput.parse(raw);
   const channels: Array<'meta' | 'tiktok' | 'google'> = input.channel
     ? [input.channel]
@@ -814,7 +730,7 @@ function productPublicUrl(storeSlug: string, productHandle: string): string {
 async function execPublishMeta(
   store: StoreContext,
   raw: unknown,
-): Promise<ToolExecutionResult> {
+): Promise<import('./copilot-shared').ToolExecutionResult> {
   const input = PublishMetaInput.parse(raw);
 
   if (!isMetaAdsConfigured()) {
@@ -874,7 +790,7 @@ async function execPublishMeta(
 async function execPublishGoogle(
   store: StoreContext,
   raw: unknown,
-): Promise<ToolExecutionResult> {
+): Promise<import('./copilot-shared').ToolExecutionResult> {
   const input = PublishGoogleInput.parse(raw);
 
   if (!isGoogleAdsConfigured()) {
@@ -923,7 +839,7 @@ async function execPublishGoogle(
 async function execPublishTiktok(
   store: StoreContext,
   raw: unknown,
-): Promise<ToolExecutionResult> {
+): Promise<import('./copilot-shared').ToolExecutionResult> {
   const input = PublishTiktokInput.parse(raw);
 
   if (!isTiktokAdsConfigured()) {
@@ -1005,7 +921,7 @@ async function executeTool(
   name: string,
   input: unknown,
   store: StoreContext,
-): Promise<ToolExecutionResult> {
+): Promise<import('./copilot-shared').ToolExecutionResult> {
   switch (name as ToolName) {
     case 'list_variants':
       return execListVariants(store, input);

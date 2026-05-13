@@ -60,13 +60,13 @@ export function StoreAnalyticsForm({ storeId, initial }: Props) {
   }
 
   return (
-    <div className="border rounded-xl bg-white">
+    <div className="border rounded-xl bg-ds-surface-subtle">
       <div className="px-6 py-4 border-b flex items-baseline justify-between">
         <div>
           <h3 className="text-base font-semibold tracking-tight">
-            Analytics & <em className="italic text-zinc-700">attribution</em>
+            Analytics & <em className="italic text-ds-text-secondary">attribution</em>
           </h3>
-          <p className="text-xs text-zinc-500 mt-0.5">
+          <p className="text-xs text-ds-text-muted mt-0.5">
             Les pixels et tags injectés sur la boutique. Tous facultatifs, tous propres à ce store.
           </p>
         </div>
@@ -165,13 +165,13 @@ export function StoreAnalyticsForm({ storeId, initial }: Props) {
         </Group>
       </div>
 
-      <div className="px-6 py-4 border-t bg-zinc-50/60 flex items-center justify-between gap-4">
+      <div className="px-6 py-4 border-t bg-ds-surface-subtle/60 flex items-center justify-between gap-4">
         {feedback ? (
-          <span className={`text-sm ${feedback.type === 'ok' ? 'text-emerald-700' : 'text-red-700'}`}>
+          <span className={`text-sm ${feedback.type === 'ok' ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
             {feedback.msg}
           </span>
         ) : (
-          <span className="text-xs text-zinc-400">
+          <span className="text-xs text-ds-text-muted">
             Champ vide → la valeur est effacée. Champ inchangé → conservé.
           </span>
         )}
@@ -202,10 +202,10 @@ function Group({
   return (
     <section>
       <div className="mb-4">
-        <h4 className={`text-xs uppercase tracking-label font-medium ${tone === 'warn' ? 'text-amber-700' : 'text-zinc-500'}`}>
+        <h4 className={`text-xs uppercase tracking-label font-medium ${tone === 'warn' ? 'text-[var(--warning)]' : 'text-ds-text-muted'}`}>
           {title}
         </h4>
-        {hint && <p className="text-xs text-zinc-400 mt-1">{hint}</p>}
+        {hint && <p className="text-xs text-ds-text-muted mt-1">{hint}</p>}
       </div>
       <div className="space-y-4">{children}</div>
     </section>
@@ -231,7 +231,7 @@ function Field({
 }) {
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-zinc-800 mb-1.5">
+      <label htmlFor={id} className="block text-sm font-medium text-ds-text-primary mb-1.5">
         {label}
       </label>
       <input
@@ -240,11 +240,11 @@ function Field({
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400"
+        className="w-full border border-ds-border-subtle rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400"
         autoComplete="off"
         spellCheck={false}
       />
-      {help && <p className="text-[11px] text-zinc-400 mt-1">{help}</p>}
+      {help && <p className="text-[11px] text-ds-text-muted mt-1">{help}</p>}
     </div>
   );
 }

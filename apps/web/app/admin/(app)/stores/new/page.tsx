@@ -2,9 +2,10 @@
 
 import { apiFetch } from '@/lib/client-fetch';
 
-import { useState, useRef, useEffect, Suspense, useCallback } from 'react';
+import { useState, useRef, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { useNavigation } from '@/components/layout/NavigationContext';
 import {
   Home,
   Smartphone,
@@ -90,6 +91,7 @@ function FieldLabel({
 }
 
 function NewStoreForm() {
+  const { setChatSurface } = useNavigation();
   const searchParams = useSearchParams();
   const [niche, setNiche] = useState('');
   const [storeName, setStoreName] = useState('');
@@ -110,6 +112,12 @@ function NewStoreForm() {
   const counterRef = useRef(0);
   const startTimeRef = useRef(0);
   const detailsEndRef = useRef<HTMLDivElement>(null);
+
+  // Activate research copilot in persistent chat panel
+  useEffect(() => {
+    setChatSurface({ type: 'research-copilot' });
+    return () => { setChatSurface({ type: 'none' }); };
+  }, [setChatSurface]);
 
   // Prefill from query string (used by "recréer ce store" link)
   useEffect(() => {
@@ -159,6 +167,14 @@ function NewStoreForm() {
     maxProducts?: number;
     language?: 'fr' | 'en';
     skipVideo?: boolean;
+    designPreset?:
+      | 'editorial-serif'
+      | 'tech-mono'
+      | 'brutalist-luxe'
+      | 'gen-z-bold'
+      | 'lifestyle-warm';
+    primaryColor?: string;
+    accentColor?: string;
   }) => {
     const eff = {
       niche: overrides?.niche ?? niche,
@@ -167,6 +183,9 @@ function NewStoreForm() {
       maxProducts: overrides?.maxProducts ?? maxProducts,
       language: overrides?.language ?? language,
       skipVideo: overrides?.skipVideo ?? skipVideo,
+      ...(overrides?.designPreset && { designPreset: overrides.designPreset }),
+      ...(overrides?.primaryColor && { primaryColor: overrides.primaryColor }),
+      ...(overrides?.accentColor && { accentColor: overrides.accentColor }),
     };
     if (!eff.niche.trim() || !eff.storeName.trim()) return;
     setRunning(true);
@@ -288,9 +307,27 @@ function NewStoreForm() {
       setError('Shortlist invalide (niche ou nom manquant). Relance une session.');
       return;
     }
+    // The picker writes the operator's choice into design_proposals[0].
+    // Everything downstream reads from that single entry — including the
+    // store-creator UPDATE that freezes design_preset + palette in DB.
+    const chosen = payload.design_proposals?.[0];
     // eslint-disable-next-line no-console
-    console.info('[applyShortlist] launching create-store', { niche, storeName, mode: effMode });
-    launch({ niche, storeName, mode: effMode }).catch((e) => {
+    console.info('[applyShortlist] launching create-store', {
+      niche,
+      storeName,
+      mode: effMode,
+      design: chosen ? `${chosen.preset} (${chosen.primary} / ${chosen.accent})` : 'default',
+    });
+    launch({
+      niche,
+      storeName,
+      mode: effMode,
+      ...(chosen && {
+        designPreset: chosen.preset,
+        primaryColor: chosen.primary,
+        accentColor: chosen.accent,
+      }),
+    }).catch((e) => {
       console.error('[applyShortlist] launch failed', e);
       setError(e instanceof Error ? e.message : 'Erreur de lancement');
     });

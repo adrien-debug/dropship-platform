@@ -19,6 +19,7 @@ import { trackedMessage } from './anthropic';
 import { rankAndKeepTop } from './product-scorer';
 import { buildMedusaHandle } from './handle';
 import { extractJson } from './json';
+import { rebuildMessages } from './copilot-shared';
 
 // Sonnet 4.6 is the lowest priced model in our table that does reliable tool
 // use. Haiku 4.5 is cheaper but in our tests it occasionally invents tool
@@ -147,16 +148,6 @@ const TOOLS: Anthropic.Messages.Tool[] = [
   },
 ];
 
-interface StoredMessage {
-  id: string;
-  role: 'user' | 'assistant' | 'tool';
-  content: string;
-  tool_name: string | null;
-  tool_input: unknown;
-  tool_output: unknown;
-  created_at: string;
-}
-
 interface StoreContext {
   id: string;
   name: string;
@@ -194,11 +185,18 @@ async function loadStore(storeId: string): Promise<StoreContext | null> {
   };
 }
 
-async function loadHistory(sessionId: string): Promise<StoredMessage[]> {
+/**
+ * Load history from the unified copilot_messages table.
+ * The curation-copilot is now part of the unified hub; all per-store
+ * sessions live in dropship_copilot_sessions / dropship_copilot_messages.
+ */
+async function loadHistory(sessionId: string) {
   const db = getDb();
-  const { rows } = await db.query<StoredMessage>(
+  const { rows } = await db.query<
+    import('./copilot-shared').StoredMessage
+  >(
     `SELECT id, role, content, tool_name, tool_input, tool_output, created_at
-       FROM dropship_curation_messages
+       FROM dropship_copilot_messages
        WHERE session_id = $1
        ORDER BY created_at ASC, id ASC`,
     [sessionId],
@@ -206,6 +204,9 @@ async function loadHistory(sessionId: string): Promise<StoredMessage[]> {
   return rows;
 }
 
+/**
+ * Insert a message into the unified copilot_messages table.
+ */
 async function insertMessage(
   sessionId: string,
   msg: {
@@ -218,7 +219,7 @@ async function insertMessage(
 ): Promise<void> {
   const db = getDb();
   await db.query(
-    `INSERT INTO dropship_curation_messages
+    `INSERT INTO dropship_copilot_messages
        (session_id, role, content, tool_name, tool_input, tool_output)
      VALUES ($1,$2,$3,$4,$5,$6)`,
     [
@@ -231,110 +232,9 @@ async function insertMessage(
     ],
   );
   await db.query(
-    `UPDATE dropship_curation_sessions SET updated_at = now() WHERE id = $1`,
+    `UPDATE dropship_copilot_sessions SET updated_at = now() WHERE id = $1`,
     [sessionId],
   );
-}
-
-/**
- * Re-hydrate the stored chat into Anthropic message blocks.
- *
- * Stored rows are flat (`user|assistant|tool`); the Anthropic schema groups
- * tool_use + tool_result into separate assistant/user turns. We reconstruct
- * that pairing by treating sequences of `tool` rows that immediately
- * follow an `assistant` row as the matching tool_result blocks.
- */
-function rebuildMessages(
-  history: StoredMessage[],
-): Anthropic.Messages.MessageParam[] {
-  const out: Anthropic.Messages.MessageParam[] = [];
-
-  let pendingToolUses: Array<{
-    id: string;
-    name: string;
-    input: unknown;
-  }> = [];
-  let pendingAssistantText = '';
-
-  const flushAssistant = () => {
-    const blocks: Anthropic.Messages.ContentBlockParam[] = [];
-    if (pendingAssistantText.trim()) {
-      blocks.push({ type: 'text', text: pendingAssistantText });
-    }
-    for (const tu of pendingToolUses) {
-      blocks.push({
-        type: 'tool_use',
-        id: tu.id,
-        name: tu.name,
-        input: tu.input ?? {},
-      });
-    }
-    if (blocks.length) out.push({ role: 'assistant', content: blocks });
-    pendingAssistantText = '';
-    pendingToolUses = [];
-  };
-
-  for (let i = 0; i < history.length; i++) {
-    const row = history[i]!;
-    if (row.role === 'user') {
-      flushAssistant();
-      out.push({ role: 'user', content: row.content });
-    } else if (row.role === 'assistant') {
-      flushAssistant();
-      // The stored `content` for assistant rows can include a JSON tail with
-      // tool_use blocks. We use a structured marker: `tool_input` is null on
-      // assistant rows. Tool calls land in their own `tool` rows immediately
-      // following the assistant turn.
-      pendingAssistantText = row.content;
-    } else if (row.role === 'tool') {
-      // Tool result: pair it with the most recent assistant turn. We re-emit
-      // it as a `tool_use` from the assistant + a `tool_result` from user.
-      const useId = (row.tool_input && typeof row.tool_input === 'object' && '__tool_use_id' in row.tool_input)
-        ? String((row.tool_input as { __tool_use_id?: unknown }).__tool_use_id)
-        : `toolu_${row.id}`;
-      pendingToolUses.push({
-        id: useId,
-        name: row.tool_name ?? 'unknown',
-        input: stripToolUseId(row.tool_input),
-      });
-      flushAssistant();
-      out.push({
-        role: 'user',
-        content: [
-          {
-            type: 'tool_result',
-            tool_use_id: useId,
-            content: stringifyToolOutput(row.tool_output),
-            is_error: Boolean(
-              row.tool_output &&
-              typeof row.tool_output === 'object' &&
-              'error' in (row.tool_output as Record<string, unknown>) &&
-              (row.tool_output as { error?: unknown }).error,
-            ),
-          },
-        ],
-      });
-    }
-  }
-  flushAssistant();
-  return out;
-}
-
-function stripToolUseId(input: unknown): unknown {
-  if (!input || typeof input !== 'object') return input ?? {};
-  const clone = { ...(input as Record<string, unknown>) };
-  delete clone.__tool_use_id;
-  return clone;
-}
-
-function stringifyToolOutput(out: unknown): string {
-  if (out == null) return '';
-  if (typeof out === 'string') return out;
-  try {
-    return JSON.stringify(out);
-  } catch {
-    return String(out);
-  }
 }
 
 function buildSystemPrompt(store: StoreContext): string {
@@ -367,18 +267,12 @@ function buildSystemPrompt(store: StoreContext): string {
 
 // ── Tool executors ──────────────────────────────────────────────────────
 
-interface ToolExecutionResult {
-  output: unknown;
-  /** Compact human-readable summary shown in the chat tool card. */
-  summary: string;
-  /** True if the catalog changed (UI should re-fetch product list). */
-  mutated?: boolean;
-}
+
 
 async function execSearchProducts(
   store: StoreContext,
   raw: unknown,
-): Promise<ToolExecutionResult> {
+): Promise<import('./copilot-shared').ToolExecutionResult> {
   const input = SearchProductsInput.parse(raw);
   const limit = input.limit ?? 10;
 
@@ -473,7 +367,7 @@ async function execSearchProducts(
 async function execListCurrentProducts(
   store: StoreContext,
   raw: unknown,
-): Promise<ToolExecutionResult> {
+): Promise<import('./copilot-shared').ToolExecutionResult> {
   ListCurrentProductsInput.parse(raw);
   const db = getDb();
   const { rows } = await db.query<{
@@ -515,7 +409,7 @@ async function execListCurrentProducts(
 async function execAddProduct(
   store: StoreContext,
   raw: unknown,
-): Promise<ToolExecutionResult> {
+): Promise<import('./copilot-shared').ToolExecutionResult> {
   const input = AddProductInput.parse(raw);
   if (!store.medusa_sales_channel_id) {
     throw new Error('Ce store n’a pas de sales channel Medusa — impossible d’ajouter un produit.');
@@ -649,7 +543,7 @@ async function execAddProduct(
 async function execRemoveProduct(
   store: StoreContext,
   raw: unknown,
-): Promise<ToolExecutionResult> {
+): Promise<import('./copilot-shared').ToolExecutionResult> {
   const input = RemoveProductInput.parse(raw);
   const db = getDb();
   const { rows } = await db.query<{
@@ -698,7 +592,7 @@ async function execRemoveProduct(
 async function execUpdateProductPrice(
   store: StoreContext,
   raw: unknown,
-): Promise<ToolExecutionResult> {
+): Promise<import('./copilot-shared').ToolExecutionResult> {
   const input = UpdateProductPriceInput.parse(raw);
   const db = getDb();
   const { rows } = await db.query<{
@@ -736,7 +630,7 @@ async function execUpdateProductPrice(
 async function execRewriteProductCopy(
   store: StoreContext,
   raw: unknown,
-): Promise<ToolExecutionResult> {
+): Promise<import('./copilot-shared').ToolExecutionResult> {
   const input = RewriteProductCopyInput.parse(raw);
   const db = getDb();
   const { rows } = await db.query<{
@@ -826,7 +720,7 @@ async function executeTool(
   name: string,
   input: unknown,
   store: StoreContext,
-): Promise<ToolExecutionResult> {
+): Promise<import('./copilot-shared').ToolExecutionResult> {
   switch (name as ToolName) {
     case 'search_products':
       return execSearchProducts(store, input);

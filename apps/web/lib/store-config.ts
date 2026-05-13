@@ -1,5 +1,6 @@
 import { getDbRead } from '@/lib/db';
 import { tryDecryptSecret } from '@/lib/secrets';
+import type { StorePalette } from '@/lib/design/presets';
 
 export interface StoreConfig {
   id: string;
@@ -47,6 +48,11 @@ export interface StoreConfig {
   // store creation by lib/agent/landing-writer.ts. Null on legacy stores
   // that predate the column — templates fall back to generic strings.
   landingContent: LandingContent | null;
+  // 026: locked design system. The chat picker writes both fields once and
+  // every storefront component reads from them — no other place is allowed
+  // to invent new colors or fonts. Null on legacy rows (backfill default).
+  designPreset: string | null;
+  palette: StorePalette | null;
 }
 
 /**
@@ -126,6 +132,8 @@ interface StoreRow {
   template: StoreTemplate;
   custom_domain: string | null;
   landing_content: unknown; // JSONB — partial LandingContent or null
+  design_preset: string | null;
+  palette: unknown; // JSONB — StorePalette or null
 }
 
 const STORE_COLUMNS = `
@@ -142,7 +150,8 @@ const STORE_COLUMNS = `
   google_ads_conversion_action, google_merchant_id,
   mode, hero_image_url, cutout_image_url, lifestyle_images,
   promo_video_url, assets_status, template,
-  custom_domain, landing_content
+  custom_domain, landing_content,
+  design_preset, palette
 `;
 
 function rowToStore(r: StoreRow): StoreConfig {
@@ -194,6 +203,11 @@ function rowToStore(r: StoreRow): StoreConfig {
     landingContent:
       r.landing_content && typeof r.landing_content === 'object'
         ? (r.landing_content as LandingContent)
+        : null,
+    designPreset: r.design_preset,
+    palette:
+      r.palette && typeof r.palette === 'object'
+        ? (r.palette as StorePalette)
         : null,
   };
 }

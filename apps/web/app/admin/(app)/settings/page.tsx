@@ -31,7 +31,7 @@ export default async function SettingsPage() {
         kicker="Production · Intégrations"
         title={
           <>
-            Connexions <em className="italic text-zinc-500">fournisseurs</em>
+            Connexions <em className="italic text-ds-text-muted">fournisseurs</em>
           </>
         }
         lede="L’agent a besoin de ces clés pour interroger AliExpress et CJ. Les jetons OAuth expirent — vérifie l’état avant chaque grosse session."
@@ -53,7 +53,7 @@ export default async function SettingsPage() {
               <DLRow
                 label="Expire le"
                 value={
-                  <span className={isExpired ? 'text-red-700' : 'text-zinc-700'}>
+                  <span className={isExpired ? 'text-[var(--danger)]' : 'text-ds-text-secondary'}>
                     {expiresAt.toLocaleString('fr-FR', {
                       day: '2-digit',
                       month: 'short',
@@ -79,10 +79,10 @@ export default async function SettingsPage() {
             )}
           </dl>
         ) : (
-          <p className="text-sm text-zinc-600 leading-relaxed">
+          <p className="text-sm text-ds-text-secondary leading-relaxed">
             L’agent a besoin d’un{' '}
-            <code className="text-xs bg-zinc-100 px-1.5 py-0.5 rounded">access_token</code> OAuth pour appeler{' '}
-            <code className="text-xs bg-zinc-100 px-1.5 py-0.5 rounded">aliexpress.solution.product.list.get</code>.
+            <code className="text-xs bg-ds-surface-default px-1.5 py-0.5 rounded">access_token</code> OAuth pour appeler{' '}
+            <code className="text-xs bg-ds-surface-default px-1.5 py-0.5 rounded">aliexpress.solution.product.list.get</code>.
             Autorise l’accès avec ton compte AliExpress.
           </p>
         )}
@@ -105,19 +105,19 @@ export default async function SettingsPage() {
         tone="amber"
         statusLabel="API Key manquante"
       >
-        <p className="text-sm text-zinc-600 leading-relaxed">
-          L’authentification CJ nécessite une <strong className="font-medium text-zinc-900">API Key dédiée</strong>{' '}
+        <p className="text-sm text-ds-text-secondary leading-relaxed">
+          L’authentification CJ nécessite une <strong className="font-medium text-ds-text-primary">API Key dédiée</strong>{' '}
           (pas le mot de passe du compte). Va sur{' '}
           <a
             href="https://cjdropshipping.com"
             target="_blank"
             rel="noreferrer"
-            className="text-zinc-900 underline underline-offset-4 decoration-zinc-300 hover:decoration-zinc-900 transition-colors"
+            className="text-ds-text-primary underline underline-offset-4 decoration-zinc-300 hover:decoration-zinc-900 transition-colors"
           >
             cjdropshipping.com
           </a>{' '}
           → Account Settings → Developer → copie l’API Key et mets-la dans{' '}
-          <code className="text-xs bg-zinc-100 px-1.5 py-0.5 rounded">CJ_DROPSHIPPING_API_KEY</code>.
+          <code className="text-xs bg-ds-surface-default px-1.5 py-0.5 rounded">CJ_DROPSHIPPING_API_KEY</code>.
         </p>
       </ProviderCard>
     </div>
@@ -127,8 +127,8 @@ export default async function SettingsPage() {
 function DLRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
-      <dt className="text-kicker uppercase tracking-cta text-zinc-400 font-medium">{label}</dt>
-      <dd className="mt-0.5 text-sm text-zinc-700">{value}</dd>
+      <dt className="text-kicker uppercase tracking-cta text-ds-text-muted font-medium">{label}</dt>
+      <dd className="mt-0.5 text-sm text-ds-text-secondary">{value}</dd>
     </div>
   );
 }
@@ -149,12 +149,12 @@ function ProviderCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="border border-zinc-200 bg-white rounded-xl overflow-hidden">
-      <div className="px-6 py-4 border-b border-zinc-200/70 flex items-center gap-4">
+    <section className="border border-ds-border-subtle bg-ds-surface-subtle rounded-xl overflow-hidden">
+      <div className="px-6 py-4 border-b border-ds-border-subtle/70 flex items-center gap-4">
         <span className="w-1 h-10 rounded-full" style={{ backgroundColor: accent }} aria-hidden />
         <div className="min-w-0">
-          <h3 className="font-medium text-zinc-900">{name}</h3>
-          <p className="text-xs text-zinc-400 mt-0.5">{meta}</p>
+          <h3 className="font-medium text-ds-text-primary">{name}</h3>
+          <p className="text-xs text-ds-text-muted mt-0.5">{meta}</p>
         </div>
         <div className="ml-auto">
           <StatusPill tone={tone}>{statusLabel}</StatusPill>

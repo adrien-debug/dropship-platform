@@ -131,7 +131,7 @@ export default async function ObservabilityPage() {
         kicker="Production · Agent IA · 7 derniers jours"
         title={
           <>
-            <em className="italic text-zinc-500">Observabilité</em> agent
+            <em className="italic text-ds-text-muted">Observabilité</em> agent
           </>
         }
         lede="Chaque appel Anthropic est tracé dans dropship_ai_runs avec tokens, latence, coût EUR et erreur. Source unique pour piloter la dépense IA quand on multipliera les stores."
@@ -163,23 +163,23 @@ export default async function ObservabilityPage() {
       </section>
 
       {steps.length === 0 && (
-        <div className="border border-dashed border-zinc-200 rounded-xl px-6 py-16 text-center bg-white">
-          <p className="text-sm font-semibold tracking-tight text-zinc-600">Aucun appel agent ces 7 derniers jours.</p>
-          <p className="mt-1 text-xs text-zinc-400">Lance un store de test pour voir les premières lignes.</p>
+        <div className="border border-dashed border-ds-border-subtle rounded-xl px-6 py-16 text-center bg-ds-surface-subtle">
+          <p className="text-sm font-semibold tracking-tight text-ds-text-secondary">Aucun appel agent ces 7 derniers jours.</p>
+          <p className="mt-1 text-xs text-ds-text-muted">Lance un store de test pour voir les premières lignes.</p>
         </div>
       )}
 
       {steps.length > 0 && (
-        <section className="border border-zinc-200 rounded-xl overflow-hidden bg-white">
-          <div className="px-5 py-4 border-b border-zinc-200/60 flex items-baseline gap-3">
+        <section className="border border-ds-border-subtle rounded-xl overflow-hidden bg-ds-surface-subtle">
+          <div className="px-5 py-4 border-b border-ds-border-subtle/60 flex items-baseline gap-3">
             <h3 className="text-base font-semibold tracking-tight">
-              Par <em className="italic text-zinc-700">étape</em>
+              Par <em className="italic text-ds-text-secondary">étape</em>
             </h3>
-            <span className="text-xs uppercase tracking-wider text-zinc-400">· {steps.length} steps</span>
+            <span className="text-xs uppercase tracking-wider text-ds-text-muted">· {steps.length} steps</span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[700px] text-sm">
-              <thead className="bg-zinc-50/60 text-kicker uppercase tracking-header text-zinc-500">
+              <thead className="bg-ds-surface-subtle/60 text-kicker uppercase tracking-header text-ds-text-muted">
                 <tr>
                   <th className="text-left px-5 py-3 font-medium">Étape</th>
                   <th className="text-right px-5 py-3 font-medium">Appels</th>
@@ -193,19 +193,19 @@ export default async function ObservabilityPage() {
                 {steps.map((s) => {
                   const errRate = s.call_count > 0 ? s.error_count / s.call_count : 0;
                   return (
-                    <tr key={s.step} className="hover:bg-zinc-50/60 transition-colors">
-                      <td className="px-5 py-3 font-mono text-xs text-zinc-700">{s.step}</td>
+                    <tr key={s.step} className="hover:bg-ds-surface-subtle/60 transition-colors">
+                      <td className="px-5 py-3 font-mono text-xs text-ds-text-secondary">{s.step}</td>
                       <td className="px-5 py-3 text-right tabular-nums">{fmtInt(s.call_count)}</td>
                       <td className="px-5 py-3 text-right tabular-nums font-semibold">{fmtEur(s.total_cost)}</td>
-                      <td className="px-5 py-3 text-right tabular-nums text-zinc-600">{fmtMs(s.avg_latency_ms)}</td>
-                      <td className="px-5 py-3 text-right tabular-nums text-zinc-500">{fmtMs(s.p95_latency_ms)}</td>
+                      <td className="px-5 py-3 text-right tabular-nums text-ds-text-secondary">{fmtMs(s.avg_latency_ms)}</td>
+                      <td className="px-5 py-3 text-right tabular-nums text-ds-text-muted">{fmtMs(s.p95_latency_ms)}</td>
                       <td className="px-5 py-3 text-right">
                         {s.error_count > 0 ? (
                           <StatusPill tone={errRate > 0.05 ? 'red' : 'amber'}>
                             {fmtInt(s.error_count)} ({(errRate * 100).toFixed(1)}%)
                           </StatusPill>
                         ) : (
-                          <span className="text-xs text-zinc-400">—</span>
+                          <span className="text-xs text-ds-text-muted">—</span>
                         )}
                       </td>
                     </tr>
@@ -218,15 +218,15 @@ export default async function ObservabilityPage() {
       )}
 
       {topStores.length > 0 && (
-        <section className="border border-zinc-200 rounded-xl overflow-hidden bg-white">
-          <div className="px-5 py-4 border-b border-zinc-200/60 flex items-baseline gap-3">
+        <section className="border border-ds-border-subtle rounded-xl overflow-hidden bg-ds-surface-subtle">
+          <div className="px-5 py-4 border-b border-ds-border-subtle/60 flex items-baseline gap-3">
             <h3 className="text-base font-semibold tracking-tight">
-              Top 10 par <em className="italic text-zinc-700">coût</em>
+              Top 10 par <em className="italic text-ds-text-secondary">coût</em>
             </h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[600px] text-sm">
-              <thead className="bg-zinc-50/60 text-kicker uppercase tracking-header text-zinc-500">
+              <thead className="bg-ds-surface-subtle/60 text-kicker uppercase tracking-header text-ds-text-muted">
                 <tr>
                   <th className="text-left px-5 py-3 font-medium">Store</th>
                   <th className="text-right px-5 py-3 font-medium">Appels</th>
@@ -235,20 +235,20 @@ export default async function ObservabilityPage() {
               </thead>
               <tbody className="divide-y divide-zinc-100">
                 {topStores.map((s) => (
-                  <tr key={s.store_id} className="hover:bg-zinc-50/60 transition-colors">
+                  <tr key={s.store_id} className="hover:bg-ds-surface-subtle/60 transition-colors">
                     <td className="px-5 py-3">
                       {s.store_id ? (
                         <Link
                           href={`/admin/stores/${s.store_id}`}
-                          className="font-medium text-zinc-900 hover:underline underline-offset-4 decoration-zinc-300 hover:decoration-zinc-700"
+                          className="font-medium text-ds-text-primary hover:underline underline-offset-4 decoration-zinc-300 hover:decoration-zinc-700"
                         >
                           {s.store_name || s.store_slug || s.store_id.slice(0, 8)}
                         </Link>
                       ) : (
-                        <span className="text-zinc-400">— (orphan)</span>
+                        <span className="text-ds-text-muted">— (orphan)</span>
                       )}
                       {s.store_slug && (
-                        <div className="text-kicker font-mono text-zinc-400 mt-0.5">/shop/{s.store_slug}</div>
+                        <div className="text-kicker font-mono text-ds-text-muted mt-0.5">/shop/{s.store_slug}</div>
                       )}
                     </td>
                     <td className="px-5 py-3 text-right tabular-nums">{fmtInt(s.call_count)}</td>
@@ -262,15 +262,15 @@ export default async function ObservabilityPage() {
       )}
 
       {errors.length > 0 && (
-        <section className="border border-red-200 bg-red-50/30 rounded-xl overflow-hidden">
-          <div className="px-5 py-4 border-b border-red-200/60 bg-red-50/60">
+        <section className="border border-[var(--danger-muted)] bg-[var(--danger-muted)]/30 rounded-xl overflow-hidden">
+          <div className="px-5 py-4 border-b border-[var(--danger-muted)]/60 bg-[var(--danger-muted)]/60">
             <h3 className="text-base font-semibold tracking-tight text-red-900">
               Erreurs <em className="italic">récentes</em>
             </h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[700px] text-sm">
-              <thead className="text-kicker uppercase tracking-header text-red-900/60 bg-red-50/40">
+              <thead className="text-kicker uppercase tracking-header text-red-900/60 bg-[var(--danger-muted)]/40">
                 <tr>
                   <th className="text-left px-5 py-3 font-medium">Quand</th>
                   <th className="text-left px-5 py-3 font-medium">Étape</th>
@@ -281,20 +281,20 @@ export default async function ObservabilityPage() {
               <tbody className="divide-y divide-red-200/40">
                 {errors.map((e) => (
                   <tr key={e.id}>
-                    <td className="px-5 py-3 text-xs text-zinc-500 tabular-nums">
+                    <td className="px-5 py-3 text-xs text-ds-text-muted tabular-nums">
                       {new Date(e.created_at).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                     </td>
-                    <td className="px-5 py-3 font-mono text-xs text-zinc-700">{e.step}</td>
+                    <td className="px-5 py-3 font-mono text-xs text-ds-text-secondary">{e.step}</td>
                     <td className="px-5 py-3">
                       {e.store_id ? (
-                        <Link href={`/admin/stores/${e.store_id}`} className="text-xs text-zinc-700 underline underline-offset-4 decoration-zinc-300">
+                        <Link href={`/admin/stores/${e.store_id}`} className="text-xs text-ds-text-secondary underline underline-offset-4 decoration-zinc-300">
                           {e.store_id.slice(0, 8)}
                         </Link>
                       ) : (
-                        <span className="text-xs text-zinc-400">—</span>
+                        <span className="text-xs text-ds-text-muted">—</span>
                       )}
                     </td>
-                    <td className="px-5 py-3 text-xs text-red-700 line-clamp-2 max-w-md">
+                    <td className="px-5 py-3 text-xs text-[var(--danger)] line-clamp-2 max-w-md">
                       {e.error_json?.message ?? 'erreur sans message'}
                     </td>
                   </tr>

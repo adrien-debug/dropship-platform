@@ -31,6 +31,7 @@ import { z } from 'zod';
 import { getDb } from '@/lib/db';
 import { trackedMessage } from './anthropic';
 import { runContext } from './run-context';
+import { rebuildMessages, stringifyToolOutput } from './copilot-shared';
 import { __internals as curationInternals } from './curation-copilot';
 import { __internals as adsInternals } from './ads-copilot';
 import { __internals as researchInternals, buildTemporalContext } from './research-copilot';
@@ -81,16 +82,6 @@ const HUB_MAX_TOOL_LOOPS_DEFAULT = 8;
 const HUB_MAX_TOOLS_PER_TURN_DEFAULT = 16;
 
 // ── Internal types ──────────────────────────────────────────────────────
-
-interface StoredMessage {
-  id: string;
-  role: 'user' | 'assistant' | 'tool';
-  content: string;
-  tool_name: string | null;
-  tool_input: unknown;
-  tool_output: unknown;
-  created_at: string;
-}
 
 interface StoreCtx {
   id: string;
@@ -147,9 +138,11 @@ export async function createCopilotSession(
   return rows[0]!.id;
 }
 
-async function loadHistory(sessionId: string): Promise<StoredMessage[]> {
+async function loadHistory(sessionId: string) {
   const db = getDb();
-  const { rows } = await db.query<StoredMessage>(
+  const { rows } = await db.query<
+    import('./copilot-shared').StoredMessage
+  >(
     `SELECT id, role, content, tool_name, tool_input, tool_output, created_at
        FROM dropship_copilot_messages
        WHERE session_id = $1
@@ -205,81 +198,6 @@ async function maybeBackfillTitle(sessionId: string, firstUserMessage: string): 
 }
 
 // ── Anthropic message rebuild (shared shape) ────────────────────────────
-
-function stripToolUseId(input: unknown): unknown {
-  if (!input || typeof input !== 'object') return input ?? {};
-  const clone = { ...(input as Record<string, unknown>) };
-  delete clone.__tool_use_id;
-  return clone;
-}
-
-function stringifyToolOutput(out: unknown): string {
-  if (out == null) return '';
-  if (typeof out === 'string') return out;
-  try {
-    return JSON.stringify(out);
-  } catch {
-    return String(out);
-  }
-}
-
-function rebuildMessages(history: StoredMessage[]): Anthropic.Messages.MessageParam[] {
-  const out: Anthropic.Messages.MessageParam[] = [];
-  let pendingToolUses: Array<{ id: string; name: string; input: unknown }> = [];
-  let pendingAssistantText = '';
-
-  const flushAssistant = () => {
-    const blocks: Anthropic.Messages.ContentBlockParam[] = [];
-    if (pendingAssistantText.trim()) {
-      blocks.push({ type: 'text', text: pendingAssistantText });
-    }
-    for (const tu of pendingToolUses) {
-      blocks.push({ type: 'tool_use', id: tu.id, name: tu.name, input: tu.input ?? {} });
-    }
-    if (blocks.length) out.push({ role: 'assistant', content: blocks });
-    pendingAssistantText = '';
-    pendingToolUses = [];
-  };
-
-  for (const row of history) {
-    if (row.role === 'user') {
-      flushAssistant();
-      out.push({ role: 'user', content: row.content });
-    } else if (row.role === 'assistant') {
-      flushAssistant();
-      pendingAssistantText = row.content;
-    } else if (row.role === 'tool') {
-      const useId =
-        row.tool_input && typeof row.tool_input === 'object' && '__tool_use_id' in row.tool_input
-          ? String((row.tool_input as { __tool_use_id?: unknown }).__tool_use_id)
-          : `toolu_${row.id}`;
-      pendingToolUses.push({
-        id: useId,
-        name: row.tool_name ?? 'unknown',
-        input: stripToolUseId(row.tool_input),
-      });
-      flushAssistant();
-      out.push({
-        role: 'user',
-        content: [
-          {
-            type: 'tool_result',
-            tool_use_id: useId,
-            content: stringifyToolOutput(row.tool_output),
-            is_error: Boolean(
-              row.tool_output &&
-                typeof row.tool_output === 'object' &&
-                'error' in (row.tool_output as Record<string, unknown>) &&
-                (row.tool_output as { error?: unknown }).error,
-            ),
-          },
-        ],
-      });
-    }
-  }
-  flushAssistant();
-  return out;
-}
 
 // ── Medias mode (inline, no separate file) ──────────────────────────────
 

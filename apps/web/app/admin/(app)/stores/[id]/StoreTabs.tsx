@@ -38,7 +38,7 @@ export function StoreTabs({ storeId, storeSlug }: { storeId: string; storeSlug: 
   const tabs = buildTabs(storeId, storeSlug);
 
   return (
-    <nav className="border-b border-zinc-200 bg-white -mx-5 sm:-mx-8 px-5 sm:px-8 sticky top-0 z-10">
+    <nav className="border-b border-ds-border-subtle bg-ds-surface-subtle -mx-5 sm:-mx-8 px-5 sm:px-8 sticky top-0 z-10">
       <div className="flex gap-1 overflow-x-auto no-scrollbar">
         {tabs.map((tab) => {
           const isExternal = tab.href.startsWith('/shop/');
@@ -54,8 +54,8 @@ export function StoreTabs({ storeId, storeSlug }: { storeId: string; storeSlug: 
               target={isExternal ? '_blank' : undefined}
               className={`relative whitespace-nowrap px-3 py-3 text-sm font-medium transition-colors inline-flex items-center gap-1.5 ${
                 active
-                  ? 'text-zinc-900'
-                  : 'text-zinc-500 hover:text-zinc-900'
+                  ? 'text-ds-text-primary'
+                  : 'text-ds-text-muted hover:text-ds-text-primary'
               }`}
             >
               {tab.Icon && <tab.Icon size={15} strokeWidth={1.75} aria-hidden />}

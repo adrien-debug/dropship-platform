@@ -134,12 +134,54 @@ export interface MedusaProductVariant {
   options?: { value: string }[];
 }
 
+import { retry } from './retry';
+
 class MedusaAPI {
   private baseUrl: string;
   private jwt?: string;
 
   constructor() {
     this.baseUrl = getMedusaBaseUrl();
+  }
+
+  /**
+   * Wrapper around fetch() with retry logic for transient failures.
+   * Retries on 5xx, 429, 408, and network errors. Does NOT retry on
+   * 4xx (client errors) except 429/408.
+   */
+  private async fetchWithRetry(
+    input: RequestInfo | URL,
+    init?: RequestInit,
+  ): Promise<Response> {
+    return retry(
+      async () => {
+        const res = await fetch(input, init);
+        if (!res.ok) {
+          // Clone so the caller can still read the body after we inspect status
+          throw res.clone();
+        }
+        return res;
+      },
+      {
+        maxAttempts: 3,
+        baseDelayMs: 500,
+        isRetryable: (error) => {
+          if (error instanceof Response) {
+            return error.status >= 500 || error.status === 429 || error.status === 408;
+          }
+          if (error instanceof Error) {
+            const msg = error.message.toLowerCase();
+            return (
+              msg.includes('network') ||
+              msg.includes('timeout') ||
+              msg.includes('fetch failed') ||
+              msg.includes('abort')
+            );
+          }
+          return false;
+        },
+      },
+    );
   }
 
   /** En-têtes pour les routes /admin (JWT ou clé secrète Medusa v2) */
@@ -173,7 +215,7 @@ class MedusaAPI {
       );
     }
 
-    const response = await fetch(`${this.baseUrl}/auth/user/emailpass`, {
+    const response = await this.fetchWithRetry(`${this.baseUrl}/auth/user/emailpass`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -234,7 +276,7 @@ class MedusaAPI {
 
     try {
       const headers = await this.adminJsonHeaders();
-      const res = await fetch(`${this.baseUrl}/admin/products?limit=1`, { headers });
+      const res = await this.fetchWithRetry(`${this.baseUrl}/admin/products?limit=1`, { headers });
       if (!res.ok) {
         const detail = await readMedusaErrorMessage(res);
         console.error('[Medusa] Admin probe failed', { status: res.status, detail });
@@ -274,7 +316,7 @@ class MedusaAPI {
     if (params?.q) queryParams.set('q', params.q);
     if (params?.status) queryParams.set('status', params.status);
 
-    const response = await fetch(`${this.baseUrl}/admin/products?${queryParams}`, {
+    const response = await this.fetchWithRetry(`${this.baseUrl}/admin/products?${queryParams}`, {
       headers: await this.adminJsonHeaders(),
     });
 
@@ -300,7 +342,7 @@ class MedusaAPI {
     if (params?.offset) qs.set('offset', String(params.offset));
     if (params?.salesChannelId) qs.set('sales_channel_id', params.salesChannelId);
 
-    const response = await fetch(`${this.baseUrl}/admin/orders?${qs.toString()}`, {
+    const response = await this.fetchWithRetry(`${this.baseUrl}/admin/orders?${qs.toString()}`, {
       headers: await this.adminJsonHeaders(),
     });
     if (!response.ok) {
@@ -313,7 +355,7 @@ class MedusaAPI {
   async getOrder(orderId: string): Promise<MedusaOrder> {
     const qs = new URLSearchParams();
     qs.set('fields', 'id,display_id,email,status,payment_status,fulfillment_status,total,currency_code,created_at,sales_channel_id,*items,*items.variant,*shipping_address');
-    const response = await fetch(`${this.baseUrl}/admin/orders/${orderId}?${qs.toString()}`, {
+    const response = await this.fetchWithRetry(`${this.baseUrl}/admin/orders/${orderId}?${qs.toString()}`, {
       headers: await this.adminJsonHeaders(),
     });
     if (!response.ok) {
@@ -342,7 +384,7 @@ class MedusaAPI {
   }> {
     const qs = new URLSearchParams();
     qs.set('fields', 'id,*payment_collections,*payment_collections.payments');
-    const orderRes = await fetch(`${this.baseUrl}/admin/orders/${orderId}?${qs.toString()}`, {
+    const orderRes = await this.fetchWithRetry(`${this.baseUrl}/admin/orders/${orderId}?${qs.toString()}`, {
       headers: await this.adminJsonHeaders(),
     });
     if (!orderRes.ok) {
@@ -369,7 +411,7 @@ class MedusaAPI {
           continue;
         }
         const headers = await this.adminJsonHeaders();
-        const captureRes = await fetch(`${this.baseUrl}/admin/payments/${payment.id}/capture`, {
+        const captureRes = await this.fetchWithRetry(`${this.baseUrl}/admin/payments/${payment.id}/capture`, {
           method: 'POST',
           headers,
           body: JSON.stringify({}),
@@ -386,7 +428,7 @@ class MedusaAPI {
   }
 
   async getProduct(productId: string): Promise<MedusaProduct> {
-    const response = await fetch(`${this.baseUrl}/admin/products/${productId}`, {
+    const response = await this.fetchWithRetry(`${this.baseUrl}/admin/products/${productId}`, {
       headers: await this.adminJsonHeaders(),
     });
 
@@ -435,7 +477,7 @@ class MedusaAPI {
       } : {}),
     };
 
-    const response = await fetch(`${this.baseUrl}/admin/products`, {
+    const response = await this.fetchWithRetry(`${this.baseUrl}/admin/products`, {
       method: 'POST',
       headers: await this.adminJsonHeaders(),
       body: JSON.stringify(payload),
@@ -451,7 +493,7 @@ class MedusaAPI {
   }
 
   async updateProduct(productId: string, updates: Partial<MedusaProduct>): Promise<MedusaProduct> {
-    const response = await fetch(`${this.baseUrl}/admin/products/${productId}`, {
+    const response = await this.fetchWithRetry(`${this.baseUrl}/admin/products/${productId}`, {
       method: 'POST',
       headers: await this.adminJsonHeaders(),
       body: JSON.stringify(updates),
@@ -466,7 +508,7 @@ class MedusaAPI {
   }
 
   async deleteProduct(productId: string): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/admin/products/${productId}`, {
+    const response = await this.fetchWithRetry(`${this.baseUrl}/admin/products/${productId}`, {
       method: 'DELETE',
       headers: await this.getAdminAuthHeaders(),
     });
@@ -481,7 +523,7 @@ class MedusaAPI {
   }
 
   async getStore(): Promise<{ id: string; name: string; default_currency_code: string }> {
-    const response = await fetch(`${this.baseUrl}/store`, {
+    const response = await this.fetchWithRetry(`${this.baseUrl}/store`, {
       headers: { 'Content-Type': 'application/json' },
     });
 
@@ -494,7 +536,7 @@ class MedusaAPI {
   }
 
   async health(): Promise<{ status: string }> {
-    const response = await fetch(`${this.baseUrl}/health`, {
+    const response = await this.fetchWithRetry(`${this.baseUrl}/health`, {
       headers: { 'Content-Type': 'application/json' },
     });
 
@@ -507,7 +549,7 @@ class MedusaAPI {
   }
 
   async createSalesChannel(name: string, description?: string): Promise<{ id: string; name: string }> {
-    const response = await fetch(`${this.baseUrl}/admin/sales-channels`, {
+    const response = await this.fetchWithRetry(`${this.baseUrl}/admin/sales-channels`, {
       method: 'POST',
       headers: await this.adminJsonHeaders(),
       body: JSON.stringify({ name, description: description || name }),
@@ -518,7 +560,7 @@ class MedusaAPI {
   }
 
   async deleteSalesChannel(id: string): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/admin/sales-channels/${id}`, {
+    const response = await this.fetchWithRetry(`${this.baseUrl}/admin/sales-channels/${id}`, {
       method: 'DELETE',
       headers: await this.getAdminAuthHeaders(),
     });
@@ -528,7 +570,7 @@ class MedusaAPI {
   }
 
   async deletePublishableApiKey(id: string): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/admin/api-keys/${id}`, {
+    const response = await this.fetchWithRetry(`${this.baseUrl}/admin/api-keys/${id}`, {
       method: 'DELETE',
       headers: await this.getAdminAuthHeaders(),
     });
@@ -538,7 +580,7 @@ class MedusaAPI {
   }
 
   async listStockLocations(): Promise<{ id: string; name: string }[]> {
-    const response = await fetch(`${this.baseUrl}/admin/stock-locations?fields=id,name`, {
+    const response = await this.fetchWithRetry(`${this.baseUrl}/admin/stock-locations?fields=id,name`, {
       headers: await this.adminJsonHeaders(),
     });
     if (!response.ok) throw new Error(`listStockLocations: ${await readMedusaErrorMessage(response)}`);
@@ -547,7 +589,7 @@ class MedusaAPI {
   }
 
   async linkSalesChannelsToStockLocation(stockLocationId: string, salesChannelIds: string[]): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/admin/stock-locations/${stockLocationId}/sales-channels`, {
+    const response = await this.fetchWithRetry(`${this.baseUrl}/admin/stock-locations/${stockLocationId}/sales-channels`, {
       method: 'POST',
       headers: await this.adminJsonHeaders(),
       body: JSON.stringify({ add: salesChannelIds }),
@@ -557,7 +599,7 @@ class MedusaAPI {
 
   async addProductsToSalesChannel(salesChannelId: string, productIds: string[]): Promise<void> {
     // Medusa v2: POST /admin/sales-channels/:id/products with { add: [...] }
-    const response = await fetch(`${this.baseUrl}/admin/sales-channels/${salesChannelId}/products`, {
+    const response = await this.fetchWithRetry(`${this.baseUrl}/admin/sales-channels/${salesChannelId}/products`, {
       method: 'POST',
       headers: await this.adminJsonHeaders(),
       body: JSON.stringify({ add: productIds }),
@@ -567,7 +609,7 @@ class MedusaAPI {
 
   async createPublishableApiKey(title: string): Promise<{ id: string; token: string; title: string }> {
     // Medusa v2: POST /admin/api-keys with type: "publishable"
-    const response = await fetch(`${this.baseUrl}/admin/api-keys`, {
+    const response = await this.fetchWithRetry(`${this.baseUrl}/admin/api-keys`, {
       method: 'POST',
       headers: await this.adminJsonHeaders(),
       body: JSON.stringify({ title, type: 'publishable' }),
@@ -579,7 +621,7 @@ class MedusaAPI {
 
   async addSalesChannelsToPublishableKey(keyId: string, salesChannelIds: string[]): Promise<void> {
     // Medusa v2: POST /admin/api-keys/:id/sales-channels with { add: [...] }
-    const response = await fetch(`${this.baseUrl}/admin/api-keys/${keyId}/sales-channels`, {
+    const response = await this.fetchWithRetry(`${this.baseUrl}/admin/api-keys/${keyId}/sales-channels`, {
       method: 'POST',
       headers: await this.adminJsonHeaders(),
       body: JSON.stringify({ add: salesChannelIds }),

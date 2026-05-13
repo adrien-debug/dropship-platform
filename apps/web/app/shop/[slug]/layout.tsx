@@ -5,6 +5,7 @@ import { BrandLogo } from '@/components/ui';
 import { getConsent } from '@/lib/consent';
 import { StoreAnalytics } from '@/components/analytics/StoreAnalytics';
 import { CookieBanner } from '@/components/analytics/CookieBanner';
+import { resolveDesign } from '@/lib/design/runtime';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,9 +20,32 @@ export default async function ShopLayout({
   const store = await getStoreBySlug(slug);
   if (!store) notFound();
   const consent = await getConsent();
+  const design = resolveDesign(store);
 
   return (
-    <div style={{ '--primary': store.primaryColor, '--accent': store.accentColor } as React.CSSProperties}>
+    <div
+      // Legacy --primary / --accent kept so older templates still resolve.
+      // The locked design system uses --ds-* (see design/runtime.ts).
+      style={
+        {
+          '--primary': design.palette.primary,
+          '--accent': design.palette.accent,
+          fontFamily: 'var(--ds-font-body)',
+          color: 'var(--ds-text)',
+          backgroundColor: 'var(--ds-bg)',
+        } as React.CSSProperties
+      }
+    >
+      {design.googleFontsUrl && (
+        // The layout is a server component so the <link> ends up in <head>
+        // via React's float feature. Pre-connect to keep first-paint fast.
+        <>
+          <link rel="preconnect" href="https://fonts.googleapis.com" />
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+          <link rel="stylesheet" href={design.googleFontsUrl} />
+        </>
+      )}
+      <style dangerouslySetInnerHTML={{ __html: design.cssVars }} />
       <StoreAnalytics ids={publicAnalytics(store)} consent={consent} />
       <CookieBanner />
       <header className="absolute top-0 left-0 right-0 z-50">

@@ -77,14 +77,14 @@ export function StoreTemplateForm({
   };
 
   return (
-    <section className="border border-zinc-200 bg-white rounded-xl overflow-hidden">
-      <div className="px-6 pt-5 pb-4 border-b border-zinc-200/70">
-        <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">Storefront</p>
-        <h3 className="mt-1 text-base font-semibold tracking-tight text-zinc-900">
-          Template <em className="italic text-zinc-500">de rendu</em>
+    <section className="border border-ds-border-subtle bg-ds-surface-subtle rounded-xl overflow-hidden">
+      <div className="px-6 pt-5 pb-4 border-b border-ds-border-subtle/70">
+        <p className="text-kicker uppercase tracking-label text-ds-text-muted font-medium">Storefront</p>
+        <h3 className="mt-1 text-base font-semibold tracking-tight text-ds-text-primary">
+          Template <em className="italic text-ds-text-muted">de rendu</em>
         </h3>
-        <p className="mt-1.5 text-xs text-zinc-500 max-w-2xl">
-          Choix du layout servi sur <code className="font-mono text-zinc-700">/shop/{storeSlug}</code>. Auto suit la
+        <p className="mt-1.5 text-xs text-ds-text-muted max-w-2xl">
+          Choix du layout servi sur <code className="font-mono text-ds-text-secondary">/shop/{storeSlug}</code>. Auto suit la
           règle historique. Bascule sur éditorial pour les niches narratives (3 à 6 produits liés par un univers).
         </p>
       </div>
@@ -101,15 +101,15 @@ export function StoreTemplateForm({
                 className={`relative text-left p-4 rounded-lg border transition-colors ${
                   active
                     ? 'border-zinc-900 bg-zinc-900 text-white'
-                    : 'border-zinc-200 hover:border-zinc-400 bg-white text-zinc-700'
+                    : 'border-ds-border-subtle hover:border-ds-border-default bg-ds-surface-subtle text-ds-text-secondary'
                 }`}
               >
                 <div className="text-sm font-semibold mb-0.5">{opt.label}</div>
-                <div className={`text-xs leading-snug ${active ? 'text-white/70' : 'text-zinc-500'}`}>
+                <div className={`text-xs leading-snug ${active ? 'text-white/70' : 'text-ds-text-muted'}`}>
                   {opt.hint}
                 </div>
                 {active && (
-                  <span className="absolute top-3 right-3 w-2 h-2 rounded-full bg-white" aria-hidden />
+                  <span className="absolute top-3 right-3 w-2 h-2 rounded-full bg-ds-surface-subtle" aria-hidden />
                 )}
               </button>
             );
@@ -126,9 +126,9 @@ export function StoreTemplateForm({
             {pending ? 'Enregistrement…' : 'Enregistrer'}
           </button>
           {saved && !dirty && (
-            <span className="text-xs text-emerald-700">Enregistré.</span>
+            <span className="text-xs text-[var(--success)]">Enregistré.</span>
           )}
-          {error && <span className="text-xs text-red-600">{error}</span>}
+          {error && <span className="text-xs text-[var(--danger)]">{error}</span>}
         </div>
       </div>
     </section>

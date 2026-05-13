@@ -42,7 +42,7 @@ export default async function StoreSettingsPage({ params }: { params: Promise<{ 
     <div className="space-y-6">
       <PageHeader
         kicker="Réglages"
-        title={<span>Configuration <em className="italic text-zinc-500">du store</em></span>}
+        title={<span>Configuration <em className="italic text-ds-text-muted">du store</em></span>}
         lede="Rendu, domaine et tokens analytics. Tous les changements sont instantanés, sans rebuild."
       />
 

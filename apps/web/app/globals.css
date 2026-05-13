@@ -2,28 +2,184 @@
 @tailwind components;
 @tailwind utilities;
 
-/*
- * Satoshi Variable — global typographic baseline.
- *
- * We deliberately DO NOT set `font-variation-settings: 'wght' XXX` here:
- * once set, it overrides `font-weight` everywhere downstream, so utility
- * classes like `font-bold` (700) silently become 400. Letting font-weight
- * drive the variable axis is what every utility-first stack expects.
- *
- * What stays: kerning + ligatures + contextual alternates as a global
- * baseline, ss01 (stylistic alt 'a') on display headings, and macOS/Windows
- * smoothing so Satoshi renders crisp on Retina.
- */
-body {
-  font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
+/* ═══════════════════════════════════════════════════════════════════════════
+   DARK THEME TOKENS — Design System
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@layer base {
+  :root {
+    /* ── Backgrounds ── */
+    --bg-base: #05070d;
+    --bg-elevated: #080b14;
+    --bg-card: #0b1020;
+    --bg-card-hover: #0f1528;
+    --bg-overlay: rgba(5, 7, 13, 0.85);
+    --bg-sidebar: #060810;
+    --bg-input: rgba(255, 255, 255, 0.04);
+    --bg-input-focus: rgba(255, 255, 255, 0.06);
+
+    /* ── Surfaces (glassmorphism) ── */
+    --surface-subtle: rgba(255, 255, 255, 0.03);
+    --surface-default: rgba(255, 255, 255, 0.05);
+    --surface-elevated: rgba(255, 255, 255, 0.07);
+
+    /* ── Borders ── */
+    --border-subtle: rgba(255, 255, 255, 0.06);
+    --border-default: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.12);
+    --border-accent: rgba(0, 183, 255, 0.25);
+
+    /* ── Text ── */
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --text-disabled: #475569;
+    --text-inverse: #0f172a;
+
+    /* ── Accents ── */
+    --accent-cyan: #00b7ff;
+    --accent-blue: #38bdf8;
+    --accent-blue-glow: rgba(56, 189, 248, 0.15);
+    --accent-cyan-glow: rgba(0, 183, 255, 0.20);
+
+    /* ── Semantic ── */
+    --success: #22c55e;
+    --success-muted: rgba(34, 197, 94, 0.15);
+    --warning: #f59e0b;
+    --warning-muted: rgba(245, 158, 11, 0.15);
+    --danger: #ef4444;
+    --danger-muted: rgba(239, 68, 68, 0.15);
+    --info: #38bdf8;
+    --info-muted: rgba(56, 189, 248, 0.15);
+
+    /* ── Layout ── */
+    --sidebar-width: 72px;
+    --sidebar-width-expanded: 260px;
+    --left-panel-width: 300px;
+    --right-panel-width: 360px;
+    --header-height: 56px;
+    --panel-header-height: 48px;
+
+    /* ── Shadows ── */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.30);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.40);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.50);
+    --shadow-glow: 0 0 20px rgba(0, 183, 255, 0.08);
+    --shadow-glow-strong: 0 0 30px rgba(0, 183, 255, 0.15);
+
+    /* ── Transitions ── */
+    --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-default: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* ── Radius ── */
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --radius-xl: 18px;
+  }
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-feature-settings: 'kern' 1, 'liga' 1, 'ss01' 1;
+/* ═══════════════════════════════════════════════════════════════════════════
+   GLOBAL BASE STYLES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-feature-settings: 'kern' 1, 'liga' 1, 'ss01' 1;
+  }
+
+  /* Custom scrollbar for dark theme */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.10);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.18);
+  }
+
+  /* Firefox scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.10) transparent;
+  }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   UTILITY CLASSES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@layer utilities {
+  .glass {
+    background: var(--surface-default);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border-default);
+  }
+
+  .glass-strong {
+    background: var(--surface-elevated);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border-strong);
+  }
+
+  .glow-subtle {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .glow-active {
+    box-shadow: var(--shadow-glow-strong);
+  }
+
+  .border-glow {
+    border-color: var(--border-accent);
+    box-shadow: 0 0 12px rgba(0, 183, 255, 0.08), inset 0 0 12px rgba(0, 183, 255, 0.04);
+  }
+
+  .text-gradient {
+    background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   EXISTING ANIMATIONS (preserved)
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 @keyframes brisaSlowZoom {
   0%, 100% { transform: scale(1.04) translateX(0); }
@@ -78,4 +234,152 @@ h1, h2, h3, h4, h5, h6 {
 
 @media (prefers-reduced-motion: reduce) {
   .admin-step-pulse { animation: none; }
+}
+
+/* ── New animations for the dark theme ── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 12px rgba(0, 183, 255, 0.06); }
+  50%      { box-shadow: 0 0 20px rgba(0, 183, 255, 0.14); }
+}
+
+.animate-fade-in { animation: fadeIn 200ms ease-out both; }
+.animate-slide-in-left { animation: slideInLeft 200ms ease-out both; }
+.animate-slide-in-right { animation: slideInRight 200ms ease-out both; }
+.animate-pulse-glow { animation: pulseGlow 2s ease-in-out infinite; }
+
+/* Panel content transitions */
+.panel-content-enter {
+  animation: panelContentIn 250ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes panelContentIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Staggered children animation */
+.stagger-children > * {
+  animation: panelContentIn 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 40ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 80ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 120ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 160ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 200ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .panel-content-enter,
+  .stagger-children > * {
+    animation: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LEGACY CONTENT INVERSION — Temporary bridge for light-themed pages
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Invert common light-theme colors to dark equivalents */
+.legacy-invert .bg-white,
+.legacy-invert .bg-zinc-50,
+.legacy-invert .bg-zinc-100 {
+  background-color: var(--bg-card) !important;
+}
+
+.legacy-invert .border-zinc-200,
+.legacy-invert .border-zinc-100 {
+  border-color: var(--border-subtle) !important;
+}
+
+.legacy-invert .text-zinc-900 {
+  color: var(--text-primary) !important;
+}
+
+.legacy-invert .text-zinc-700,
+.legacy-invert .text-zinc-600 {
+  color: var(--text-secondary) !important;
+}
+
+.legacy-invert .text-zinc-500,
+.legacy-invert .text-zinc-400 {
+  color: var(--text-muted) !important;
+}
+
+.legacy-invert .text-zinc-300 {
+  color: var(--text-disabled) !important;
+}
+
+.legacy-invert .hover\:bg-zinc-50:hover,
+.legacy-invert .hover\:bg-zinc-100:hover {
+  background-color: var(--surface-default) !important;
+}
+
+.legacy-invert .hover\:border-zinc-400:hover,
+.legacy-invert .hover\:border-zinc-300:hover {
+  border-color: var(--border-default) !important;
+}
+
+/* Status colors that should stay semantic */
+.legacy-invert .text-emerald-600,
+.legacy-invert .text-emerald-700 {
+  color: var(--success) !important;
+}
+
+.legacy-invert .text-red-700,
+.legacy-invert .text-red-600 {
+  color: var(--danger) !important;
+}
+
+.legacy-invert .text-amber-700,
+.legacy-invert .text-amber-600 {
+  color: var(--warning) !important;
+}
+
+.legacy-invert .text-blue-700,
+.legacy-invert .text-blue-600 {
+  color: var(--info) !important;
+}
+
+.legacy-invert .bg-amber-100 {
+  background-color: var(--warning-muted) !important;
+}
+
+.legacy-invert .text-amber-700 {
+  color: var(--warning) !important;
+}
+
+/* Subtle backgrounds */
+.legacy-invert .bg-zinc-100,
+.legacy-invert .bg-zinc-50 {
+  background-color: var(--surface-subtle) !important;
+}
+
+/* Input-like elements */
+.legacy-invert .hover\:bg-zinc-50 {
+  background-color: var(--surface-subtle) !important;
+}
+
+/* Shadow overrides for dark theme */
+.legacy-invert .shadow-cta {
+  box-shadow: var(--shadow-md) !important;
+}
+
+.legacy-invert .shadow-card-hover {
+  box-shadow: var(--shadow-sm) !important;
 }

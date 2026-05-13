@@ -41,13 +41,34 @@ function statusOf(s: StoreRow): { tone: Tone; label: string } {
   return { tone: 'red', label: 'Erreur' };
 }
 
-export default async function StoresPage() {
+/**
+ * Server-side pagination for the stores list.
+ * Default: page 1, 24 stores per page (nice grid layout: 3×8, 2×12, etc.).
+ */
+export default async function StoresPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const { page: pageParam } = await searchParams;
+  const page = Math.max(1, parseInt(pageParam ?? '1', 10) || 1);
+  const pageSize = 24;
+  const offset = (page - 1) * pageSize;
+
   const db = getDbRead();
+
+  const countRes = await db.query<{ total: number }>(
+    `SELECT COUNT(*)::int AS total FROM dropship_stores`,
+  );
+  const total = countRes.rows[0]?.total ?? 0;
+  const totalPages = Math.ceil(total / pageSize);
+
   const { rows } = await db.query<StoreRow>(
     `SELECT id, slug, name, niche, tagline, logo_emoji, primary_color, accent_color,
             status, product_count, error_message, created_at,
             hero_image_url, cutout_image_url, lifestyle_images
-     FROM dropship_stores ORDER BY created_at DESC LIMIT 100`,
+     FROM dropship_stores ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
+    [pageSize, offset],
   );
 
   const active = rows.filter((s) => s.status === 'active');
@@ -61,14 +82,14 @@ export default async function StoresPage() {
         kicker="Production · Agent IA"
         title={
           <>
-            Stores <em className="italic text-zinc-500">dropshipping</em>
+            Stores <em className="italic text-ds-text-muted">dropshipping</em>
           </>
         }
         lede="L’agent recherche les produits, enrichit les fiches puis publie le store Medusa complet. Mono-produit pour une landing DTC, collection pour un catalogue."
         actions={
           <Link
             href="/admin/stores/new"
-            className="inline-flex items-center gap-2 bg-zinc-900 text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-zinc-800 transition-colors shadow-cta"
+            className="inline-flex items-center gap-2 bg-[var(--accent-cyan)] text-ds-bg-base text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-[var(--accent-blue)] transition-colors"
           >
             <span aria-hidden className="text-base leading-none">+</span>
             Nouveau store
@@ -96,9 +117,46 @@ export default async function StoresPage() {
           {failed.length > 0 && (
             <StoreGroup kicker={`À nettoyer · ${failed.length}`} stores={failed} dim />
           )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 pt-4">
+              <PaginationLink page={page - 1} disabled={page <= 1} label="← Précédent" />
+              <span className="text-sm text-ds-text-muted tabular-nums px-3">
+                Page {page} / {totalPages}
+              </span>
+              <PaginationLink page={page + 1} disabled={page >= totalPages} label="Suivant →" />
+            </div>
+          )}
         </div>
       )}
     </div>
+  );
+}
+
+function PaginationLink({
+  page,
+  disabled,
+  label,
+}: {
+  page: number;
+  disabled: boolean;
+  label: string;
+}) {
+  if (disabled) {
+    return (
+      <span className="text-sm text-ds-text-disabled px-3 py-1.5 rounded-lg cursor-not-allowed">
+        {label}
+      </span>
+    );
+  }
+  return (
+    <Link
+      href={`/admin/stores?page=${page}`}
+      className="text-sm text-ds-text-secondary hover:text-ds-text-primary px-3 py-1.5 rounded-lg hover:bg-ds-surface-default transition-colors"
+    >
+      {label}
+    </Link>
   );
 }
 
@@ -134,7 +192,7 @@ function StoreGroup({
   return (
     <section>
       <div className="flex items-baseline justify-between mb-4">
-        <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">{kicker}</p>
+        <p className="text-kicker uppercase tracking-label text-ds-text-muted font-medium">{kicker}</p>
       </div>
       <div className={`grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 ${dim ? 'opacity-70' : ''}`}>
         {stores.map((store) => (
@@ -152,7 +210,7 @@ function StoreCard({ store }: { store: StoreRow }) {
   const accent = store.accent_color || primary;
 
   return (
-    <article className="group relative bg-white rounded-2xl overflow-hidden flex flex-col ring-1 ring-zinc-200/80 transition-all duration-300 hover:ring-zinc-300 hover:-translate-y-1 hover:shadow-[0_24px_50px_-20px_rgba(0,0,0,0.18)]">
+    <article className="group relative bg-ds-surface-subtle rounded-2xl overflow-hidden flex flex-col ring-1 ring-ds-border-subtle transition-all duration-300 hover:ring-ds-border-default hover:-translate-y-1 hover:shadow-[0_24px_50px_-20px_rgba(0,0,0,0.40)]">
       {/* ── COVER : hero image with gradient overlay, or rich color fallback */}
       <div className="relative aspect-[16/10] overflow-hidden">
         {cover ? (
@@ -213,15 +271,15 @@ function StoreCard({ store }: { store: StoreRow }) {
       {/* ── BODY : tagline + meta + actions */}
       <div className="p-5 flex-1 flex flex-col">
         {store.tagline ? (
-          <p className="text-sm text-zinc-600 leading-relaxed line-clamp-2 mb-4">
+          <p className="text-sm text-ds-text-secondary leading-relaxed line-clamp-2 mb-4">
             « {store.tagline} »
           </p>
         ) : (
-          <p className="text-sm text-zinc-400 italic mb-4">Sans tagline</p>
+          <p className="text-sm text-ds-text-muted italic mb-4">Sans tagline</p>
         )}
 
         {store.error_message && store.status !== 'active' && store.status !== 'creating' && (
-          <p className="text-xs text-red-600 mb-4 line-clamp-2 leading-relaxed bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+          <p className="text-xs text-[var(--danger)] mb-4 line-clamp-2 leading-relaxed bg-[var(--danger-muted)] border border-[var(--danger-muted)] rounded-lg px-3 py-2">
             {store.error_message}
           </p>
         )}
@@ -229,7 +287,7 @@ function StoreCard({ store }: { store: StoreRow }) {
         <div className="mt-auto flex items-center gap-2">
           <Link
             href={`/admin/stores/${store.id}`}
-            className="flex-1 text-center text-xs py-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 transition-colors font-medium text-white"
+            className="flex-1 text-center text-xs py-2 rounded-lg bg-[var(--accent-cyan)] hover:bg-[var(--accent-blue)] transition-colors font-medium text-ds-bg-base"
           >
             Gérer le store
           </Link>
@@ -240,7 +298,7 @@ function StoreCard({ store }: { store: StoreRow }) {
               rel="noreferrer"
               aria-label="Ouvrir la boutique"
               title="Ouvrir la boutique"
-              className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300 transition-colors text-zinc-600"
+              className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-ds-border-subtle hover:bg-ds-surface-default hover:border-ds-border-default transition-colors text-ds-text-secondary"
             >
               <ArrowUpRight size={15} strokeWidth={1.75} aria-hidden />
             </Link>
@@ -248,7 +306,7 @@ function StoreCard({ store }: { store: StoreRow }) {
           <StoreActions storeId={store.id} storeName={store.name} />
         </div>
 
-        <p className="text-kicker font-mono text-zinc-400 mt-3 truncate">/shop/{store.slug}</p>
+        <p className="text-kicker font-mono text-ds-text-muted mt-3 truncate">/shop/{store.slug}</p>
       </div>
     </article>
   );

@@ -4,13 +4,13 @@ import {
   Package,
   BarChart3,
   Settings,
-  ShoppingBag,
   type LucideIcon,
 } from 'lucide-react';
 import { getDbRead } from '@/lib/db';
 import { PageHeader, StatCard, StatusPill, SectionCard, type Tone } from '../_components/AdminUI';
 import { StoreLogo } from '@/components/ui';
 import { runAnomalyWatch } from '@/lib/ops/anomaly-watch';
+import { cn } from '@/lib/utils/cn';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -81,8 +81,6 @@ function pct(num: number, denom: number): string {
 export default async function PortfolioDashboard() {
   const db = getDbRead();
 
-  // Run every aggregation in parallel. Each one is wrapped in safeQuery so a
-  // missing index or schema drift can't blank the page.
   const [stores, revenue, funnel, topStores, cost, anomalies] = await Promise.all([
     safeQuery<StoresRow>(
       async () => {
@@ -186,7 +184,6 @@ export default async function PortfolioDashboard() {
     ),
   ]);
 
-  // Convert bigint-as-string from pg when needed (some drivers return string).
   const revenue30dCents = Number(revenue.revenue_30d_cents);
   const revenue7dCents = Number(revenue.revenue_7d_cents);
   const aov30dCents = Number(revenue.aov_30d_cents);
@@ -205,7 +202,7 @@ export default async function PortfolioDashboard() {
     <div className="space-y-6">
       <PageHeader
         kicker="Portfolio"
-        title={<span>Vue <em className="italic text-zinc-500">d&apos;ensemble</em></span>}
+        title={<span>Vue <em className="italic text-ds-text-muted">d&apos;ensemble</em></span>}
         lede="KPIs agrégés sur tous les stores actifs. Cliquez sur un bloc pour drill down."
       />
 
@@ -217,7 +214,7 @@ export default async function PortfolioDashboard() {
             value={stores.active.toString()}
             hint={
               stores.created_7d > 0 ? (
-                <span className="text-emerald-600">+{stores.created_7d} cette semaine</span>
+                <span className="text-[var(--success)]">+{stores.created_7d} cette semaine</span>
               ) : (
                 'Aucun nouveau store 7j'
               )
@@ -250,19 +247,19 @@ export default async function PortfolioDashboard() {
         kicker={alertsCount === 0 ? 'Statut ops' : `${alertsCount} alerte${alertsCount > 1 ? 's' : ''}`}
         title={
           alertsCount === 0 ? (
-            <span className="text-emerald-700">
-              Tout est sous contrôle <em className="italic text-zinc-500 font-light">(aucune anomalie)</em>
+            <span className="text-[var(--success)]">
+              Tout est sous contrôle <em className="italic text-ds-text-muted font-light">(aucune anomalie)</em>
             </span>
           ) : (
-            <span className="text-red-700">
-              Anomalies à traiter <em className="italic text-zinc-500 font-light">(détectées par le watcher)</em>
+            <span className="text-[var(--danger)]">
+              Anomalies à traiter <em className="italic text-ds-text-muted font-light">(détectées par le watcher)</em>
             </span>
           )
         }
       >
         <div className="px-6 py-5 space-y-2">
           {alertsCount === 0 && (
-            <p className="text-sm text-zinc-500">
+            <p className="text-sm text-ds-text-muted">
               Aucun forward AliExpress en erreur, aucune commande Stripe orpheline, aucun token API expiré.
             </p>
           )}
@@ -294,7 +291,7 @@ export default async function PortfolioDashboard() {
             />
           ))}
           {anomalies.warnings.length > 0 && (
-            <p className="text-xs text-zinc-400 italic mt-3">
+            <p className="text-xs text-ds-text-muted italic mt-3">
               {anomalies.warnings.join(' · ')}
             </p>
           )}
@@ -303,27 +300,27 @@ export default async function PortfolioDashboard() {
 
       {/* Row 3 — top stores + funnel + cost */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <SectionCard kicker="Performance 7j" title={<span>Top <em className="italic text-zinc-500">stores</em></span>}>
+        <SectionCard kicker="Performance 7j" title={<span>Top <em className="italic text-ds-text-muted">stores</em></span>}>
           <div className="p-6 space-y-3">
             {topStores.length === 0 && (
-              <p className="text-sm text-zinc-500">Aucun store actif avec des ventes 7j.</p>
+              <p className="text-sm text-ds-text-muted">Aucun store actif avec des ventes 7j.</p>
             )}
             {topStores.map((s) => (
               <Link
                 key={s.slug}
                 href={`/admin/stores`}
-                className="flex items-center gap-3 -mx-2 px-2 py-1.5 rounded-md hover:bg-zinc-50 transition-colors"
+                className="flex items-center gap-3 -mx-2 px-2 py-1.5 rounded-md hover:bg-ds-surface-default transition-colors"
               >
-                <span className="text-zinc-700 inline-flex"><StoreLogo emoji={s.logo_emoji} size={20} /></span>
+                <span className="text-ds-text-secondary inline-flex"><StoreLogo emoji={s.logo_emoji} size={20} /></span>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-zinc-900 truncate">{s.name}</div>
-                  <div className="text-xs text-zinc-400 truncate">/shop/{s.slug}</div>
+                  <div className="text-sm font-medium text-ds-text-primary truncate">{s.name}</div>
+                  <div className="text-xs text-ds-text-muted truncate">/shop/{s.slug}</div>
                 </div>
                 <div className="text-right shrink-0">
-                  <div className="text-sm font-medium text-zinc-900">
+                  <div className="text-sm font-medium text-ds-text-primary">
                     {eur(Number(s.revenue_cents))}
                   </div>
-                  <div className="text-xs text-zinc-400">
+                  <div className="text-xs text-ds-text-muted">
                     {s.orders} commande{s.orders > 1 ? 's' : ''}
                   </div>
                 </div>
@@ -332,52 +329,52 @@ export default async function PortfolioDashboard() {
           </div>
         </SectionCard>
 
-        <SectionCard kicker="Funnel 30j" title={<span>Conversion <em className="italic text-zinc-500">globale</em></span>}>
+        <SectionCard kicker="Funnel 30j" title={<span>Conversion <em className="italic text-ds-text-muted">globale</em></span>}>
           <div className="p-6">
             <FunnelBar label="View content" value={funnel.view_content} reference={funnel.view_content} tone="neutral" />
             <FunnelBar label="Add to cart" value={funnel.add_to_cart} reference={funnel.view_content} tone="blue" />
             <FunnelBar label="Initiate checkout" value={funnel.initiate_checkout} reference={funnel.view_content} tone="amber" />
             <FunnelBar label="Purchase" value={funnel.purchase} reference={funnel.view_content} tone="emerald" />
-            <div className="mt-4 pt-3 border-t border-zinc-100 text-xs text-zinc-500 flex justify-between">
+            <div className="mt-4 pt-3 border-t border-ds-border-subtle text-xs text-ds-text-muted flex justify-between">
               <span>Conversion globale</span>
-              <span className="font-medium text-zinc-700">
+              <span className="font-medium text-ds-text-primary">
                 {pct(funnel.purchase, funnel.view_content)}
               </span>
             </div>
           </div>
         </SectionCard>
 
-        <SectionCard kicker="Coût Claude 30j" title={<span>Observabilité <em className="italic text-zinc-500">agent</em></span>}>
+        <SectionCard kicker="Coût Claude 30j" title={<span>Observabilité <em className="italic text-ds-text-muted">agent</em></span>}>
           <div className="p-6 space-y-4">
             <div>
-              <div className="text-3xl font-semibold tracking-tight text-zinc-900">
+              <div className="text-3xl font-semibold tracking-tight text-ds-text-primary">
                 {totalCost.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
               </div>
-              <div className="text-xs text-zinc-500 mt-1">
+              <div className="text-xs text-ds-text-muted mt-1">
                 Total des appels Anthropic
               </div>
             </div>
             <dl className="space-y-1.5 text-sm">
               <div className="flex justify-between">
-                <dt className="text-zinc-500">Runs</dt>
-                <dd className="font-medium text-zinc-900">{cost.runs.toLocaleString('fr-FR')}</dd>
+                <dt className="text-ds-text-muted">Runs</dt>
+                <dd className="font-medium text-ds-text-primary">{cost.runs.toLocaleString('fr-FR')}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-zinc-500">Coût moyen / run</dt>
-                <dd className="font-medium text-zinc-900">
+                <dt className="text-ds-text-muted">Coût moyen / run</dt>
+                <dd className="font-medium text-ds-text-primary">
                   {(avgPerRun * 1000).toFixed(3)} m€
                 </dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-zinc-500">Taux d&apos;erreur</dt>
-                <dd className={`font-medium ${errorRate > 5 ? 'text-red-700' : 'text-zinc-900'}`}>
+                <dt className="text-ds-text-muted">Taux d&apos;erreur</dt>
+                <dd className={cn('font-medium', errorRate > 5 ? 'text-[var(--danger)]' : 'text-ds-text-primary')}>
                   {errorRate.toFixed(1)}%
                 </dd>
               </div>
             </dl>
             <Link
               href="/admin/observability"
-              className="block text-center text-xs font-medium text-zinc-600 hover:text-zinc-900 border border-zinc-200 hover:border-zinc-400 rounded-lg px-3 py-2 transition-colors"
+              className="block text-center text-xs font-medium text-ds-text-secondary hover:text-ds-text-primary border border-ds-border-subtle hover:border-ds-border-default rounded-lg px-3 py-2 transition-colors"
             >
               Voir le détail par step →
             </Link>
@@ -386,7 +383,7 @@ export default async function PortfolioDashboard() {
       </div>
 
       {/* Quick links */}
-      <SectionCard kicker="Actions" title={<span>Raccourcis <em className="italic text-zinc-500">opérations</em></span>}>
+      <SectionCard kicker="Actions" title={<span>Raccourcis <em className="italic text-ds-text-muted">opérations</em></span>}>
         <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-3">
           <QuickLink href="/admin/stores/new" Icon={Sparkles} label="Créer un store" hint="Agent en 25-40s" />
           <QuickLink href="/admin/orders" Icon={Package} label="Commandes" hint="Forwards AE" />
@@ -414,12 +411,12 @@ function AlertRow({
   return (
     <Link
       href={href}
-      className="flex items-start gap-3 -mx-2 px-2 py-2 rounded-md hover:bg-zinc-50 transition-colors"
+      className="flex items-start gap-3 -mx-2 px-2 py-2 rounded-md hover:bg-ds-surface-default transition-colors"
     >
       <span className="mt-0.5">
         <StatusPill tone={tone}>{label}</StatusPill>
       </span>
-      <span className="text-xs text-zinc-600 leading-relaxed flex-1">{detail}</span>
+      <span className="text-xs text-ds-text-secondary leading-relaxed flex-1">{detail}</span>
     </Link>
   );
 }
@@ -437,24 +434,24 @@ function FunnelBar({
 }) {
   const ratio = reference > 0 ? Math.min(1, value / reference) : 0;
   const barColor = {
-    neutral: 'bg-zinc-300',
-    blue: 'bg-blue-400',
-    amber: 'bg-amber-400',
-    emerald: 'bg-emerald-500',
+    neutral: 'bg-ds-text-muted',
+    blue: 'bg-[var(--accent-blue)]',
+    amber: 'bg-[var(--warning)]',
+    emerald: 'bg-[var(--success)]',
   }[tone];
   return (
     <div className="mb-3 last:mb-0">
       <div className="flex justify-between text-xs mb-1">
-        <span className="text-zinc-600">{label}</span>
-        <span className="font-medium text-zinc-900">
+        <span className="text-ds-text-secondary">{label}</span>
+        <span className="font-medium text-ds-text-primary">
           {value.toLocaleString('fr-FR')}{' '}
-          <span className="text-zinc-400 font-normal">
+          <span className="text-ds-text-muted font-normal">
             ({reference > 0 ? Math.round(ratio * 100) : 0}%)
           </span>
         </span>
       </div>
-      <div className="h-2 bg-zinc-100 rounded-full overflow-hidden">
-        <div className={`h-full ${barColor}`} style={{ width: `${ratio * 100}%` }} />
+      <div className="h-2 bg-ds-surface-default rounded-full overflow-hidden">
+        <div className={cn('h-full', barColor)} style={{ width: `${ratio * 100}%`, opacity: 0.7 }} />
       </div>
     </div>
   );
@@ -474,11 +471,11 @@ function QuickLink({
   return (
     <Link
       href={href}
-      className="group border border-zinc-200 hover:border-zinc-400 rounded-lg px-4 py-3 transition-colors"
+      className="group border border-ds-border-subtle hover:border-ds-border-default rounded-lg px-4 py-3 transition-colors bg-ds-surface-subtle hover:bg-ds-surface-default"
     >
-      <Icon size={22} strokeWidth={1.5} className="text-zinc-700 group-hover:text-zinc-900 mb-2 transition-colors" aria-hidden />
-      <div className="text-sm font-medium text-zinc-900">{label}</div>
-      <div className="text-xs text-zinc-500">{hint}</div>
+      <Icon size={22} strokeWidth={1.5} className="text-ds-text-secondary group-hover:text-ds-text-primary mb-2 transition-colors" aria-hidden />
+      <div className="text-sm font-medium text-ds-text-primary">{label}</div>
+      <div className="text-xs text-ds-text-muted">{hint}</div>
     </Link>
   );
 }

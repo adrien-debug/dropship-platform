@@ -39,6 +39,7 @@ import * as aliexpress from '@/lib/suppliers/aliexpress';
 import * as cj from '@/lib/suppliers/cj';
 import { tavilySearch, isTavilyConfigured } from '@/lib/research/tavily';
 import { perplexityAnswer, isPerplexityConfigured } from '@/lib/research/perplexity';
+import { rebuildMessages, stringifyToolOutput } from './copilot-shared';
 
 // Niche research is the most strategic step in the pipeline — the choice of
 // niche dictates everything downstream (visuals, copy, ad angles). We run
@@ -131,6 +132,24 @@ const MediaPlanInput = z.object({
   top_hooks: z.array(z.string().max(320)).max(10).optional(),
 });
 
+// Hex color validator used for the design proposals. Strict so we don't
+// accept rgba() or named colors — the storefront injects these as CSS vars
+// and we want them to round-trip identically every time.
+const HexColor = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'must be #RRGGBB hex');
+
+const DesignProposalInput = z.object({
+  preset: z.enum([
+    'editorial-serif',
+    'tech-mono',
+    'brutalist-luxe',
+    'gen-z-bold',
+    'lifestyle-warm',
+  ]),
+  primary: HexColor,
+  accent: HexColor,
+  rationale: z.string().min(0).max(400),
+});
+
 const ShortlistNicheInput = z.object({
   niche: z.string().min(1).max(80),
   rationale: z.string().min(10).max(800),
@@ -150,6 +169,10 @@ const ShortlistNicheInput = z.object({
     .optional(),
   // Full media plan — channel mix, geo, audience, dayparting, outcomes.
   media_plan: MediaPlanInput.optional(),
+  // Three design candidates the operator picks from in the chat UI. The
+  // chosen one is locked in `dropship_stores.design_preset` + `.palette`
+  // at creation time and never regenerated.
+  design_proposals: z.array(DesignProposalInput).length(3).optional(),
 });
 
 // ── Anthropic tool surfaces ────────────────────────────────────────────
@@ -419,6 +442,39 @@ const TOOLS: Anthropic.Messages.Tool[] = [
           },
           required: ['daily_budget_eur', 'channels', 'geo', 'audience', 'schedule', 'expected_outcomes'],
         },
+        design_proposals: {
+          type: 'array',
+          description:
+            'EXACTLY 3 design candidates the operator picks from in the chat. Each is one of the 5 curated presets (editorial-serif, tech-mono, brutalist-luxe, gen-z-bold, lifestyle-warm) plus the primary+accent hex colors you recommend for THIS niche. Choose the 3 presets that best fit the audience (e.g. for "pet care" propose lifestyle-warm + editorial-serif + gen-z-bold). Each accent must visually contrast its primary. Once the operator picks one in the chat, those exact colors are LOCKED — no other component is allowed to invent new ones.',
+          items: {
+            type: 'object',
+            properties: {
+              preset: {
+                type: 'string',
+                enum: [
+                  'editorial-serif',
+                  'tech-mono',
+                  'brutalist-luxe',
+                  'gen-z-bold',
+                  'lifestyle-warm',
+                ],
+              },
+              primary: {
+                type: 'string',
+                description: 'Brand primary color, #RRGGBB hex. Used for CTAs, links, accents on dark surfaces.',
+              },
+              accent: {
+                type: 'string',
+                description: 'Brand accent color, #RRGGBB hex. Used sparingly for highlights, badges, glow.',
+              },
+              rationale: {
+                type: 'string',
+                description: 'One sentence on why this preset+palette suits the niche.',
+              },
+            },
+            required: ['preset', 'primary', 'accent', 'rationale'],
+          },
+        },
       },
       required: ['niche', 'rationale', 'suggested_store_name'],
     },
@@ -454,6 +510,18 @@ export interface FeaturedProduct {
   expected_aov_eur?: number;
 }
 
+export interface DesignProposal {
+  preset:
+    | 'editorial-serif'
+    | 'tech-mono'
+    | 'brutalist-luxe'
+    | 'gen-z-bold'
+    | 'lifestyle-warm';
+  primary: string;
+  accent: string;
+  rationale: string;
+}
+
 export interface ShortlistPayload {
   niche: string;
   rationale: string;
@@ -462,23 +530,30 @@ export interface ShortlistPayload {
   suggested_store_name: string;
   target_audience?: string;
   featured_product?: FeaturedProduct;
+  suggested_mode?: 'mono' | 'collection';
+  suggested_template?: string;
+  design_proposals?: DesignProposal[];
 }
 
-interface StoredMessage {
-  id: string;
-  role: 'user' | 'assistant' | 'tool';
-  content: string;
-  tool_name: string | null;
-  tool_input: unknown;
-  tool_output: unknown;
-  created_at: string;
+/**
+ * Research-specific tool result that adds a `shortlist` payload for the
+ * shortlist_niche tool which triggers a UI side-effect.
+ */
+interface ResearchToolResult {
+  output: unknown;
+  /** Short human-readable label shown in the inline tool card. */
+  summary: string;
+  /** Optional structured payload to bubble up as a stream event. */
+  shortlist?: ShortlistPayload;
 }
 
 // ── DB helpers ─────────────────────────────────────────────────────────
 
-async function loadHistory(sessionId: string): Promise<StoredMessage[]> {
+async function loadHistory(sessionId: string) {
   const db = getDb();
-  const { rows } = await db.query<StoredMessage>(
+  const { rows } = await db.query<
+    import('./copilot-shared').StoredMessage
+  >(
     `SELECT id, role, content, tool_name, tool_input, tool_output, created_at
        FROM dropship_research_messages
        WHERE session_id = $1
@@ -531,86 +606,6 @@ async function maybeBackfillTitle(sessionId: string, firstUserMessage: string): 
     `UPDATE dropship_research_sessions SET title = $1 WHERE id = $2 AND title IS NULL`,
     [title, sessionId],
   );
-}
-
-// ── Message rebuild (Anthropic format) ─────────────────────────────────
-
-function rebuildMessages(history: StoredMessage[]): Anthropic.Messages.MessageParam[] {
-  const out: Anthropic.Messages.MessageParam[] = [];
-
-  let pendingToolUses: Array<{ id: string; name: string; input: unknown }> = [];
-  let pendingAssistantText = '';
-
-  const flushAssistant = () => {
-    const blocks: Anthropic.Messages.ContentBlockParam[] = [];
-    if (pendingAssistantText.trim()) {
-      blocks.push({ type: 'text', text: pendingAssistantText });
-    }
-    for (const tu of pendingToolUses) {
-      blocks.push({ type: 'tool_use', id: tu.id, name: tu.name, input: tu.input ?? {} });
-    }
-    if (blocks.length) out.push({ role: 'assistant', content: blocks });
-    pendingAssistantText = '';
-    pendingToolUses = [];
-  };
-
-  for (const row of history) {
-    if (row.role === 'user') {
-      flushAssistant();
-      out.push({ role: 'user', content: row.content });
-    } else if (row.role === 'assistant') {
-      flushAssistant();
-      pendingAssistantText = row.content;
-    } else if (row.role === 'tool') {
-      const useId =
-        row.tool_input &&
-        typeof row.tool_input === 'object' &&
-        '__tool_use_id' in row.tool_input
-          ? String((row.tool_input as { __tool_use_id?: unknown }).__tool_use_id)
-          : `toolu_${row.id}`;
-      pendingToolUses.push({
-        id: useId,
-        name: row.tool_name ?? 'unknown',
-        input: stripToolUseId(row.tool_input),
-      });
-      flushAssistant();
-      out.push({
-        role: 'user',
-        content: [
-          {
-            type: 'tool_result',
-            tool_use_id: useId,
-            content: stringifyToolOutput(row.tool_output),
-            is_error: Boolean(
-              row.tool_output &&
-                typeof row.tool_output === 'object' &&
-                'error' in (row.tool_output as Record<string, unknown>) &&
-                (row.tool_output as { error?: unknown }).error,
-            ),
-          },
-        ],
-      });
-    }
-  }
-  flushAssistant();
-  return out;
-}
-
-function stripToolUseId(input: unknown): unknown {
-  if (!input || typeof input !== 'object') return input ?? {};
-  const clone = { ...(input as Record<string, unknown>) };
-  delete clone.__tool_use_id;
-  return clone;
-}
-
-function stringifyToolOutput(out: unknown): string {
-  if (out == null) return '';
-  if (typeof out === 'string') return out;
-  try {
-    return JSON.stringify(out);
-  } catch {
-    return String(out);
-  }
 }
 
 // ── System prompt ──────────────────────────────────────────────────────
@@ -711,10 +706,11 @@ function buildSystemPrompt(): string {
     '6. **Bundle strategy** — if unit retail < 30€, propose a 2-unit and 3-unit bundle to lift AOV. State the expected AOV after bundles.',
     '7. **Storefront shape** — decide `suggested_mode` ("mono" for one hero SKU long-form, "collection" for 3-6 curated pieces) AND `suggested_template` (one of: mono / collection-grid / collection-editorial / luxury-minimal / gen-z-bold) based on the niche vibe. The operator should NOT have to re-pick.',
     '8. **Media plan — DO NOT SKIP**. Produce a full `media_plan` using the REAL ad cost data from `search_ad_benchmarks`. Channels with weight_pct summing ~100, expected CPM/CPC/CPA per channel (from benchmarks), geo (primary_countries + emphasis cities/régions), audience (demographics + interests + lookalike_seeds), schedule (best_hours_local + best_days + timezone Europe/Paris), expected_outcomes (daily_orders_low/high, target_cpa_eur, target_roas, breakeven_note), and 3 top_hooks. The operator validates this visually BEFORE creating the store.',
+    '9. **Design proposals — DO NOT SKIP**. Provide EXACTLY 3 entries in `design_proposals`. Each is one of the 5 curated presets (`editorial-serif`, `tech-mono`, `brutalist-luxe`, `gen-z-bold`, `lifestyle-warm`) with the recommended `primary` + `accent` hex colors for THIS niche. Hard rules: (a) the 3 must be visually distinct from each other so the operator has a real choice; (b) the colors must respect the niche emotional tone (pet care → warm earthy; tech gadget → cold deep blue or near-black; luxury → near-black + ivory; gen-z fitness → saturated lime or magenta); (c) each accent must contrast its primary; (d) NEVER use the default placeholder #0f172a / #6366f1 — those are the legacy app neutrals and look generic. Once the operator picks one in the chat, those exact colors become the LAW for the whole storefront, the cookie banner, the ads creatives, every CTA. No component will ever invent a new color afterwards.',
     '',
     '- The operator paid Opus 4.7 to do the pricing work — never propose a retail price without having benchmarked it against the market. Never lazily round `cost × 2.2`.',
     '- A healthy gross margin floor is ~12€ on the chosen retail (otherwise FB Ads débutant burns cash). Reject any combo that gives < 10€ margin.',
-    '- ALWAYS call `shortlist_niche` once the analysis above is complete. It is how the UI surfaces the "Lancer cette niche" button. Treat it as a contract: the operator should not have to re-pick mode/template/budget/audience after seeing your card.',
+    '- ALWAYS call `shortlist_niche` once the analysis above is complete. It is how the UI surfaces the "Lancer cette niche" button + the design picker. Treat it as a contract: the operator should not have to re-pick mode/template/budget/audience/colors/typo after seeing your card.',
     '- When `shortlist_niche` is called, ALWAYS pass the winning candidate as `featured_product`. Set `suggested_price_cents` to YOUR balanced-scenario retail price (in cents) — not the naive supplier estimate. Set `pricing_rationale` to one short sentence explaining why this price (e.g. "Aligné Amazon FR 22-28€, marge 13€, sweet spot psychologique sous 25€").',
     '- No em-dashes (—). No three-beat triads. Write tight, concrete French. Numbers, ranges, names.',
     '',
@@ -729,16 +725,7 @@ function buildSystemPrompt(): string {
 
 // ── Tool executors ─────────────────────────────────────────────────────
 
-interface ToolExecutionResult {
-  output: unknown;
-  /** Short human-readable label shown in the inline tool card. */
-  summary: string;
-  /** Optional structured payload to bubble up as a stream event. Used for
-   *  shortlist_niche which triggers a UI side-effect. */
-  shortlist?: ShortlistPayload;
-}
-
-async function execWebSearch(raw: unknown): Promise<ToolExecutionResult> {
+async function execWebSearch(raw: unknown): Promise<ResearchToolResult> {
   const input = WebSearchInput.parse(raw);
   const results = await tavilySearch({
     query: input.query,
@@ -752,7 +739,7 @@ async function execWebSearch(raw: unknown): Promise<ToolExecutionResult> {
   };
 }
 
-async function execAskPerplexity(raw: unknown): Promise<ToolExecutionResult> {
+async function execAskPerplexity(raw: unknown): Promise<ResearchToolResult> {
   const input = AskPerplexityInput.parse(raw);
   const { answer, citations } = await perplexityAnswer(input.query);
   return {
@@ -761,7 +748,7 @@ async function execAskPerplexity(raw: unknown): Promise<ToolExecutionResult> {
   };
 }
 
-async function execMetaAdsLibrary(raw: unknown): Promise<ToolExecutionResult> {
+async function execMetaAdsLibrary(raw: unknown): Promise<ResearchToolResult> {
   const input = MetaAdsLibraryInput.parse(raw);
   const result = await validateNiche(input.niche, {
     country: (input.country ?? 'FR') as ValidatorCountry,
@@ -772,7 +759,7 @@ async function execMetaAdsLibrary(raw: unknown): Promise<ToolExecutionResult> {
   };
 }
 
-async function execAliexpressSearch(raw: unknown): Promise<ToolExecutionResult> {
+async function execAliexpressSearch(raw: unknown): Promise<ResearchToolResult> {
   const input = SupplierSearchInput.parse(raw);
   const limit = Math.min(20, input.limit ?? 10);
   const res = await aliexpress.searchProducts({
@@ -815,7 +802,7 @@ async function execAliexpressSearch(raw: unknown): Promise<ToolExecutionResult> 
   };
 }
 
-async function execCjSearch(raw: unknown): Promise<ToolExecutionResult> {
+async function execCjSearch(raw: unknown): Promise<ResearchToolResult> {
   const input = SupplierSearchInput.parse(raw);
   const limit = Math.min(20, input.limit ?? 10);
   let res;
@@ -864,7 +851,7 @@ async function execCjSearch(raw: unknown): Promise<ToolExecutionResult> {
   };
 }
 
-async function execAdBenchmarks(raw: unknown): Promise<ToolExecutionResult> {
+async function execAdBenchmarks(raw: unknown): Promise<ResearchToolResult> {
   const input = AdBenchmarksInput.parse(raw);
   const country = input.country ?? 'FR';
   const countryLabel: Record<string, string> = {
@@ -897,7 +884,7 @@ async function execAdBenchmarks(raw: unknown): Promise<ToolExecutionResult> {
   }
 }
 
-function execShortlistNiche(raw: unknown): ToolExecutionResult {
+function execShortlistNiche(raw: unknown): ResearchToolResult {
   const input = ShortlistNicheInput.parse(raw);
   const payload: ShortlistPayload = {
     niche: input.niche.trim().toLowerCase(),
@@ -923,6 +910,14 @@ function execShortlistNiche(raw: unknown): ToolExecutionResult {
           expected_aov_eur: input.featured_product.expected_aov_eur,
         }
       : undefined,
+    suggested_mode: input.suggested_mode,
+    suggested_template: input.suggested_template,
+    design_proposals: input.design_proposals?.map((d) => ({
+      preset: d.preset,
+      primary: d.primary.toLowerCase(),
+      accent: d.accent.toLowerCase(),
+      rationale: d.rationale.trim(),
+    })),
   };
   return {
     output: payload,
@@ -940,7 +935,7 @@ type ToolName =
   | 'search_ad_benchmarks'
   | 'shortlist_niche';
 
-async function executeTool(name: string, input: unknown): Promise<ToolExecutionResult> {
+async function executeTool(name: string, input: unknown): Promise<ResearchToolResult> {
   switch (name as ToolName) {
     case 'web_search':
       return execWebSearch(input);
