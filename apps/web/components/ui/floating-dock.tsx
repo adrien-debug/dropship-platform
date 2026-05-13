@@ -19,7 +19,7 @@ export function FloatingDock({
   className?: string;
 }) {
   return (
-    <div className={cn('mx-auto hidden md:flex h-12 gap-5 items-center', className)}>
+    <div className={cn('mx-auto hidden md:flex h-12 gap-4 items-center', className)}>
       {items.map((item) => (
         <IconContainer key={item.title} {...item} />
       ))}
@@ -31,10 +31,16 @@ function IconContainer({ title, icon, href }: DockItem) {
   const [hovered, setHovered] = useState(false);
 
   return (
-    <Link href={href}>
+    <Link
+      href={href}
+      aria-label={title}
+      className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-indigo-700"
+    >
       <motion.div
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
+        onFocus={() => setHovered(true)}
+        onBlur={() => setHovered(false)}
         className="flex flex-col items-center gap-1 relative"
       >
         <motion.div
@@ -48,11 +54,11 @@ function IconContainer({ title, icon, href }: DockItem) {
         <AnimatePresence>
           {hovered && (
             <motion.span
-              initial={{ opacity: 0, y: -4 }}
+              initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
+              exit={{ opacity: 0, y: 4 }}
               transition={{ duration: 0.15 }}
-              className="absolute -bottom-5 whitespace-nowrap text-[10px] font-medium text-white/90"
+              className="absolute -top-7 whitespace-nowrap text-[10px] font-medium text-white/90"
             >
               {title}
             </motion.span>

@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getDbRead } from '@/lib/db';
 import { formatMoney } from '@/lib/medusa-store';
+import { PageHeader } from '../../../../_components/AdminUI';
 
 export const dynamic = 'force-dynamic';
 
@@ -105,31 +106,27 @@ export default async function StoreAnalyticsPage({ params, searchParams }: Props
 
   return (
     <div className="flex flex-col flex-1 space-y-4">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">
-            Analytics · {store.name}
-          </p>
-          <h2 className="mt-0.5 text-2xl sm:text-3xl xl:text-4xl font-extrabold tracking-[-0.035em] text-zinc-900 leading-[1.02]">
-            Acquisition <em className="italic text-zinc-400">&amp; comportement</em>
-          </h2>
-          <p className="mt-1 text-xs text-zinc-500">Période : {cfg.label}.</p>
-        </div>
-        <div className="flex items-center gap-1 border border-zinc-200 rounded-full p-1 bg-white shadow-sm">
-          {Object.entries(RANGE_TO_INTERVAL).map(([key, c]) => (
-            <Link
-              key={key}
-              href={`?range=${key}`}
-              className={
-                'px-4 py-1.5 rounded-full text-xs uppercase tracking-cta font-medium transition-colors ' +
-                (key === range ? 'bg-indigo-600 text-white' : 'text-zinc-500 hover:text-zinc-900')
-              }
-            >
-              {c.label}
-            </Link>
-          ))}
-        </div>
-      </header>
+      <PageHeader
+        kicker={`Analytics · ${store.name}`}
+        title={<span>Acquisition <em className="italic text-zinc-400">&amp; comportement</em></span>}
+        lede={`Période : ${cfg.label}.`}
+        actions={
+          <div className="flex items-center gap-1 border border-zinc-200 rounded-full p-1 bg-white shadow-sm">
+            {Object.entries(RANGE_TO_INTERVAL).map(([key, c]) => (
+              <Link
+                key={key}
+                href={`?range=${key}`}
+                className={
+                  'px-4 py-1.5 rounded-full text-xs uppercase tracking-cta font-medium transition-colors ' +
+                  (key === range ? 'bg-indigo-600 text-white' : 'text-zinc-500 hover:text-zinc-900')
+                }
+              >
+                {c.label}
+              </Link>
+            ))}
+          </div>
+        }
+      />
 
       {/* Aggregate KPIs */}
       <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">

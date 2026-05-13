@@ -471,7 +471,7 @@ export function CopilotHub({
               if (m.role === 'user') {
                 return (
                   <div key={m.id} className="flex justify-end">
-                    <div className="max-w-[78%] bg-zinc-900 text-white rounded-2xl rounded-tr-md px-4 py-2.5 text-sm whitespace-pre-wrap">
+                    <div className="max-w-[78%] bg-indigo-600 text-white rounded-2xl rounded-tr-md px-4 py-2.5 text-sm whitespace-pre-wrap">
                       {m.content}
                     </div>
                   </div>
@@ -506,7 +506,7 @@ export function CopilotHub({
                 placeholder={`Demande quelque chose à ${MODE_LABELS[mode].label}… (Cmd+Enter pour envoyer)`}
                 rows={2}
                 disabled={streaming}
-                className="flex-1 resize-none text-sm border border-zinc-200 rounded-lg px-3 py-2 focus:outline-none focus:border-zinc-400 focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50 transition-colors"
+                className="flex-1 resize-none text-sm border border-zinc-200 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50 transition-colors"
               />
               <button
                 type="submit"

@@ -42,7 +42,7 @@ export function PageHeader({
         <h1 className="mt-0.5 text-2xl sm:text-3xl xl:text-4xl font-extrabold tracking-[-0.035em] text-zinc-900 leading-[1.02]">
           {title}
         </h1>
-        {lede && <p className="mt-1 text-xs text-zinc-500 max-w-2xl leading-relaxed hidden 2xl:block">{lede}</p>}
+        {lede && <p className="mt-1 text-xs text-zinc-500 max-w-2xl leading-relaxed hidden xl:block">{lede}</p>}
       </div>
       {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
     </header>
@@ -67,7 +67,7 @@ export function StatCard({
         {label}
       </div>
       <div className={cn('mt-1.5 text-2xl font-bold tracking-[-0.03em]', valueTone[tone])}>{value}</div>
-      {hint && <div className="mt-1 text-[11px] text-zinc-400">{hint}</div>}
+      {hint && <div className="mt-1 text-xs text-zinc-400">{hint}</div>}
     </div>
   );
 }
@@ -93,7 +93,7 @@ export function SectionCard({
   className?: string;
 }) {
   return (
-    <section className={cn('border border-zinc-200 bg-white rounded-2xl shadow-sm h-full flex flex-col', className)}>
+    <section className={cn('border border-zinc-200 bg-white rounded-xl shadow-sm h-full flex flex-col', className)}>
       {(kicker || title) && (
         <div className="px-4 pt-3 pb-3 border-b border-zinc-100 shrink-0">
           {kicker && (

@@ -68,7 +68,7 @@ export function StoreCustomDomainForm({
             onChange={(e) => setValue(e.target.value)}
             placeholder="maison-chic.com"
             disabled={pending}
-            className="w-full sm:w-80 border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50"
+            className="w-full sm:w-80 border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 disabled:opacity-50"
           />
         </div>
 

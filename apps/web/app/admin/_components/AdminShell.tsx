@@ -44,7 +44,7 @@ function TitleBar() {
           onClick={() => callWindowControl('close')}
           aria-label="Fermer"
           title="Fermer"
-          className="group w-3.5 h-3.5 rounded-full bg-white hover:bg-white/90 flex items-center justify-center transition-colors"
+          className="group w-3.5 h-3.5 rounded-full bg-white hover:bg-white/90 flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-1 focus-visible:ring-offset-indigo-700"
         >
           <X size={7} strokeWidth={2.5} className="text-indigo-600" aria-hidden />
         </button>
@@ -53,7 +53,7 @@ function TitleBar() {
           onClick={() => callWindowControl('minimize')}
           aria-label="Réduire"
           title="Réduire"
-          className="group w-3.5 h-3.5 rounded-full bg-white hover:bg-white/90 flex items-center justify-center transition-colors"
+          className="group w-3.5 h-3.5 rounded-full bg-white hover:bg-white/90 flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-1 focus-visible:ring-offset-indigo-700"
         >
           <Minus size={7} strokeWidth={2.5} className="text-indigo-600" aria-hidden />
         </button>
@@ -62,7 +62,7 @@ function TitleBar() {
           onClick={() => callWindowControl('maximize')}
           aria-label="Plein écran"
           title="Plein écran"
-          className="group w-3.5 h-3.5 rounded-full bg-white hover:bg-white/90 flex items-center justify-center transition-colors"
+          className="group w-3.5 h-3.5 rounded-full bg-white hover:bg-white/90 flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-1 focus-visible:ring-offset-indigo-700"
         >
           <Maximize2 size={7} strokeWidth={2.5} className="text-indigo-600" aria-hidden />
         </button>
@@ -89,7 +89,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-100 flex flex-col h-screen overflow-hidden">
+    <div className="min-h-screen bg-[#0f0e1a] flex flex-col h-screen overflow-hidden">
       <TitleBar />
 
       <main className="flex-1 min-w-0 flex flex-col relative overflow-hidden">
@@ -128,7 +128,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
                 onClick={logout}
                 title="Déconnexion"
                 aria-label="Déconnexion"
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-1 focus-visible:ring-offset-indigo-700"
               >
                 <LogOut size={14} strokeWidth={1.75} aria-hidden />
               </button>

@@ -11,6 +11,8 @@ import { MonoProductLanding } from './MonoProductLanding';
 import { CollectionEditorialLanding } from './CollectionEditorialLanding';
 import { LuxuryMinimalLanding } from './LuxuryMinimalLanding';
 import { GenZBoldLanding } from './GenZBoldLanding';
+import { EditorialFashionLanding } from './EditorialFashionLanding';
+import { WellnessSoftLanding } from './WellnessSoftLanding';
 
 export const dynamic = 'force-dynamic';
 
@@ -119,6 +121,26 @@ export default async function ShopPage({ params }: { params: Promise<{ slug: str
         {jsonLdHead}
         <TrackPageView slug={slug} eventName="page_view" />
         <GenZBoldLanding store={store} products={products} />
+      </>
+    );
+  }
+
+  if (!error && resolved === 'editorial-fashion' && products.length >= 1) {
+    return (
+      <>
+        {jsonLdHead}
+        <TrackPageView slug={slug} eventName="page_view" />
+        <EditorialFashionLanding store={store} products={products} />
+      </>
+    );
+  }
+
+  if (!error && resolved === 'wellness-soft' && products.length >= 1) {
+    return (
+      <>
+        {jsonLdHead}
+        <TrackPageView slug={slug} eventName="page_view" />
+        <WellnessSoftLanding store={store} products={products} />
       </>
     );
   }

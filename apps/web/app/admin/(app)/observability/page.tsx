@@ -241,6 +241,15 @@ export default function MarketingPage() {
 
   return (
     <div className="flex flex-col flex-1 space-y-4">
+      {/* Mock data warning banner */}
+      <div className="flex items-center gap-2.5 border border-amber-200 bg-amber-50 rounded-xl px-4 py-3 text-xs text-amber-700">
+        <AlertCircle size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />
+        <span>
+          <strong className="font-semibold">Données mockées</strong> — connecte Google Ads, Meta Graph API, TikTok Business API et Amazon Ads dans{' '}
+          <a href="/admin/settings" className="underline underline-offset-2 font-medium">Réglages</a>{' '}
+          pour afficher les vraies métriques.
+        </span>
+      </div>
       <PageHeader
         kicker="Marketing · Pub payante"
         title={

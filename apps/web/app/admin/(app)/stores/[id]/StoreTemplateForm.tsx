@@ -35,6 +35,16 @@ const OPTIONS = [
     label: 'Gen-Z bold',
     hint: 'Couleur saturée full-bleed, gros titres, marquee, grain, motion',
   },
+  {
+    value: 'editorial-fashion',
+    label: 'Editorial fashion',
+    hint: 'Hero portrait pleine page, logotype serif, diptyque produits, grille Instagram',
+  },
+  {
+    value: 'wellness-soft',
+    label: 'Wellness soft',
+    hint: 'Hero photo + plates info slate-blue, Poppins light, grille 3x2, footer navy',
+  },
 ] as const;
 
 type Template = (typeof OPTIONS)[number]['value'];

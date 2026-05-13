@@ -79,6 +79,8 @@ const templateSchema = z.enum([
   'collection-editorial',
   'luxury-minimal',
   'gen-z-bold',
+  'editorial-fashion',
+  'wellness-soft',
 ]);
 
 // P1.1: custom domain — apex hostname like "maison-chic.com". Empty string clears it.

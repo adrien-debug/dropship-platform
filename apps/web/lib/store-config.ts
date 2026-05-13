@@ -91,7 +91,9 @@ export type StoreTemplate =
   | 'collection-grid'
   | 'collection-editorial'
   | 'luxury-minimal'
-  | 'gen-z-bold';
+  | 'gen-z-bold'
+  | 'editorial-fashion'
+  | 'wellness-soft';
 
 interface StoreRow {
   id: string;

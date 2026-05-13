@@ -153,7 +153,7 @@ function PaginationLink({
   return (
     <Link
       href={`/admin/stores?page=${page}`}
-      className="text-sm text-zinc-600 hover:text-zinc-900 px-3 py-1.5 rounded-xl hover:bg-zinc-50 transition-colors"
+      className="text-sm text-zinc-600 hover:text-zinc-900 px-3 py-1.5 rounded-lg hover:bg-zinc-50 transition-colors"
     >
       {label}
     </Link>
@@ -162,7 +162,7 @@ function PaginationLink({
 
 function EmptyState() {
   return (
-    <div className="border border-dashed border-zinc-200 rounded-2xl px-6 py-20 text-center bg-white">
+    <div className="border border-dashed border-zinc-200 rounded-xl px-6 py-20 text-center bg-white">
       <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">Premier pas</p>
       <h3 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-900">
         Lance ton <em className="italic text-zinc-500">premier store</em>.
@@ -239,7 +239,7 @@ function StoreCard({ store }: { store: StoreRow }) {
         {/* Nom + niche */}
         <div className="col-span-4 min-w-0">
           <h3 className="text-sm font-semibold tracking-tight text-zinc-900 truncate">{store.name}</h3>
-          <p className="text-[11px] text-zinc-400 uppercase tracking-wide mt-0.5 truncate">{store.niche}</p>
+          <p className="text-xs text-zinc-400 uppercase tracking-wide mt-0.5 truncate">{store.niche}</p>
         </div>
 
         {/* Tagline */}
@@ -254,7 +254,7 @@ function StoreCard({ store }: { store: StoreRow }) {
         {/* Statut + produits */}
         <div className="col-span-2 flex flex-col items-start gap-1">
           <StatusPill tone={s.tone}>{s.label}</StatusPill>
-          <span className="text-[11px] text-zinc-400 tabular-nums">
+          <span className="text-xs text-zinc-400 tabular-nums">
             {store.product_count} produit{store.product_count > 1 ? 's' : ''}
           </span>
         </div>
