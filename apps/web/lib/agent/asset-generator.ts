@@ -83,14 +83,14 @@ interface PromptBundle {
 }
 
 export const FALLBACK_PROMPTS: PromptBundle = {
-  hero: 'Cinematic editorial product photograph, full-bleed wide composition, soft directional light, premium DTC brand aesthetic, ultra detailed, 35mm, depth of field',
-  cutout: 'Single product centered on dark gradient studio backdrop, soft rim light, premium e-commerce hero shot, ultra clean, no text, no labels',
+  hero: 'Cinematic editorial product photograph, full-bleed 16:9 composition, the product placed within a fully new studio set: brushed concrete floor, soft north-window light, deep negative space, 35mm shallow depth of field, premium DTC brand aesthetic, no text',
+  cutout: 'Single product floating on a deep charcoal-to-black studio gradient, soft rim light from upper-right, one quiet contact shadow, e-commerce hero PNG style, no other objects, no people, no horizon, no text',
   lifestyles: [
-    'Product in a sunlit modern living room, lifestyle context, natural daylight, premium editorial photograph',
-    'Product on a minimalist café table, morning light, shallow depth of field, magazine quality',
-    'Product outdoors on a wooden terrace, golden hour, premium lifestyle product photograph',
+    'Morning ritual on a pale oak bathroom counter, cold north-window light, white linen towel out of focus in the background, 50mm macro feel, premium editorial photograph, no text',
+    'Outdoor weekend moment on wet sand at golden hour, soft long shadow stretching across the frame, distant horizon blurred, 35mm shallow depth of field, cinematic warm light, no text',
+    'Evening on a dark walnut dinner table beside a single brass candle, warm tungsten light reflecting on the product, magazine-style overhead 45° angle, no text',
   ],
-  promo: 'Slow gentle parallax push-in, subtle ambient motion, cinematic 5 second loop, no text',
+  promo: 'Five-second continuous take, slow 30mm dolly push-in toward the product, one subtle ambient shift (light warming or steam drifting past), single light source, no cuts, no text',
 };
 
 async function buildPromptsWithClaude(input: AssetGenInput): Promise<PromptBundle> {
@@ -103,28 +103,40 @@ async function buildPromptsWithClaude(input: AssetGenInput): Promise<PromptBundl
       messages: [
         {
           role: 'user',
-          content: `You are an art director writing prompts for a FLUX Kontext image generator. We will use the same product reference image for all prompts (passed separately as image input).
+          content: `You are an art director writing prompts for FLUX Kontext. Kontext takes a single product reference image and re-composes the SAME product into a brand-new generated scene. The reference is preserved at the pixel level for the product; everything else (lighting, background, surrounding objects, camera, mood) is fully regenerated from your prompt.
 
 Product: "${input.product.title}"
 Niche: "${input.niche}"
 Description excerpt: "${input.product.description.slice(0, 300)}"
 
-Write FLUX prompts for a premium DTC landing page (think Apple, Dyson, Bose). Critical rules:
-- ENGLISH ONLY for prompts (FLUX is anglophone).
-- NO text, badges, labels, prices, watermarks, or signage in the scene. Never write the word "text".
-- The product itself stays photorealistic and IDENTICAL to the reference (FLUX Kontext preserves it).
-- Vary backgrounds and contexts wildly between lifestyles.
+Write FLUX prompts for a premium DTC landing page (think Apple, Dyson, Bose, On Running). Hard rules:
 
-Return ONLY this JSON:
+1. ENGLISH ONLY. FLUX is anglophone.
+2. NEVER reuse the reference's original background. Each prompt must describe a freshly imagined scene — new walls, new floor, new sky, new light. Treat the reference as a die-cut sticker of the product to drop into a new world.
+3. NO text, badges, labels, prices, watermarks, signage, logos, or written words anywhere in the scene. Never write the word "text" in the prompt.
+4. The product itself stays photorealistic and IDENTICAL to the reference — same colorway, same proportions, same materials.
+5. Each scene must read as a different moment with a distinct camera, light, location and atmosphere. Aim for editorial photography variety, not a colorway pack.
+6. Specify camera (35mm, 50mm, macro), light (golden hour, cold north window, warm tungsten, cinematic rim), surface (oak counter, brushed concrete, white linen, wet sand), depth-of-field, and a one-line mood tag.
+
+Cutout specifics:
+- The cutout is the e-commerce hero, used like a PNG. The product floats on a clean dark studio gradient with a soft rim light and a single contact shadow. No other objects, no props, no people, no horizon line.
+
+Lifestyle specifics:
+- Three lifestyles, in three radically different contexts. Avoid all three being "indoors at home". Pick from: morning ritual, weekend outdoor, evening dinner moment, gym/active, hotel/travel, café/work, garden, bathroom counter — match the niche.
+
+Promo specifics:
+- Image-to-video motion. Single continuous take, 5 seconds, slow camera move (push-in, dolly, parallax), one light shift or one secondary subtle motion (steam, fabric ripple). No cuts. No text.
+
+Return ONLY this JSON, no preamble, no commentary:
 {
-  "hero": "<one prompt for a full-bleed cinematic hero, 16:9, editorial mood, the product subtly featured>",
-  "cutout": "<one prompt for the product centered on a dark studio gradient, no other objects, no text>",
+  "hero": "<one full-bleed cinematic prompt, 16:9, editorial mood, product clearly featured but composed within a fully new scene>",
+  "cutout": "<one prompt: product centered on dark studio gradient, no other objects, no text>",
   "lifestyles": [
-    "<context A — indoor moment>",
-    "<context B — outdoor moment>",
-    "<context C — situational use moment>"
+    "<context A — concrete location + camera + light>",
+    "<context B — different location, different time of day, different camera>",
+    "<context C — different location again, different vibe>"
   ],
-  "promo": "<motion description for a 5-second image-to-video promo: slow camera move, ambient light shift, no cuts>"
+  "promo": "<5-second motion description: camera move + one ambient shift + product anchor>"
 }`,
         },
       ],
