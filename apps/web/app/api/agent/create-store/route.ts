@@ -36,10 +36,10 @@ const schema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  // Each create-store call costs ~$0.005 in Anthropic credits + a Medusa write
-  // burst, so cap it at 5/min/IP. The middleware Basic auth already gates this
-  // route, but a panicking admin spamming the button shouldn't burn credits.
-  const rl = await checkRateLimit(`create-store:${clientIp(req)}`, { max: 5, windowSec: 60 });
+  // Route is already gated by Basic Auth in middleware, so the only caller is
+  // the admin. Keep a soft ceiling so a runaway loop can't burn credits, but
+  // don't make it tight enough to bite during normal iteration.
+  const rl = await checkRateLimit(`create-store:${clientIp(req)}`, { max: 60, windowSec: 60 });
   if (!rl.ok) {
     return new Response(
       JSON.stringify({ error: `Rate limit reached. Retry in ${rl.retryAfterSec}s.` }),
