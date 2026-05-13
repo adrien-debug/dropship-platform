@@ -70,6 +70,19 @@ const SupplierSearchInput = z.object({
   limit: z.number().int().min(1).max(20).optional().default(10),
 });
 
+const FeaturedProductInput = z.object({
+  supplier: z.enum(['aliexpress', 'cj']),
+  supplier_product_id: z.string().min(1).max(80),
+  title: z.string().min(2).max(300),
+  image_url: z.string().url().max(2000),
+  supplier_url: z.string().url().max(2000),
+  cost_cents: z.number().int().min(0).max(1_000_000),
+  suggested_price_cents: z.number().int().min(0).max(1_000_000),
+  orders: z.number().int().min(0).optional(),
+  rating: z.string().max(20).nullable().optional(),
+  why_this_one: z.string().min(0).max(400).optional(),
+});
+
 const ShortlistNicheInput = z.object({
   niche: z.string().min(1).max(80),
   rationale: z.string().min(10).max(800),
@@ -77,6 +90,10 @@ const ShortlistNicheInput = z.object({
   estimated_aov_eur: z.number().min(0).max(10_000).optional(),
   suggested_store_name: z.string().min(1).max(80),
   target_audience: z.string().min(0).max(400).optional(),
+  // The hero product the operator should kick the store off with. The UI
+  // renders this image in the shortlist card so the operator can see
+  // exactly what they are validating before clicking "Lancer cette niche".
+  featured_product: FeaturedProductInput.optional(),
 });
 
 // ── Anthropic tool surfaces ────────────────────────────────────────────
@@ -157,7 +174,7 @@ const TOOLS: Anthropic.Messages.Tool[] = [
   {
     name: 'shortlist_niche',
     description:
-      'Propose a final niche to the operator with a structured payload. The UI renders this as a "Lancer cette niche" card with a button that pre-fills the store-creation form below. Always call this once you have a recommendation backed by at least two tool calls (typically meta_ads_library + aliexpress_search).',
+      'Propose a final niche to the operator with a structured payload. The UI renders this as a "Lancer cette niche" card with a button that pre-fills the store-creation form below. Always call this once you have a recommendation backed by at least two tool calls (typically meta_ads_library + aliexpress_search). When you have ran aliexpress_search or cj_search and identified a clear winner among the candidates, ALWAYS include it as `featured_product` so the operator sees the actual product image in the recommendation card.',
     input_schema: {
       type: 'object',
       properties: {
@@ -185,6 +202,28 @@ const TOOLS: Anthropic.Messages.Tool[] = [
           type: 'string',
           description: 'One-sentence audience description.',
         },
+        featured_product: {
+          type: 'object',
+          description:
+            'The hero product the operator should start the store with. Copy these fields VERBATIM from one of the aliexpress_search / cj_search candidates you already ran (do not invent URLs or images — they must point to a real supplier listing).',
+          properties: {
+            supplier: { type: 'string', enum: ['aliexpress', 'cj'] },
+            supplier_product_id: { type: 'string' },
+            title: { type: 'string' },
+            image_url: { type: 'string', description: 'Product image URL from the supplier candidate.' },
+            supplier_url: { type: 'string', description: 'Supplier product page URL.' },
+            cost_cents: { type: 'number' },
+            suggested_price_cents: { type: 'number' },
+            orders: { type: 'number' },
+            rating: { type: 'string' },
+            why_this_one: {
+              type: 'string',
+              description:
+                'One sentence: why this specific candidate over the other ones in the same search (price/orders/format/visual appeal).',
+            },
+          },
+          required: ['supplier', 'supplier_product_id', 'title', 'image_url', 'supplier_url', 'cost_cents', 'suggested_price_cents'],
+        },
       },
       required: ['niche', 'rationale', 'suggested_store_name'],
     },
@@ -205,6 +244,19 @@ export interface ResearchStreamEvent {
   data: unknown;
 }
 
+export interface FeaturedProduct {
+  supplier: 'aliexpress' | 'cj';
+  supplier_product_id: string;
+  title: string;
+  image_url: string;
+  supplier_url: string;
+  cost_cents: number;
+  suggested_price_cents: number;
+  orders?: number;
+  rating?: string | null;
+  why_this_one?: string;
+}
+
 export interface ShortlistPayload {
   niche: string;
   rationale: string;
@@ -212,6 +264,7 @@ export interface ShortlistPayload {
   estimated_aov_eur?: number;
   suggested_store_name: string;
   target_audience?: string;
+  featured_product?: FeaturedProduct;
 }
 
 interface StoredMessage {
@@ -381,6 +434,7 @@ function buildSystemPrompt(): string {
     '- Saturation > 70 means crowded — explicitly warn the operator. Saturation 30-70 = competitive. < 30 = open.',
     '- Cost in supplier results is in EUR cents. A healthy retail margin is 2.2x cost minimum.',
     '- ALWAYS call `shortlist_niche` once you have a recommendation. It is how the UI surfaces the "Lancer cette niche" button.',
+    '- When `shortlist_niche` is called and you have already run aliexpress_search or cj_search, ALWAYS pass the winning candidate as `featured_product` (copy supplier/supplier_product_id/title/image_url/supplier_url/cost_cents/suggested_price_cents from one of the returned candidates VERBATIM). The operator wants to SEE the product photo in the recommendation card, not just read the niche name.',
     '- No em-dashes (—). No three-beat triads. Write tight, concrete French. Numbers, ranges, names.',
     '',
     'Tool availability:',
@@ -538,6 +592,20 @@ function execShortlistNiche(raw: unknown): ToolExecutionResult {
     saturation: input.saturation,
     estimated_aov_eur: input.estimated_aov_eur,
     target_audience: input.target_audience?.trim() || undefined,
+    featured_product: input.featured_product
+      ? {
+          supplier: input.featured_product.supplier,
+          supplier_product_id: input.featured_product.supplier_product_id,
+          title: input.featured_product.title.trim(),
+          image_url: input.featured_product.image_url,
+          supplier_url: input.featured_product.supplier_url,
+          cost_cents: input.featured_product.cost_cents,
+          suggested_price_cents: input.featured_product.suggested_price_cents,
+          orders: input.featured_product.orders,
+          rating: input.featured_product.rating ?? null,
+          why_this_one: input.featured_product.why_this_one?.trim() || undefined,
+        }
+      : undefined,
   };
   return {
     output: payload,
