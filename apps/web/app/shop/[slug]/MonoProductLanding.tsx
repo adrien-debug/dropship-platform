@@ -86,30 +86,18 @@ export function MonoProductLanding({ store, product }: Props) {
         variant={variant}
       />
 
-      {/* ================== TROIS RAISONS ================== */}
+      {/* ================== TROIS RAISONS ==================
+         Built from the agent-generated structured selling points if
+         available, otherwise from the product description split into
+         three semantic chunks. NEVER hardcode product-specific copy
+         here. */}
       <Section tone="light" padding="lg">
-        <SectionHeader kicker="Conception" title={<>Pourquoi on l’a fait <em className="text-zinc-500">comme ça</em>.</>} />
+        <SectionHeader
+          kicker="Conception"
+          title={<>Pourquoi <em className="text-zinc-500">{product.title.split(' ').slice(0, 2).join(' ').toLowerCase()}</em>.</>}
+        />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-zinc-200 mt-14 border border-zinc-200 rounded-2xl overflow-hidden">
-          {[
-            {
-              num: '01',
-              title: 'Aucune pale qui tourne',
-              body:
-                'À la place des pales classiques, des micro-perforations sur le côté du collier. Vos cheveux ne risquent rien, vos doigts non plus. Plus besoin de faire attention.',
-            },
-            {
-              num: '02',
-              title: 'Une journée entière',
-              body:
-                'Batterie 4 000 mAh, qui tient huit heures à petite vitesse. Recharge complète en deux heures via USB-C. Un écran LED affiche le pourcentage exact, comme sur votre téléphone.',
-            },
-            {
-              num: '03',
-              title: '35 décibels, vraiment',
-              body:
-                'À petite vitesse, on l’entend à peine. Le bruit d’une bibliothèque, posé autour du cou, qui laisse vos deux mains libres pour faire autre chose.',
-            },
-          ].map((u) => (
+          {deriveSellingPoints(product, store).map((u) => (
             <div
               key={u.num}
               className="bg-white p-10 transition-[background-color,transform] duration-300 hover:bg-zinc-50/60 hover:-translate-y-0.5"
@@ -138,11 +126,15 @@ export function MonoProductLanding({ store, product }: Props) {
               kicker="L’objet"
               headline={
                 <>
-                  Un courant d’air,<br />
-                  <em className="text-white/75">jamais</em> une rafale.
+                  {product.title.split(' ').slice(0, 2).join(' ')},<br />
+                  <em className="text-white/75">pensé pour vous</em>.
                 </>
               }
-              lede="265 grammes posés sur le cou. Pas de pales apparentes, pas de bruit de moteur. On l’oublie au bout d’une minute."
+              lede={
+                product.description?.slice(0, 200) ||
+                store.description ||
+                `${product.title} — conçu pour répondre à un usage précis, fini avec soin.`
+              }
               aspect="16/10"
             />
           </div>
@@ -178,10 +170,9 @@ export function MonoProductLanding({ store, product }: Props) {
           <div className="relative h-full flex items-end">
             <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 pb-12 sm:pb-20 w-full">
               <Parallax speed={0.12} className="max-w-3xl">
-                <Kicker tone="inverse">En vacances</Kicker>
+                <Kicker tone="inverse">En situation</Kicker>
                 <Heading level="h1" className="text-white mt-4">
-                  Du bureau à la plage,<br />
-                  <em className="">sans transition.</em>
+                  {store.tagline || product.title}
                 </Heading>
               </Parallax>
             </div>
@@ -189,37 +180,33 @@ export function MonoProductLanding({ store, product }: Props) {
         </section>
       )}
 
-      {/* ================== SPECS ================== */}
-      <Section tone="light" width="default" padding="lg">
-        <div className="max-w-5xl mx-auto">
-          <SectionHeader kicker="Caractéristiques" title="Ce qu’il y a sous le capot." />
-          <div className="mt-14 grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-px bg-zinc-200 border border-zinc-200 rounded-2xl overflow-hidden">
-            {[
-              ['Autonomie', 'Jusqu’à 8 heures (vitesse 1)'],
-              ['Capacité batterie', '4 000 mAh, lithium-ion'],
-              ['Temps de charge', '2 heures via USB-C'],
-              ['Niveau sonore', '< 35 dB vitesse 1, < 50 dB vitesse 3'],
-              ['Vitesses', '3 niveaux ajustables'],
-              ['Poids', '265 g'],
-              ['Dimensions', '195 × 175 × 70 mm'],
-              ['Connectique', 'USB-C (câble fourni)'],
-              ['Garantie', '24 mois constructeur'],
-              ['Compatibilité', 'Tour de cou 28 à 48 cm'],
-            ].map(([k, v]) => (
-              <div key={k} className="bg-white p-5 flex items-baseline justify-between gap-4">
-                <span className="text-xs uppercase tracking-cta text-zinc-500 font-medium">{k}</span>
-                <span className="text-sm text-zinc-900 font-medium text-right">{v}</span>
-              </div>
-            ))}
+      {/* ================== DESCRIPTION DÉTAILLÉE ==================
+         Use the enriched product description as a long-form block.
+         Generic specs were product-specific (ventilator measurements)
+         and have been removed; future stores can carry structured
+         specs in `product.specs jsonb`. */}
+      {product.description && (
+        <Section tone="light" width="default" padding="lg">
+          <div className="max-w-3xl mx-auto">
+            <SectionHeader
+              kicker="En détail"
+              title={<>Ce qu&apos;il faut <em className="text-zinc-500">savoir</em>.</>}
+            />
+            <div className="mt-12 text-base text-zinc-700 leading-relaxed whitespace-pre-line">
+              {product.description}
+            </div>
           </div>
-        </div>
-      </Section>
+        </Section>
+      )}
 
-      {/* ================== TROIS GESTES ================== */}
+      {/* ================== TROIS PROMESSES ==================
+         Generic post-purchase reassurance — works for any product.
+         Used to be product-specific gestures (ventilator) which broke
+         the moment the template was used for anything else. */}
       <Section tone="dark" padding="lg">
         <SectionHeader
-          kicker="Mode d’emploi"
-          title={<>Comment on <em className="text-white/60">s’en sert</em>.</>}
+          kicker="Notre promesse"
+          title={<>Quand vous <em className="text-white/60">commandez</em>.</>}
           tone="inverse"
         />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10 sm:gap-12 mt-16">
@@ -227,20 +214,20 @@ export function MonoProductLanding({ store, product }: Props) {
             {
               num: '01',
               icon: 'charge' as const,
-              title: 'Charger',
-              body: 'Branchez le câble USB-C fourni. La LED clignote pendant la charge, et devient fixe quand la batterie atteint 100 %. Comptez environ deux heures la première fois.',
+              title: 'Expédition 24h',
+              body: 'Commande validée avant 16h, votre colis part le jour même depuis notre entrepôt. Suivi temps réel par email dès le départ.',
             },
             {
               num: '02',
               icon: 'wear' as const,
-              title: 'Porter',
-              body: 'Le collier s’ouvre, se pose autour du cou, et se referme tout seul. Aucun réglage à faire, il s’adapte à toutes les morphologies.',
+              title: 'Livraison soignée',
+              body: 'Emballage protégé, transporteurs partenaires en France métropolitaine. Réception sous 3 à 7 jours ouvrés, à la maison ou en point relais.',
             },
             {
               num: '03',
               icon: 'blow' as const,
-              title: 'Souffler',
-              body: 'Un seul bouton. Une pression pour la première vitesse, deux pour la seconde, trois pour le souffle puissant. Une quatrième pour éteindre.',
+              title: 'Essai 30 jours',
+              body: 'Vous testez chez vous pendant un mois entier. Si le produit ne vous convient pas, on le reprend et on vous rembourse sans question.',
             },
           ].map((s) => (
             <div key={s.num} className="group relative pl-6 border-l border-white/15 transition-colors hover:border-white/30">
@@ -269,17 +256,17 @@ export function MonoProductLanding({ store, product }: Props) {
           <SectionHeader kicker="Livraison" title="Inclus dans votre commande." />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-14">
             {[
-              { qty: '01', label: 'Ventilateur Brisa' },
-              { qty: '01', label: 'Câble USB-C 1 mètre' },
-              { qty: '01', label: 'Pochette de transport' },
-              { qty: '01', label: 'Manuel d’utilisation FR' },
+              { qty: '01', label: product.title },
+              { qty: '·', label: 'Emballage protégé' },
+              { qty: '·', label: 'Notice d’utilisation' },
+              { qty: '·', label: 'Suivi de livraison' },
             ].map((i) => (
               <div
                 key={i.label}
                 className="border border-zinc-200 rounded-xl p-6 text-center transition-[border-color,transform,box-shadow] duration-300 hover:border-zinc-300 hover:-translate-y-0.5 hover:shadow-card-hover"
               >
                 <NumberMark value={i.qty} color={store.primaryColor} size="md" />
-                <div className="mt-3 text-sm text-zinc-700 leading-snug">{i.label}</div>
+                <div className="mt-3 text-sm text-zinc-700 leading-snug line-clamp-2">{i.label}</div>
               </div>
             ))}
           </div>
@@ -295,13 +282,14 @@ export function MonoProductLanding({ store, product }: Props) {
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,rgba(255,255,255,0.18),transparent_55%)]" />
         <div className="relative max-w-3xl mx-auto px-6 sm:px-8 lg:px-12 text-center text-white">
-          <Kicker tone="inverse">Prêt à respirer ?</Kicker>
+          <Kicker tone="inverse">Prêt&nbsp;?</Kicker>
           <Heading level="h1" className="text-white mt-5">
-            L’été est <em className="">trop court</em><br />pour transpirer.
+            {store.tagline || product.title}
           </Heading>
           <div className="mt-6">
             <Lede tone="inverse" className="max-w-xl mx-auto">
-              Commandez aujourd’hui, recevez votre Brisa sous sept à quinze jours. Trente jours pour l’essayer chez vous. Si ça ne vous plaît pas, on vous rembourse.
+              {store.description ||
+                `Commandez aujourd'hui, livraison sous 3 à 7 jours en France. 30 jours pour l'essayer chez vous, remboursé si vous changez d'avis.`}
             </Lede>
           </div>
           {variant && (
@@ -322,6 +310,73 @@ export function MonoProductLanding({ store, product }: Props) {
       </section>
     </>
   );
+}
+
+/**
+ * Build three generic selling points from whatever copy we have for the
+ * product. Splits the description into sentences and uses the first three
+ * as the body of each card; falls back to a generic trust strip when the
+ * description is too short.
+ *
+ * Replaces a previous hardcoded Brisa-ventilator block that leaked into
+ * every other niche using the mono template.
+ */
+function deriveSellingPoints(
+  product: MonoProductLandingProduct,
+  store: StoreConfig,
+): Array<{ num: string; title: string; body: string }> {
+  const desc = (product.description || store.description || '').trim();
+  const sentences = desc
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 30 && s.length < 280);
+
+  if (sentences.length >= 3) {
+    const titles = [
+      headlineFrom(sentences[0]!),
+      headlineFrom(sentences[1]!),
+      headlineFrom(sentences[2]!),
+    ];
+    return [
+      { num: '01', title: titles[0], body: sentences[0]! },
+      { num: '02', title: titles[1], body: sentences[1]! },
+      { num: '03', title: titles[2], body: sentences[2]! },
+    ];
+  }
+
+  // Generic trust fallback — works for any niche, never reads as wrong.
+  return [
+    {
+      num: '01',
+      title: 'Sélection minutieuse',
+      body: 'Chaque pièce est validée par notre équipe avant publication. On garde ce qui tient, on retire ce qui déçoit.',
+    },
+    {
+      num: '02',
+      title: 'Livraison soignée',
+      body: 'Expédition rapide en France métropolitaine, suivi temps réel par email, emballage protégé.',
+    },
+    {
+      num: '03',
+      title: 'Satisfait ou remboursé',
+      body: '30 jours pour essayer chez vous. Si ça ne vous convient pas, on reprend et on rembourse sans question.',
+    },
+  ];
+}
+
+/**
+ * Make a short headline (2-5 words) from the first noun phrase of a sentence.
+ * Cheap heuristic: take the first 4 meaningful words, capitalize the first.
+ */
+function headlineFrom(sentence: string): string {
+  const words = sentence
+    .replace(/^[^a-zA-ZÀ-ÿ]+/, '')
+    .split(/\s+/)
+    .filter((w) => w.length > 2)
+    .slice(0, 4);
+  if (words.length === 0) return 'Pensé pour durer';
+  const head = words.join(' ');
+  return head.charAt(0).toUpperCase() + head.slice(1);
 }
 
 /* ================== Hero (split out for readability) ================== */
@@ -373,7 +428,7 @@ function HeroSection({
           <div className="brisa-fade-1 inline-flex items-center gap-3 mb-8">
             <span className="h-px w-10 bg-white/60" aria-hidden="true" />
             <span className="text-kicker uppercase tracking-kicker font-medium">
-              Nouveau · Été 2026
+              {store.niche ? `${store.niche}` : 'Nouveau'} · {new Date().getFullYear()}
             </span>
           </div>
 
@@ -394,7 +449,9 @@ function HeroSection({
 
           <div className="brisa-fade-2 mt-8 max-w-md">
             <Lede tone="inverse">
-              Un ventilateur de cou sans pales, presque inaudible, qui tient toute une journée. Aucun cheveu pris, aucune lame visible. Juste de l&apos;air frais, partout où vous allez.
+              {store.description ||
+                product.description?.slice(0, 220) ||
+                product.title}
             </Lede>
           </div>
 
