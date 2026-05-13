@@ -99,31 +99,31 @@ const AdsChannelInput = z.object({
 
 const MediaPlanInput = z.object({
   daily_budget_eur: z.number().min(0).max(5_000),
-  channels: z.array(AdsChannelInput).min(1).max(4),
+  channels: z.array(AdsChannelInput).min(1).max(8),
   geo: z.object({
-    primary_countries: z.array(z.string().length(2)).min(1).max(5),
-    emphasis: z.array(z.string().max(60)).max(8).optional(),
-    rationale: z.string().max(300).optional(),
+    primary_countries: z.array(z.string()).min(1).max(10),
+    emphasis: z.array(z.string()).max(20).optional(),
+    rationale: z.string().max(600).optional(),
   }),
   audience: z.object({
-    demographics: z.string().min(0).max(300),
-    interests: z.array(z.string().max(60)).max(12),
-    lookalike_seeds: z.array(z.string().max(80)).max(6).optional(),
+    demographics: z.string().min(0).max(600),
+    interests: z.array(z.string()).max(30),
+    lookalike_seeds: z.array(z.string()).max(15).optional(),
   }),
   schedule: z.object({
-    best_hours_local: z.array(z.string().max(20)).max(6),
-    best_days: z.array(z.string().max(20)).max(7),
-    timezone: z.string().max(40).optional(),
-    rationale: z.string().max(300).optional(),
+    best_hours_local: z.array(z.string()).max(12),
+    best_days: z.array(z.string()).max(7),
+    timezone: z.string().max(80).optional(),
+    rationale: z.string().max(600).optional(),
   }),
   expected_outcomes: z.object({
-    daily_orders_low: z.number().min(0).max(10_000),
-    daily_orders_high: z.number().min(0).max(10_000),
-    target_cpa_eur: z.number().min(0).max(200),
-    target_roas: z.number().min(0).max(20),
-    breakeven_note: z.string().max(300).optional(),
+    daily_orders_low: z.number().min(0).max(100_000),
+    daily_orders_high: z.number().min(0).max(100_000),
+    target_cpa_eur: z.number().min(0).max(10_000),
+    target_roas: z.number().min(0).max(100),
+    breakeven_note: z.string().max(600).optional(),
   }),
-  top_hooks: z.array(z.string().max(160)).max(5).optional(),
+  top_hooks: z.array(z.string().max(320)).max(10).optional(),
 });
 
 const ShortlistNicheInput = z.object({
