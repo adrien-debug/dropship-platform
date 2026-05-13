@@ -103,8 +103,7 @@ export function openWindow(opts: OpenWindowOptions): BrowserWindow {
     minWidth: 960,
     minHeight: 600,
     title: titleForKind(kind, storeId),
-    titleBarStyle: 'hidden',
-    trafficLightPosition: { x: 16, y: 14 },
+    frame: false,
     backgroundColor: '#4f46e5',
     show: false,
     webPreferences: {

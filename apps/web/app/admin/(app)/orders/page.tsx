@@ -5,7 +5,6 @@ import { DryRunPendingButton } from './DryRunPendingButton';
 import { MarkPaidButton } from './MarkPaidButton';
 import { formatMoney } from '@/lib/medusa-store';
 import { aliExpressOrderUrl } from '@/lib/suppliers/aliexpress';
-import { runAnomalyWatch, type AnomalyWatchResult } from '@/lib/ops/anomaly-watch';
 
 export const dynamic = 'force-dynamic';
 
@@ -67,161 +66,6 @@ function StatusDot({ tone }: { tone: 'amber' | 'emerald' | 'blue' | 'red' | 'zin
     zinc: 'bg-ds-text-muted',
   };
   return <span className={`inline-block w-1.5 h-1.5 rounded-full ${map[tone]}`} aria-hidden="true" />;
-}
-
-/**
- * Live snapshot of the order anomaly watcher cron (P1.3) — rendered at the
- * top of the orders page so the founder sees the same payload the daily GH
- * workflow does, without waiting for the issue to land.
- *
- * Why live and not snapshot-table: the queries are identical to ones the
- * page already runs (paid-orders join + forwards scan), no extra round-trip
- * to a separate cache, and the page is already `force-dynamic`. Adding a
- * `dropship_anomaly_snapshots` migration would buy us only one thing —
- * historical drift — which the GH issues already provide as a side-effect.
- */
-function AnomalyPanel({ data }: { data: AnomalyWatchResult | { ok: false; error: string } }) {
-  if (!data.ok) {
-    return (
-      <section className="border border-[var(--danger-muted)] bg-[var(--danger-muted)]/50 rounded-xl px-5 py-4 text-sm text-zinc-500">
-        <div className="text-kicker uppercase tracking-cta text-zinc-500/70 font-medium mb-1">
-          Surveillance commandes
-        </div>
-        Impossible de lancer le scan d&apos;anomalies : {data.error}
-      </section>
-    );
-  }
-
-  const { total, counts, stranded, stuck, errors, warnings, generated_at } = data;
-
-  if (total === 0) {
-    return (
-      <section className="border border-[var(--success-muted)] bg-[var(--success-muted)]/40 rounded-xl px-5 py-4 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="text-kicker uppercase tracking-cta text-indigo-600/70 font-medium">
-            Surveillance commandes · P1.3
-          </div>
-          <div className="mt-1 inline-flex items-center gap-2 text-sm">
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-600 text-xs font-medium">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--success-muted)]0" />
-              Aucune anomalie détectée
-            </span>
-            <span className="text-zinc-400">
-              Stranded AE 15j+, Stripe→AE 4h+, erreurs 48h+ : tout est clean.
-            </span>
-          </div>
-        </div>
-        <div className="text-kicker text-indigo-600/70">
-          Scanné{' '}
-          {new Date(generated_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-        </div>
-      </section>
-    );
-  }
-
-  return (
-    <section className="border border-indigo-200 bg-[var(--warning-muted)]/40 rounded-xl overflow-hidden">
-      <div className="px-5 py-4 border-b border-[var(--warning-muted)]/60 bg-[var(--warning-muted)]/60 flex flex-wrap items-baseline justify-between gap-3">
-        <div>
-          <div className="text-kicker uppercase tracking-cta text-indigo-600/70 font-medium">
-            Surveillance commandes · P1.3
-          </div>
-          <h3 className="mt-1 text-base font-semibold tracking-tight text-indigo-600">
-            <strong>{total}</strong> anomalie{total > 1 ? 's' : ''} à <em className="italic">trier</em>
-          </h3>
-        </div>
-        <div className="text-kicker text-indigo-600/70">
-          Scanné{' '}
-          {new Date(generated_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-        </div>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-amber-200/60">
-        <div className="px-5 py-4">
-          <div className="flex items-baseline justify-between gap-2">
-            <div className="text-sm font-medium text-indigo-600">Stranded AE</div>
-            <div className="text-2xl font-semibold tracking-tight text-indigo-600">{counts.stranded}</div>
-          </div>
-          <div className="mt-0.5 text-kicker text-indigo-600/70">
-            sent + impayé &gt; 15 jours
-          </div>
-          {stranded.slice(0, 3).map((r) => (
-            <div key={r.medusa_order_id} className="mt-2 text-xs text-zinc-600">
-              <a
-                href={aliExpressOrderUrl(r.ae_order_id)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-mono text-orange-700 hover:underline"
-              >
-                {r.ae_order_id}
-              </a>
-              <span className="text-zinc-400"> · {r.age_days}j</span>
-            </div>
-          ))}
-          {counts.stranded > 3 && (
-            <div className="mt-1 text-kicker text-indigo-600/70">
-              + {counts.stranded - 3} de plus
-            </div>
-          )}
-        </div>
-
-        <div className="px-5 py-4">
-          <div className="flex items-baseline justify-between gap-2">
-            <div className="text-sm font-medium text-indigo-600">Stripe → AE</div>
-            <div className="text-2xl font-semibold tracking-tight text-indigo-600">{counts.stuck}</div>
-          </div>
-          <div className="mt-0.5 text-kicker text-indigo-600/70">
-            payé Stripe, pas de forward &gt; 4h
-          </div>
-          {stuck.slice(0, 3).map((r) => (
-            <div key={r.medusa_order_id} className="mt-2 text-xs text-zinc-600">
-              <span className="font-medium">
-                #{r.display_id ?? r.medusa_order_id.slice(0, 8)}
-              </span>
-              <span className="text-zinc-400"> · {r.age_hours}h</span>
-              {r.email && <span className="text-zinc-400"> · {r.email}</span>}
-            </div>
-          ))}
-          {counts.stuck > 3 && (
-            <div className="mt-1 text-kicker text-indigo-600/70">
-              + {counts.stuck - 3} de plus
-            </div>
-          )}
-        </div>
-
-        <div className="px-5 py-4">
-          <div className="flex items-baseline justify-between gap-2">
-            <div className="text-sm font-medium text-indigo-600">Erreurs</div>
-            <div className="text-2xl font-semibold tracking-tight text-indigo-600">{counts.errors}</div>
-          </div>
-          <div className="mt-0.5 text-kicker text-indigo-600/70">
-            forwards en erreur &gt; 48h
-          </div>
-          {errors.slice(0, 3).map((r) => (
-            <div key={r.medusa_order_id} className="mt-2 text-xs text-zinc-600">
-              <div className="font-mono text-zinc-600 truncate">
-                {r.medusa_order_id.slice(0, 18)}…
-              </div>
-              {r.error_message && (
-                <div className="text-zinc-400 truncate" title={r.error_message}>
-                  {r.error_message}
-                </div>
-              )}
-            </div>
-          ))}
-          {counts.errors > 3 && (
-            <div className="mt-1 text-kicker text-indigo-600/70">
-              + {counts.errors - 3} de plus
-            </div>
-          )}
-        </div>
-      </div>
-      {warnings.length > 0 && (
-        <div className="px-5 py-2 border-t border-[var(--warning-muted)]/60 bg-indigo-50/40 text-kicker text-indigo-600/80">
-          {warnings.join(' · ')}
-        </div>
-      )}
-    </section>
-  );
 }
 
 export default async function OrdersPage() {
@@ -301,15 +145,6 @@ export default async function OrdersPage() {
   const awaitingTotal = awaitingPayment.reduce((acc, r) => acc + (r.total_minor ?? 0), 0);
   const awaitingCurrency = awaitingPayment[0]?.currency_code ?? null;
 
-  // P1.3 anomaly snapshot — runs the same queries the daily cron does, live.
-  // Best-effort: a scan failure must not blank the orders page.
-  let anomalyData: AnomalyWatchResult | { ok: false; error: string };
-  try {
-    anomalyData = await runAnomalyWatch();
-  } catch (e) {
-    anomalyData = { ok: false, error: e instanceof Error ? e.message : 'Unknown error' };
-  }
-
   return (
     <div className="space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
@@ -327,8 +162,6 @@ export default async function OrdersPage() {
         </div>
         <DryRunPendingButton />
       </header>
-
-      <AnomalyPanel data={anomalyData} />
 
       <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <StatCard label="Commandes payées" value={String(stats.paidOrders)} hint="Sur les 50 dernières" />

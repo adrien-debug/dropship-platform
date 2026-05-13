@@ -217,6 +217,17 @@ function wireIpc(): void {
   ipcMain.on('app:version-sync', (event) => {
     event.returnValue = app.getVersion();
   });
+
+  ipcMain.handle('window:control', (event, action: 'close' | 'minimize' | 'maximize') => {
+    const win = require('electron').BrowserWindow.fromWebContents(event.sender);
+    if (!win) return;
+    if (action === 'close') win.close();
+    else if (action === 'minimize') win.minimize();
+    else if (action === 'maximize') {
+      if (win.isMaximized()) win.unmaximize();
+      else win.maximize();
+    }
+  });
 }
 
 app.on('ready', () => {

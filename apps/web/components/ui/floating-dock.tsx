@@ -35,7 +35,7 @@ function FloatingDockDesktop({
       onMouseMove={(e) => mouseX.set(e.pageX)}
       onMouseLeave={() => mouseX.set(Infinity)}
       className={cn(
-        'mx-auto hidden md:flex h-16 gap-3 items-end',
+        'mx-auto hidden md:flex h-12 gap-2 items-center',
         className,
       )}
     >
@@ -64,10 +64,10 @@ function IconContainer({
     return val - bounds.x - bounds.width / 2;
   });
 
-  const widthTransform = useTransform(distance, [-150, 0, 150], [40, 80, 40]);
-  const heightTransform = useTransform(distance, [-150, 0, 150], [40, 80, 40]);
-  const widthIcon = useTransform(distance, [-150, 0, 150], [20, 40, 20]);
-  const heightIcon = useTransform(distance, [-150, 0, 150], [20, 40, 20]);
+  const widthTransform = useTransform(distance, [-120, 0, 120], [36, 56, 36]);
+  const heightTransform = useTransform(distance, [-120, 0, 120], [36, 56, 36]);
+  const widthIcon = useTransform(distance, [-120, 0, 120], [18, 28, 18]);
+  const heightIcon = useTransform(distance, [-120, 0, 120], [18, 28, 18]);
 
   const width = useSpring(widthTransform, { mass: 0.1, stiffness: 150, damping: 12 });
   const height = useSpring(heightTransform, { mass: 0.1, stiffness: 150, damping: 12 });
@@ -83,7 +83,7 @@ function IconContainer({
         style={{ width, height }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
-        className="aspect-square rounded-full bg-white border border-zinc-200 hover:border-indigo-300 hover:bg-indigo-50 flex items-center justify-center relative transition-colors shadow-md shadow-zinc-900/10"
+        className="aspect-square rounded-full bg-white hover:bg-zinc-50 flex items-center justify-center relative transition-colors shadow-md shadow-indigo-900/30"
       >
         <AnimatePresence>
           {hovered && (

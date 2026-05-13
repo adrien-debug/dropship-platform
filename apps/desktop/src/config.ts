@@ -28,7 +28,7 @@ export interface ResolvedConfig {
   isDev: boolean;
 }
 
-const DEFAULT_PROD_URL = 'https://dropship-platform-amber.vercel.app/admin';
+const DEFAULT_PROD_URL = 'http://localhost:3063/admin';
 const DEFAULT_DEV_URL = 'http://localhost:3063/admin';
 
 function isDevMode(): boolean {
