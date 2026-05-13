@@ -1,5 +1,7 @@
 'use client';
 
+import { apiFetch } from '@/lib/client-fetch';
+
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { formatMoney, type StoreCart, type StoreShippingOption } from '@/lib/medusa-store';
@@ -51,7 +53,7 @@ export function CheckoutForm({ cart, shippingOptions, shippingError, stripeEnabl
     setError(null);
     startTransition(async () => {
       try {
-        const res = await fetch('/api/checkout/address', {
+        const res = await apiFetch('/api/checkout/address', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(form),
@@ -70,7 +72,7 @@ export function CheckoutForm({ cart, shippingOptions, shippingError, stripeEnabl
     setError(null);
     startTransition(async () => {
       try {
-        const res = await fetch('/api/checkout/shipping', {
+        const res = await apiFetch('/api/checkout/shipping', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ optionId }),
@@ -89,7 +91,7 @@ export function CheckoutForm({ cart, shippingOptions, shippingError, stripeEnabl
     setError(null);
     startTransition(async () => {
       try {
-        const res = await fetch('/api/checkout/complete', {
+        const res = await apiFetch('/api/checkout/complete', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({}),

@@ -1,5 +1,7 @@
 'use client';
 
+import { apiFetch } from '@/lib/client-fetch';
+
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { loadStripe, type Stripe } from '@stripe/stripe-js';
@@ -23,7 +25,7 @@ export function StripePayment({ publishableKey, amountLabel }: StripePaymentProp
 
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/checkout/payment', { method: 'POST' })
+    apiFetch('/api/checkout/payment', { method: 'POST' })
       .then(async (r) => {
         const j = (await r.json()) as {
           success?: boolean;
@@ -88,7 +90,7 @@ function StripePayForm({ amountLabel }: { amountLabel: string }) {
         setError(result.error.message ?? 'Erreur paiement');
         return;
       }
-      const res = await fetch('/api/checkout/complete', {
+      const res = await apiFetch('/api/checkout/complete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ skipPaymentInit: true }),

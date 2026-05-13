@@ -39,16 +39,27 @@ export async function falGenerateImage(args: {
   prompt: string;
   referenceImageUrl?: string;
   negativePrompt?: string;
+  /** Hint to the generator that this is the hero image and deserves
+   *  the higher-quality (slower, costlier) settings. Lifestyles and
+   *  cutouts stay on the standard preset. */
+  quality?: 'standard' | 'hero';
 }): Promise<Buffer> {
   ensureConfigured();
   const model = args.referenceImageUrl
     ? 'fal-ai/flux-pro/kontext'
     : 'fal-ai/flux-pro/v1.1';
+  const hero = args.quality === 'hero';
   const input: Record<string, unknown> = {
     prompt: args.prompt,
     image_size: 'landscape_16_9',
-    num_inference_steps: 28,
-    guidance_scale: 3.5,
+    // Hero gets significantly more denoising steps; this is the image
+    // every visitor will see first. Cost stays sub-10 cents per render.
+    num_inference_steps: hero ? 50 : 32,
+    // Slightly higher guidance keeps the product faithful + composition
+    // tight. Above 4.5 we get over-cooked photos.
+    guidance_scale: hero ? 4.0 : 3.5,
+    output_format: 'png',
+    safety_tolerance: '2',
     enable_safety_checker: true,
   };
   if (args.referenceImageUrl) input.image_url = args.referenceImageUrl;

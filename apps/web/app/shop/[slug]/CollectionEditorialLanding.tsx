@@ -68,17 +68,19 @@ export function CollectionEditorialLanding({ store, products }: Props) {
             <img
               src={heroImage}
               alt={store.name}
-              className="brisa-hero-img w-full h-full object-cover object-center"
+              className="brisa-hero-img w-full h-full object-cover object-center [filter:brightness(1.04)_saturate(1.08)_contrast(1.03)]"
             />
           </Parallax>
         )}
+        {/* Brand color veil is now confined to the bottom 55% of the
+            frame and starts almost transparent so the top of the photo
+            reads at full fidelity. */}
         <div
-          className="absolute inset-0"
+          className="absolute inset-x-0 bottom-0 h-[55%]"
           style={{
-            background: `linear-gradient(180deg, ${store.primaryColor}55 0%, ${store.primaryColor}AA 60%, ${store.primaryColor}DD 100%)`,
+            background: `linear-gradient(180deg, transparent 0%, ${store.primaryColor}88 50%, ${store.primaryColor}E0 100%)`,
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/30" />
 
         <div className="relative max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 pt-32 pb-20 min-h-[80svh] flex items-end">
           <Parallax speed={0.08} className="max-w-2xl text-white">

@@ -1,5 +1,7 @@
 'use client';
 
+import { apiFetch } from '@/lib/client-fetch';
+
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { formatMoney, type StoreLineItem } from '@/lib/medusa-store';
@@ -12,7 +14,7 @@ export function CartLineRow({ item, currency }: { item: StoreLineItem; currency:
   function update(newQty: number) {
     setQty(newQty);
     startTransition(async () => {
-      await fetch('/api/cart/update', {
+      await apiFetch('/api/cart/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ lineItemId: item.id, quantity: newQty }),

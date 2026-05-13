@@ -180,12 +180,14 @@ Return ONLY valid JSON:
   "branding": {
     "tagline": "Short punchy tagline (max 60 chars)",
     "description": "Store description (40-60 words)",
-    "primaryColor": "#hex dark color for header/footer",
-    "secondaryColor": "#hex light color for background",
-    "accentColor": "#hex vibrant color for buttons/prices",
+    "primaryColor": "#hex dark/saturated color for header/footer",
+    "secondaryColor": "#hex very light tint of primaryColor for backgrounds (NOT a random color — must be the SAME HUE as primary, just very light)",
+    "accentColor": "#hex vibrant color for CTAs (MUST be ANALOGOUS to primaryColor — same hue family or one step on the color wheel. NEVER a complementary clash like green+pink, blue+orange, purple+yellow. Aim for primary=dark teal → accent=warmer teal/turquoise, NOT primary=dark green → accent=hot pink.)",
     "logoEmoji": "one emoji that fits the niche"
   }
-}`,
+}
+
+Hard color rule: the three colors must form a coherent palette. If you cannot guarantee that, default to a monochromatic palette built from one hue (e.g. primary=#1F3D2C dark, secondary=#EAF2EC light, accent=#2E7D5C mid). Random complementary stunts ruin the storefront.`,
       },
     ],
   });
@@ -293,9 +295,9 @@ Return ONLY valid JSON:
   "branding": {
     "tagline": "...",
     "description": "...",
-    "primaryColor": "#hex",
-    "secondaryColor": "#hex",
-    "accentColor": "#hex",
+    "primaryColor": "#hex dark/saturated",
+    "secondaryColor": "#hex very light tint of the SAME hue as primaryColor",
+    "accentColor": "#hex vibrant but ANALOGOUS to primaryColor (same hue family, never a complementary clash like green+pink, blue+orange, purple+yellow). Prefer monochromatic. Random complementary stunts ruin the storefront.",
     "logoEmoji": "emoji"
   }
 }`,

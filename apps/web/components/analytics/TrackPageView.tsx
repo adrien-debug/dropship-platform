@@ -1,5 +1,7 @@
 'use client';
 
+import { apiFetch } from '@/lib/client-fetch';
+
 import { useEffect, useRef } from 'react';
 import type { FunnelEventName } from '@/lib/analytics/funnel';
 import { firePixels } from '@/lib/analytics/pixel-client';
@@ -49,7 +51,7 @@ export function TrackPageView({
     const controller = new AbortController();
     (async () => {
       try {
-        const res = await fetch('/api/analytics/track', {
+        const res = await apiFetch('/api/analytics/track', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ slug, eventName, productId, variantId }),

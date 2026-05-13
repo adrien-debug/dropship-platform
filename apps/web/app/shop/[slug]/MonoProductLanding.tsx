@@ -155,18 +155,21 @@ export function MonoProductLanding({ store, product }: Props) {
                 muted
                 loop
                 playsInline
-                className="w-full h-full object-cover [filter:saturate(1.06)_contrast(1.04)]"
+                className="w-full h-full object-cover [filter:brightness(1.03)_saturate(1.1)_contrast(1.04)]"
               />
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={beachImage!}
                 alt=""
-                className="w-full h-full object-cover [filter:saturate(1.06)_contrast(1.04)]"
+                className="w-full h-full object-cover [filter:brightness(1.03)_saturate(1.1)_contrast(1.04)]"
               />
             )}
           </Parallax>
-          <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-black/30" />
+          {/* Only the bottom 40% is darkened so the headline reads; the
+              rest of the frame stays edge-to-edge photo. Top darkening
+              and mid-frame fog were removed. */}
+          <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
           <div className="relative h-full flex items-end">
             <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 pb-12 sm:pb-20 w-full">
               <Parallax speed={0.12} className="max-w-3xl">
@@ -427,17 +430,23 @@ function HeroSection({
           <img
             src={heroImage}
             alt={product.title}
-            className="brisa-hero-img w-full h-full object-cover object-[70%_center]"
+            className="brisa-hero-img w-full h-full object-cover object-[70%_center] [filter:brightness(1.04)_saturate(1.08)_contrast(1.03)]"
           />
         </Parallax>
       )}
+      {/* Color tint kept ONLY on the desktop left column; the right two
+          thirds of the photo reads full-bleed at 100% fidelity. On mobile
+          the whole frame stays clean and we anchor the text in a small
+          dark scrim panel instead of veiling the photo. */}
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 hidden md:block"
         style={{
-          background: `linear-gradient(90deg, ${store.primaryColor} 0%, ${store.primaryColor}EE 25%, ${store.primaryColor}99 45%, transparent 65%)`,
+          background: `linear-gradient(90deg, ${store.primaryColor}D9 0%, ${store.primaryColor}55 22%, transparent 42%)`,
         }}
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/40" />
+      {/* Bottom vignette: weaker than before, just enough to anchor the
+          trust pills on the photo without dimming it. */}
+      <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/30 to-transparent" />
 
       <div className="relative max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 pt-32 pb-20 min-h-[100svh] flex items-center">
         <Parallax speed={0.08} className="max-w-xl text-white">

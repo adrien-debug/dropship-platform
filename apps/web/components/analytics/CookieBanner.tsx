@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { CONSENT_COOKIE } from '@/lib/consent-shared';
+import { apiFetch } from '@/lib/client-fetch';
 
 /**
  * Minimal, self-contained RGPD banner. Shows only when the consent cookie
@@ -25,7 +26,7 @@ export function CookieBanner() {
   async function choose(choice: 'granted' | 'denied') {
     setPending(true);
     try {
-      await fetch('/api/consent', {
+      await apiFetch('/api/consent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ choice }),

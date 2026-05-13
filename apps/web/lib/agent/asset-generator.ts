@@ -118,6 +118,20 @@ Write FLUX prompts for a premium DTC landing page (think Apple, Dyson, Bose, On 
 5. Each scene must read as a different moment with a distinct camera, light, location and atmosphere. Aim for editorial photography variety, not a colorway pack.
 6. Specify camera (35mm, 50mm, macro), light (golden hour, cold north window, warm tungsten, cinematic rim), surface (oak counter, brushed concrete, white linen, wet sand), depth-of-field, and a one-line mood tag.
 
+Hero specifics — this is the FIRST FRAME the visitor sees, push the quality up:
+- Magazine-cover quality. Editorial 35mm or 50mm photograph, sharp rim light, controlled shadow, balanced negative space, the product placed off-center on a thirds line. Reads crisp at 100% zoom on a 4K screen.
+- INCLUDE THE END-USER as the primary subject when the product is used ON or BY a living thing. The product is in service of someone — show them.
+    • dog/cat product → show a real dog or cat (the right breed for the niche), product visible and being used
+    • baby/toddler product → show a baby (face mostly out-of-frame for privacy, hands or feet visible)
+    • skincare / beauty → show a hand, face, or shoulder where the product is applied
+    • shoes / fitness wear → show the body part wearing the item
+    • cookware / kitchen → show hands using it
+    • office / desk → show hands or workspace context
+    A pure studio shot of the bare product belongs in the CUTOUT, not the hero. The hero must answer "who is this for?" in one glance.
+- No filter words ("soft", "dreamy", "hazy") — they push the image grey. Prefer sharp / polished / cinematic / serene.
+- Daylight or one strong directional source, not flat ambient.
+- No darkening at the edges, no heavy vignette — we don't want to dim the photo with CSS afterwards.
+
 Cutout specifics:
 - The cutout is the e-commerce hero, used like a PNG. The product floats on a clean dark studio gradient with a soft rim light and a single contact shadow. No other objects, no props, no people, no horizon line.
 
@@ -239,9 +253,17 @@ export async function runImage(
   // workflows. Falls back transparently — the rest of the pipeline doesn't
   // know which backend produced the bytes.
   const deploymentId = envPool(deploymentEnvKey);
+  // Hero gets the higher-quality fal.ai preset (more steps, slightly
+  // higher guidance, PNG). The cost delta is a few cents per image —
+  // worth it for the first frame the visitor ever sees.
+  const isHero = /HERO/i.test(deploymentEnvKey);
   if (!deploymentId) {
     if (isFalConfigured()) {
-      const bytes = await falGenerateImage({ prompt, referenceImageUrl: refImageUrl });
+      const bytes = await falGenerateImage({
+        prompt,
+        referenceImageUrl: refImageUrl,
+        quality: isHero ? 'hero' : 'standard',
+      });
       return { bytes, runId: `fal-${Date.now()}` };
     }
     throw new Error(`${deploymentEnvKey} not set (and no FAL_KEY fallback)`);
