@@ -518,7 +518,7 @@ export function NicheResearchCopilot({
             onClick={startNewSession}
             title="Nouvelle session"
             aria-label="Nouvelle session"
-            className="text-xs px-2.5 py-1 rounded-lg border border-zinc-200 text-zinc-500 hover:bg-zinc-50"
+            className="text-xs px-2.5 py-1 rounded-lg border border-zinc-200 text-zinc-500 hover:bg-zinc-50 hover:border-zinc-300 transition-colors"
           >
             +
           </button>
@@ -612,7 +612,7 @@ export function NicheResearchCopilot({
         <aside className="px-4 py-4 space-y-4 bg-zinc-50/30 overflow-y-auto text-xs">
           {/* Sélecteurs rapides */}
           <div>
-            <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-400 font-semibold mb-2">
+            <p className="text-[10px] uppercase tracking-cta text-zinc-400 font-semibold mb-2">
               Format
             </p>
             <div className="grid grid-cols-2 gap-1.5">
@@ -642,7 +642,7 @@ export function NicheResearchCopilot({
           </div>
 
           <div>
-            <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-400 font-semibold mb-2">
+            <p className="text-[10px] uppercase tracking-cta text-zinc-400 font-semibold mb-2">
               Langue
             </p>
             <div className="grid grid-cols-2 gap-1.5">
@@ -674,7 +674,7 @@ export function NicheResearchCopilot({
           {mode === 'mono' && (
             <div>
               <label className="flex items-center justify-between gap-2 cursor-pointer">
-                <span className="text-[10px] uppercase tracking-[0.18em] text-zinc-400 font-semibold">
+                <span className="text-[10px] uppercase tracking-cta text-zinc-400 font-semibold">
                   Vidéo promo
                 </span>
                 <input
@@ -689,7 +689,7 @@ export function NicheResearchCopilot({
 
           {/* Comment ça marche */}
           <div className="border-t border-zinc-200 pt-3">
-            <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-400 font-semibold mb-2">
+            <p className="text-[10px] uppercase tracking-cta text-zinc-400 font-semibold mb-2">
               Comment ça marche
             </p>
             <ul className="text-[11px] text-zinc-500 space-y-1.5 leading-snug">
@@ -701,7 +701,7 @@ export function NicheResearchCopilot({
 
           {/* Coût session */}
           <div className="border-t border-zinc-200 pt-3">
-            <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-400 font-semibold mb-2">
+            <p className="text-[10px] uppercase tracking-cta text-zinc-400 font-semibold mb-2">
               Coût session
             </p>
             <div className="space-y-1 tabular-nums text-[11px]">
@@ -773,7 +773,7 @@ function ResearchToolCard({ message, onApplyShortlist }: ResearchToolCardProps) 
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full px-4 py-2 flex items-center gap-2 text-left hover:bg-zinc-50"
+        className="w-full px-4 py-2 flex items-center gap-2 text-left hover:bg-zinc-50 transition-colors"
       >
         <span
           className={`inline-block w-1.5 h-1.5 rounded-full ${
@@ -887,7 +887,7 @@ function ShortlistCard({
             />
           </div>
           <div className="flex-1 min-w-0 py-3 pr-3 space-y-1.5">
-            <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em]">
+            <div className="flex items-center gap-2 text-[10px] uppercase tracking-cta">
               <span className={`px-1.5 py-0.5 rounded-sm border ${supplierTag} font-semibold`}>
                 {fp.supplier}
               </span>
@@ -1038,7 +1038,7 @@ function DesignPickerBlock({
                   Aa
                 </span>
                 <span
-                  className="text-[11px] uppercase tracking-[0.18em] text-white/70 font-medium"
+                  className="text-[11px] uppercase tracking-cta text-white/70 font-medium"
                   style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
                 >
                   Sample

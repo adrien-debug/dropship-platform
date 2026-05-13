@@ -450,9 +450,9 @@ export function CopilotHub({
         </p>
       </div>
 
-      <div className="mt-4 grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4">
+      <div className="mt-4 grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4 flex-1 min-h-0">
         {/* CHAT */}
-        <section className="border border-zinc-200 bg-white rounded-xl flex flex-col h-[calc(100vh-300px)] min-h-[520px] overflow-hidden">
+        <section className="border border-zinc-200 bg-white rounded-xl flex flex-col min-h-[520px] lg:min-h-0 lg:h-full overflow-hidden">
           <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-5 space-y-4 bg-zinc-50/40">
             {messages.length === 0 && !streaming && (
               <div className="text-center text-sm text-zinc-400 mt-12">
@@ -506,7 +506,7 @@ export function CopilotHub({
                 placeholder={`Demande quelque chose à ${MODE_LABELS[mode].label}… (Cmd+Enter pour envoyer)`}
                 rows={2}
                 disabled={streaming}
-                className="flex-1 resize-none text-sm border border-zinc-200 rounded-lg px-3 py-2 focus:outline-none focus:border-zinc-400 disabled:opacity-50"
+                className="flex-1 resize-none text-sm border border-zinc-200 rounded-lg px-3 py-2 focus:outline-none focus:border-zinc-400 focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50 transition-colors"
               />
               <button
                 type="submit"
@@ -520,7 +520,7 @@ export function CopilotHub({
         </section>
 
         {/* SIDEBAR */}
-        <aside className="border border-zinc-200 bg-white rounded-xl flex flex-col h-[calc(100vh-300px)] min-h-[520px] overflow-hidden">
+        <aside className="border border-zinc-200 bg-white rounded-xl flex flex-col min-h-[520px] lg:min-h-0 lg:h-full overflow-hidden">
           <header className="px-5 py-3 border-b border-zinc-200">
             <div className="text-kicker uppercase tracking-cta text-zinc-400 font-medium text-xs">
               Contexte

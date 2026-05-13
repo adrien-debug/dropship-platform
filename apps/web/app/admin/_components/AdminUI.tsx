@@ -61,7 +61,7 @@ export function StatCard({
   tone?: Tone;
 }) {
   return (
-    <div className="border border-zinc-200 bg-white rounded-xl px-4 py-3 hover:border-zinc-300 transition-colors shadow-sm">
+    <div className="h-full border border-zinc-200 bg-white rounded-xl px-4 py-3 hover:border-zinc-300 transition-colors shadow-sm">
       <div className="flex items-center gap-2 text-kicker uppercase tracking-cta text-zinc-400 font-medium">
         <span className="inline-block w-1.5 h-1.5 rounded-full bg-indigo-500" aria-hidden />
         {label}

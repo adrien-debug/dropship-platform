@@ -31,6 +31,7 @@ function NewStoreForm() {
   const [running, setRunning] = useState(false);
   const [, setLogs] = useState<LogLine[]>([]);
   const [progress, setProgress] = useState(0);
+  const [currentStep, setCurrentStep] = useState<string>('');
   const [result, setResult] = useState<{ slug: string; storeName: string; productCount: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
@@ -63,12 +64,18 @@ function NewStoreForm() {
     };
     setLogs((prev) => [...prev, line]);
 
+    if (event.type === 'step' || event.type === 'progress') {
+      setCurrentStep(event.message);
+    }
     if (event.type === 'step') setProgress((p) => Math.min(p + 12, 80));
     if (event.type === 'progress' && event.data?.imported && event.data?.total) {
       const pct = Math.round((Number(event.data.imported) / Number(event.data.total)) * 100);
       setProgress(70 + Math.round(pct * 0.27));
     }
-    if (event.type === 'success') setProgress(100);
+    if (event.type === 'success') {
+      setProgress(100);
+      setCurrentStep('');
+    }
   };
 
   /**
@@ -110,6 +117,7 @@ function NewStoreForm() {
     setResult(null);
     setError(null);
     setProgress(4);
+    setCurrentStep('Démarrage…');
     setElapsed(0);
     startTimeRef.current = Date.now();
     // Persist the values too so the form reflects what's running and the
@@ -169,6 +177,7 @@ function NewStoreForm() {
     setError(null);
     setLogs([]);
     setProgress(0);
+    setCurrentStep('');
     setElapsed(0);
     setNiche('');
     setStoreName('');
@@ -235,6 +244,7 @@ function NewStoreForm() {
             error={error}
             progress={progress}
             elapsed={elapsed}
+            currentStep={currentStep}
             slug={result?.slug}
             onReset={reset}
           />
@@ -261,6 +271,7 @@ function RunBanner({
   error,
   progress,
   elapsed,
+  currentStep,
   slug,
   onReset,
 }: {
@@ -269,6 +280,7 @@ function RunBanner({
   error: string | null;
   progress: number;
   elapsed: number;
+  currentStep: string;
   slug?: string;
   onReset: () => void;
 }) {
@@ -298,9 +310,16 @@ function RunBanner({
   }
   if (running) {
     return (
-      <div className="flex items-center gap-2 text-xs text-zinc-500">
-        <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse" />
-        Agent en cours · {progress}% · {elapsed}s
+      <div className="flex flex-col items-end gap-0.5 text-xs text-zinc-500 max-w-[60vw]">
+        <div className="flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse" />
+          <span className="tabular-nums">{progress}% · {elapsed}s</span>
+        </div>
+        {currentStep && (
+          <span className="text-zinc-400 italic truncate max-w-full" title={currentStep}>
+            {currentStep}
+          </span>
+        )}
       </div>
     );
   }
