@@ -34,7 +34,7 @@ import { runContext } from './run-context';
 import { rebuildMessages, stringifyToolOutput } from './copilot-shared';
 import { __internals as curationInternals } from './curation-copilot';
 import { __internals as adsInternals } from './ads-copilot';
-import { __internals as researchInternals, buildTemporalContext } from './research-copilot';
+import { __internals as researchInternals, buildTemporalContext, RESEARCH_MODEL } from './research-copilot';
 import {
   DEV_TOOLS,
   DEV_MODEL,
@@ -133,7 +133,7 @@ export async function createCopilotSession(
     `INSERT INTO dropship_copilot_sessions (store_id, mode, title)
      VALUES ($1, $2, $3)
      RETURNING id`,
-    [storeId, mode, title?.slice(0, 200) ?? null],
+    [storeId, mode, title?.slice(0, 80) ?? null],
   );
   return rows[0]!.id;
 }
@@ -351,7 +351,8 @@ function bindings(): Record<CopilotMode, ModeBinding> {
       },
       maxToolLoops: HUB_MAX_TOOL_LOOPS_DEFAULT,
       maxToolsPerTurn: HUB_MAX_TOOLS_PER_TURN_DEFAULT,
-      model: HUB_MODEL,
+      // Research requires Opus-level reasoning — keep parity with the standalone route.
+      model: RESEARCH_MODEL,
     },
     curation: {
       tools: curationInternals.TOOLS,
@@ -630,7 +631,21 @@ export async function* runCopilotTurn(
           messages.push({ role: 'user', content: toolResults });
         }
 
-        const guardMsg = `Boucle d'outils maximale atteinte (${binding.maxToolLoops}).`;
+        const calledTools = [
+          ...new Set(
+            messages
+              .flatMap((m) => (Array.isArray(m.content) ? m.content : []))
+              .filter((b) => b.type === 'tool_use')
+              .map((b) => (b as { type: 'tool_use'; name: string }).name),
+          ),
+        ];
+        const guardMsg = [
+          `Limite d'analyse atteinte (${binding.maxToolLoops} tours).`,
+          calledTools.length
+            ? `Étapes complétées : ${calledTools.join(', ')}.`
+            : 'Aucune étape complétée.',
+          'Envoie un nouveau message pour continuer.',
+        ].join(' ');
         await insertMessage(sessionId, { role: 'assistant', content: guardMsg });
         emit({ type: 'message', data: { text: guardMsg } });
         emit({ type: 'done', data: { text: guardMsg } });

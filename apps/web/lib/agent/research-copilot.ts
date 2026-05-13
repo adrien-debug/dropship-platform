@@ -90,7 +90,7 @@ const FeaturedProductInput = z.object({
   /** One sentence justifying the recommended retail price, grounded in
    *  a market benchmark (Amazon FR, DTC competitor). Forces Claude to
    *  prove it actually checked the market instead of using cost × 2.2. */
-  pricing_rationale: z.string().min(0).max(400).optional(),
+  pricing_rationale: z.string().min(10).max(400),
   expected_aov_eur: z.number().min(0).max(10_000).optional(),
 });
 
@@ -135,7 +135,15 @@ const MediaPlanInput = z.object({
 // Hex color validator used for the design proposals. Strict so we don't
 // accept rgba() or named colors — the storefront injects these as CSS vars
 // and we want them to round-trip identically every time.
-const HexColor = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'must be #RRGGBB hex');
+// The two placeholder values are the legacy app neutrals and look generic on
+// any storefront — Claude is explicitly forbidden from using them.
+const PLACEHOLDER_COLORS = ['#0f172a', '#6366f1'];
+const HexColor = z.string()
+  .regex(/^#[0-9a-fA-F]{6}$/, 'must be #RRGGBB hex')
+  .refine(
+    (v) => !PLACEHOLDER_COLORS.includes(v.toLowerCase()),
+    { message: 'Color is a generic app placeholder — choose a niche-specific color' },
+  );
 
 const DesignProposalInput = z.object({
   preset: z.enum([
@@ -160,7 +168,8 @@ const ShortlistNicheInput = z.object({
   // The hero product the operator should kick the store off with. The UI
   // renders this image in the shortlist card so the operator can see
   // exactly what they are validating before clicking "Lancer cette niche".
-  featured_product: FeaturedProductInput.optional(),
+  // Required — a shortlist without a concrete product is not actionable.
+  featured_product: FeaturedProductInput,
   // Catalog & layout decisions Claude makes so the operator doesn't have
   // to re-pick after the shortlist. Pre-fills the form below.
   suggested_mode: z.enum(['mono', 'collection']).optional(),
@@ -168,11 +177,12 @@ const ShortlistNicheInput = z.object({
     .enum(['auto', 'mono', 'collection-grid', 'collection-editorial', 'luxury-minimal', 'gen-z-bold'])
     .optional(),
   // Full media plan — channel mix, geo, audience, dayparting, outcomes.
-  media_plan: MediaPlanInput.optional(),
+  // Required — operator validates this before clicking "Lancer".
+  media_plan: MediaPlanInput,
   // Three design candidates the operator picks from in the chat UI. The
   // chosen one is locked in `dropship_stores.design_preset` + `.palette`
-  // at creation time and never regenerated.
-  design_proposals: z.array(DesignProposalInput).length(3).optional(),
+  // at creation time and never regenerated. Required — exactly 3.
+  design_proposals: z.array(DesignProposalInput).length(3),
 });
 
 // ── Anthropic tool surfaces ────────────────────────────────────────────
@@ -266,7 +276,7 @@ const TOOLS: Anthropic.Messages.Tool[] = [
   {
     name: 'shortlist_niche',
     description:
-      'Propose a final niche to the operator with a structured payload. The UI renders this as a "Lancer cette niche" card with a button that pre-fills the store-creation form below. Always call this once you have a recommendation backed by at least two tool calls (typically meta_ads_library + aliexpress_search). When you have ran aliexpress_search or cj_search and identified a clear winner among the candidates, ALWAYS include it as `featured_product` so the operator sees the actual product image in the recommendation card.',
+      'PRÉCONDITION : Cet outil ne peut être appelé qu\'après que ces 4 outils ont tous retourné des résultats dans la session : meta_ads_library, aliexpress_search (ou cj_search), (web_search OU ask_perplexity) pour le benchmark prix, search_ad_benchmarks. Si l\'un est manquant, l\'appeler d\'abord.\n\nPropose a final niche to the operator with a structured payload. The UI renders this as a "Lancer cette niche" card with a button that pre-fills the store-creation form below. featured_product, media_plan and design_proposals (exactly 3) are ALL REQUIRED — a shortlist without them is incomplete and will be rejected. When you have ran aliexpress_search or cj_search and identified a clear winner among the candidates, copy its fields verbatim into `featured_product`.',
     input_schema: {
       type: 'object',
       properties: {
@@ -476,7 +486,7 @@ const TOOLS: Anthropic.Messages.Tool[] = [
           },
         },
       },
-      required: ['niche', 'rationale', 'suggested_store_name'],
+      required: ['niche', 'rationale', 'suggested_store_name', 'featured_product', 'media_plan', 'design_proposals'],
     },
   },
 ];
@@ -506,7 +516,7 @@ export interface FeaturedProduct {
   orders?: number;
   rating?: string | null;
   why_this_one?: string;
-  pricing_rationale?: string;
+  pricing_rationale: string;
   expected_aov_eur?: number;
 }
 
@@ -529,10 +539,11 @@ export interface ShortlistPayload {
   estimated_aov_eur?: number;
   suggested_store_name: string;
   target_audience?: string;
-  featured_product?: FeaturedProduct;
+  featured_product: FeaturedProduct;
   suggested_mode?: 'mono' | 'collection';
   suggested_template?: string;
-  design_proposals?: DesignProposal[];
+  media_plan: z.infer<typeof MediaPlanInput>;
+  design_proposals: DesignProposal[];
 }
 
 /**
@@ -641,19 +652,35 @@ export function buildTemporalContext(): string {
   ];
   const season = SEASON_BY_MONTH[month];
 
+  // Returns the last occurrence of a given weekday (0=Sun…6=Sat) in a month.
+  const lastWeekdayOfMonth = (y: number, m: number, dow: number): Date => {
+    const last = new Date(y, m + 1, 0); // last day of month
+    const diff = (last.getDay() - dow + 7) % 7;
+    return new Date(y, m, last.getDate() - diff);
+  };
+  // Returns the Nth occurrence of a weekday in a month (1-indexed).
+  const nthWeekdayOfMonth = (y: number, m: number, dow: number, n: number): Date => {
+    const first = new Date(y, m, 1);
+    const diff = (dow - first.getDay() + 7) % 7;
+    return new Date(y, m, 1 + diff + (n - 1) * 7);
+  };
+
+  const blackFriday = lastWeekdayOfMonth(year, 10, 5); // last Friday of November
+  const cyberMonday = new Date(blackFriday.getFullYear(), blackFriday.getMonth(), blackFriday.getDate() + 3);
+
   // Upcoming commercial events relevant for dropshipping in FR.
   // Roughly ordered by date. We surface the next 2 within ~90 days.
   const events: Array<{ date: Date; label: string }> = [
-    { date: new Date(year, 0, 6),  label: 'soldes d\'hiver (FR, début janvier)' },
-    { date: new Date(year, 1, 14), label: 'Saint-Valentin (14 février)' },
-    { date: new Date(year, 4, 25), label: 'fête des mères FR (dernier dim. mai)' },
-    { date: new Date(year, 5, 1),  label: 'soldes d\'été (FR, fin juin → fin juillet)' },
-    { date: new Date(year, 5, 16), label: 'fête des pères FR (3e dim. juin)' },
-    { date: new Date(year, 8, 1),  label: 'rentrée scolaire (début septembre)' },
-    { date: new Date(year, 9, 31), label: 'Halloween (31 octobre)' },
-    { date: new Date(year, 10, 28),label: 'Black Friday (dernier vendredi nov.)' },
-    { date: new Date(year, 11, 2), label: 'Cyber Monday (lundi suivant Black Friday)' },
-    { date: new Date(year, 11, 25),label: 'Noël (25 décembre)' },
+    { date: new Date(year, 0, 6),                           label: 'soldes d\'hiver (FR, début janvier)' },
+    { date: new Date(year, 1, 14),                          label: 'Saint-Valentin (14 février)' },
+    { date: lastWeekdayOfMonth(year, 4, 0),                 label: 'fête des mères FR (dernier dim. mai)' },
+    { date: new Date(year, 5, 28),                          label: 'soldes d\'été (FR, fin juin → fin juillet)' },
+    { date: nthWeekdayOfMonth(year, 5, 0, 3),               label: 'fête des pères FR (3e dim. juin)' },
+    { date: new Date(year, 8, 1),                           label: 'rentrée scolaire (début septembre)' },
+    { date: new Date(year, 9, 31),                          label: 'Halloween (31 octobre)' },
+    { date: blackFriday,                                    label: 'Black Friday (dernier vendredi nov.)' },
+    { date: cyberMonday,                                    label: 'Cyber Monday (lundi suivant Black Friday)' },
+    { date: new Date(year, 11, 25),                         label: 'Noël (25 décembre)' },
   ];
   const upcoming = events
     .map((e) => ({ ...e, daysAway: Math.round((e.date.getTime() - now.getTime()) / 86_400_000) }))
@@ -696,6 +723,8 @@ function buildSystemPrompt(): string {
     '- Maximum 6 tool calls per user turn. Do not call the same tool with the same arguments twice.',
     '- When a tool returns nothing usable, say so plainly and try a different angle instead of looping.',
     '- Saturation > 70 means crowded — explicitly warn the operator. Saturation 30-70 = competitive. < 30 = open.',
+    '- After every tool call, synthesize in 2-3 actionable bullets before continuing. Format: [Chiffre-clé] / [Interprétation] / [Prochaine étape]. Never reply with a single word or sentence after a tool result.',
+    `- If BOTH web_search (Tavily) AND ask_perplexity (Sonar) are NOT configured, do NOT call shortlist_niche. Inform the operator that mandatory integrations are missing and stop the analysis.`,
     '',
     'Mandatory analysis sequence before `shortlist_niche` (DO NOT skip any step):',
     '1. **Saturation check** — call meta_ads_library on the candidate niche. Reject niches with saturation > 75.',
@@ -865,27 +894,72 @@ async function execAdBenchmarks(raw: unknown): Promise<ResearchToolResult> {
     `TikTok Ads CPM moyen EUR, CPC moyen EUR; ` +
     `Google Shopping / Google Ads CPC moyen EUR; ` +
     `Pinterest Ads CPM moyen EUR. ` +
-    `Quel canal a le meilleur ROAS pour ce type de produit et pourquoi? ` +
-    `Quels jours de la semaine et créneaux horaires ont les meilleurs taux de conversion pour la beauté/bien-être en ${label}?`;
+    `Quel canal a le meilleur ROAS pour "${input.niche}" et pourquoi? ` +
+    `Quels jours de la semaine et créneaux horaires ont les meilleurs taux de conversion pour "${input.niche}" en ${label}?`;
+
+  let rawText: string;
+  let citations: string[];
+  let summarySource: string;
 
   try {
     const result = await perplexityAnswer(query);
-    return {
-      output: { niche: input.niche, country, benchmarks: result.answer, citations: result.citations },
-      summary: `Ad benchmarks "${input.niche}" (${country}) — données coûts Meta/TikTok/Google`,
-    };
+    rawText = result.answer ?? '';
+    citations = result.citations ?? [];
+    summarySource = 'Perplexity';
   } catch {
     // Fallback vers Tavily si Perplexity échoue
     const results = await tavilySearch({ query, max_results: 5 });
-    return {
-      output: { niche: input.niche, country, benchmarks: results.map((r) => r.snippet).join('\n\n'), citations: results.map((r) => r.url) },
-      summary: `Ad benchmarks "${input.niche}" (${country}) — web search`,
-    };
+    rawText = results.map((r) => r.snippet).join('\n\n');
+    citations = results.map((r) => r.url);
+    summarySource = 'web search';
   }
+
+  // Post-process via Haiku to extract structured numeric benchmarks.
+  // Reduces hallucination risk when Claude must fill media_plan fields.
+  let structured: Record<string, unknown> | null = null;
+  try {
+    const extraction = await trackedMessage(
+      { step: 'ad-benchmarks-extraction', storeId: null },
+      {
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 512,
+        system: 'Extract advertising benchmark numbers from the provided text. Return ONLY valid JSON. If a value is not found, use null.',
+        messages: [
+          {
+            role: 'user',
+            content: `Text:\n${rawText}\n\nReturn JSON with this exact shape:\n{"meta":{"cpm_eur":number|null,"cpc_eur":number|null,"cpa_eur":number|null},"tiktok":{"cpm_eur":number|null,"cpc_eur":number|null,"cpa_eur":number|null},"google":{"cpc_eur":number|null,"cpa_eur":number|null},"pinterest":{"cpm_eur":number|null},"best_channel":string|null,"best_days":string[]|null,"best_hours":string[]|null}`,
+          },
+        ],
+      },
+    );
+    const textBlock = extraction.content.find((b) => b.type === 'text');
+    if (textBlock && textBlock.type === 'text') {
+      const jsonMatch = textBlock.text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) structured = JSON.parse(jsonMatch[0]);
+    }
+  } catch {
+    // Non-fatal — fall back to raw text only
+  }
+
+  return {
+    output: {
+      niche: input.niche,
+      country,
+      benchmarks: rawText,
+      structured: structured ?? undefined,
+      citations,
+    },
+    summary: `Ad benchmarks "${input.niche}" (${country}) — ${summarySource}${structured ? ' (structuré)' : ''}`,
+  };
 }
 
 function execShortlistNiche(raw: unknown): ResearchToolResult {
   const input = ShortlistNicheInput.parse(raw);
+  if (input.saturation !== undefined && input.saturation > 75) {
+    throw new Error(
+      `Saturation ${input.saturation}/100 > 75 — niche rejetée. Propose une niche alternative avec saturation ≤ 75.`,
+    );
+  }
   const payload: ShortlistPayload = {
     niche: input.niche.trim().toLowerCase(),
     rationale: input.rationale.trim(),
@@ -893,26 +967,24 @@ function execShortlistNiche(raw: unknown): ResearchToolResult {
     saturation: input.saturation,
     estimated_aov_eur: input.estimated_aov_eur,
     target_audience: input.target_audience?.trim() || undefined,
-    featured_product: input.featured_product
-      ? {
-          supplier: input.featured_product.supplier,
-          supplier_product_id: input.featured_product.supplier_product_id,
-          title: input.featured_product.title.trim(),
-          image_url: input.featured_product.image_url,
-          supplier_url: input.featured_product.supplier_url,
-          cost_cents: input.featured_product.cost_cents,
-          suggested_price_cents: input.featured_product.suggested_price_cents,
-          orders: input.featured_product.orders,
-          rating: input.featured_product.rating ?? null,
-          why_this_one: input.featured_product.why_this_one?.trim() || undefined,
-          pricing_rationale:
-            input.featured_product.pricing_rationale?.trim() || undefined,
-          expected_aov_eur: input.featured_product.expected_aov_eur,
-        }
-      : undefined,
+    featured_product: {
+      supplier: input.featured_product.supplier,
+      supplier_product_id: input.featured_product.supplier_product_id,
+      title: input.featured_product.title.trim(),
+      image_url: input.featured_product.image_url,
+      supplier_url: input.featured_product.supplier_url,
+      cost_cents: input.featured_product.cost_cents,
+      suggested_price_cents: input.featured_product.suggested_price_cents,
+      orders: input.featured_product.orders,
+      rating: input.featured_product.rating ?? null,
+      why_this_one: input.featured_product.why_this_one?.trim() || undefined,
+      pricing_rationale: input.featured_product.pricing_rationale.trim(),
+      expected_aov_eur: input.featured_product.expected_aov_eur,
+    },
     suggested_mode: input.suggested_mode,
     suggested_template: input.suggested_template,
-    design_proposals: input.design_proposals?.map((d) => ({
+    media_plan: input.media_plan,
+    design_proposals: input.design_proposals.map((d) => ({
       preset: d.preset,
       primary: d.primary.toLowerCase(),
       accent: d.accent.toLowerCase(),
@@ -1146,7 +1218,21 @@ export async function* runResearchTurn(
           messages.push({ role: 'user', content: toolResults });
         }
 
-        const guardMsg = `Boucle d'outils maximale atteinte (${MAX_TOOL_LOOPS}).`;
+        const calledTools = [
+          ...new Set(
+            messages
+              .flatMap((m) => (Array.isArray(m.content) ? m.content : []))
+              .filter((b) => b.type === 'tool_use')
+              .map((b) => (b as { type: 'tool_use'; name: string }).name),
+          ),
+        ];
+        const guardMsg = [
+          `Limite d'analyse atteinte (${MAX_TOOL_LOOPS} tours).`,
+          calledTools.length
+            ? `Étapes complétées : ${calledTools.join(', ')}.`
+            : 'Aucune étape complétée.',
+          'Envoie un nouveau message pour continuer.',
+        ].join(' ');
         await insertMessage(sessionId, { role: 'assistant', content: guardMsg });
         emit({ type: 'message', data: { text: guardMsg } });
         emit({ type: 'done', data: { text: guardMsg } });
@@ -1178,6 +1264,9 @@ export async function* runResearchTurn(
     }
   }
 }
+
+// Named export so the hub router can use the same model without hardcoding it.
+export { RESEARCH_MODEL };
 
 // Internal exports for testing.
 export const __internals = {
