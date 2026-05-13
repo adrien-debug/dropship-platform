@@ -250,6 +250,11 @@ function NewStoreForm() {
   const applyShortlist = useCallback((payload: ShortlistPayload) => {
     setNiche(payload.niche);
     setStoreName(payload.suggested_store_name);
+    // Pre-fill mode when the agent has already decided. The form keeps
+    // the toggle so the operator can override.
+    if (payload.suggested_mode === 'mono' || payload.suggested_mode === 'collection') {
+      setMode(payload.suggested_mode);
+    }
     setValidation(null);
     setValidationError(null);
   }, []);
