@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Heading, Kicker, Lede } from './Typography';
-import { cn } from './cn';
+import { cn } from '@/lib/utils/cn';
 
 interface Props {
   kicker?: string;

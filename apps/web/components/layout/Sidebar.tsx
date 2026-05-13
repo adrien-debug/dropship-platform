@@ -49,6 +49,11 @@ export function Sidebar() {
     });
   };
 
+  const logout = () => {
+    document.cookie = 'admin_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    window.location.href = '/admin';
+  };
+
   const activeSection = NAV_SECTIONS.find((s) => isNavActive(s, pathname));
 
   return (
@@ -136,20 +141,19 @@ export function Sidebar() {
         {/* Bottom actions */}
         <div className="shrink-0 p-2.5 border-t border-ds-border-subtle space-y-1 mt-auto">
           {/* Logout */}
-          <form action="/admin/login" method="post">
-            <button
-              type="submit"
-              className={cn(
-                'flex items-center text-ds-text-muted hover:text-ds-text-primary hover:bg-ds-surface-default rounded-[10px] transition-all duration-200',
-                collapsed ? 'justify-center w-11 h-11 mx-auto' : 'gap-2.5 px-3.5 py-2.5 text-xs w-full',
-              )}
-              title="Déconnexion"
-              aria-label="Déconnexion"
-            >
-              <LogOut size={collapsed ? 18 : 15} strokeWidth={1.5} aria-hidden />
-              {!collapsed && <span className="font-medium">Déconnexion</span>}
-            </button>
-          </form>
+          <button
+            type="button"
+            onClick={logout}
+            className={cn(
+              'flex items-center text-ds-text-muted hover:text-ds-text-primary hover:bg-ds-surface-default rounded-[10px] transition-all duration-200',
+              collapsed ? 'justify-center w-11 h-11 mx-auto' : 'gap-2.5 px-3.5 py-2.5 text-xs w-full',
+            )}
+            title="Déconnexion"
+            aria-label="Déconnexion"
+          >
+            <LogOut size={collapsed ? 18 : 15} strokeWidth={1.5} aria-hidden />
+            {!collapsed && <span className="font-medium">Déconnexion</span>}
+          </button>
 
           {/* Collapse toggle */}
           <button

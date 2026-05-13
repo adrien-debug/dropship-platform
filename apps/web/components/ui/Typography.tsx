@@ -1,5 +1,5 @@
 import type { ReactNode, ElementType } from 'react';
-import { cn } from './cn';
+import { cn } from '@/lib/utils/cn';
 
 /**
  * Typographic scale — Satoshi Variable.
