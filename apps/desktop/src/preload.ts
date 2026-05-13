@@ -30,6 +30,12 @@ export interface ElectronApi {
   readonly isElectron: true;
 }
 
+// Expose Basic Auth header so the renderer can attach it to fetch() calls.
+// We pass the pre-encoded header (never the raw password) to keep
+// the plaintext out of the renderer world.
+const authHeader = ipcRenderer.sendSync('config:get-auth') as string | null;
+contextBridge.exposeInMainWorld('__electronAuth', authHeader);
+
 const api: ElectronApi = {
   openWindow: async (opts) => {
     await ipcRenderer.invoke('window:open', opts);

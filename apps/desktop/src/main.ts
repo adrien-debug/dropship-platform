@@ -175,6 +175,11 @@ function registerShortcuts(): void {
 }
 
 function wireIpc(): void {
+  ipcMain.on('config:get-auth', (event) => {
+    event.returnValue = getConfig().basicAuthHeader ?? null;
+  });
+
+
   ipcMain.handle(
     'window:open',
     (_event, opts: { kind: string; storeId?: string }) => {

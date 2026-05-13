@@ -15,12 +15,20 @@ export function apiFetch(path: string, init?: RequestInit): Promise<Response> {
   const base = window.location.origin;
   const url = /^https?:\/\//.test(path) ? path : `${base}${path}`;
 
-  // Extract user:pass from the current URL if present.
+  // Priority 1: credentials embedded in the URL (dev with admin:pass@localhost).
   const credMatch = href.match(/^https?:\/\/([^:@/]+):([^@/]+)@/);
   if (credMatch) {
     const encoded = btoa(`${credMatch[1]}:${credMatch[2]}`);
     const headers = new Headers(init?.headers);
     headers.set('Authorization', `Basic ${encoded}`);
+    return fetch(url, { ...init, headers });
+  }
+
+  // Priority 2: Electron preload injected the Basic Auth header directly.
+  const electronAuth = (window as unknown as { __electronAuth?: string }).__electronAuth;
+  if (electronAuth) {
+    const headers = new Headers(init?.headers);
+    headers.set('Authorization', electronAuth);
     return fetch(url, { ...init, headers });
   }
 
