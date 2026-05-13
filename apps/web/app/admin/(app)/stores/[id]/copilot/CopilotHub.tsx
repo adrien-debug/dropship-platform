@@ -844,7 +844,7 @@ function SpecialisedRenderer({
       );
     }
     return (
-      <div className="inline-flex items-center gap-2 text-xs bg-sky-50 text-sky-800 px-2 py-1 rounded-full">
+      <div className="inline-flex items-center gap-2 text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-full">
         <Rocket size={12} strokeWidth={2} aria-hidden />
         pushed to {String(out.branch ?? 'origin')}
       </div>

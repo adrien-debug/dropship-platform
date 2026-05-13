@@ -86,9 +86,9 @@ export function ForwardButton({ orderId, alreadySent }: Props) {
           className={`text-[11px] rounded-md px-2.5 py-1.5 border max-w-[280px] ${
             result.ok
               ? result.status === 'sent'
-                ? 'bg-indigo-100 border-indigo-200 text-indigo-600'
-                : 'bg-blue-50 border-blue-200 text-blue-800'
-              : 'bg-zinc-100 border-zinc-200 text-zinc-500'
+                ? 'bg-indigo-50 border-indigo-200 text-indigo-600'
+                : 'bg-indigo-50 border-indigo-200 text-indigo-600'
+              : 'bg-zinc-50 border-zinc-200 text-zinc-500'
           }`}
         >
           <div className="font-medium">

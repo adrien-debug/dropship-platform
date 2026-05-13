@@ -18,7 +18,7 @@ export default async function CatalogPage() {
   const drafts = products.length - published;
 
   return (
-    <div className="space-y-8">
+    <div className="flex flex-col flex-1 min-h-0 gap-5">
       <PageHeader
         kicker="Production · Medusa"
         title={
@@ -31,30 +31,33 @@ export default async function CatalogPage() {
           <span className="text-xs text-zinc-400 tabular-nums">
             {products.length} produit{products.length > 1 ? 's' : ''}
             {drafts > 0 ? ` · ${drafts} brouillon${drafts > 1 ? 's' : ''}` : ''}
+            {published > 0 ? ` · ${published} publié${published > 1 ? 's' : ''}` : ''}
           </span>
         }
       />
 
       {error && (
-        <div className="border border-[var(--danger-muted)] bg-[var(--danger-muted)]/60 rounded-xl p-5">
+        <div className="border border-zinc-200 bg-white rounded-xl shadow-sm p-5">
           <p className="text-kicker uppercase tracking-label text-zinc-500 font-medium">Erreur Medusa</p>
           <p className="mt-1.5 text-sm text-zinc-500">{error}</p>
         </div>
       )}
 
       {!error && products.length === 0 && (
-        <div className="border border-dashed border-zinc-200 rounded-xl px-6 py-16 text-center bg-zinc-50">
-          <p className="text-sm font-semibold tracking-tight text-zinc-600">Aucun produit publié pour le moment.</p>
-          <p className="mt-1 text-xs text-zinc-400">Lance l’agent pour publier les premiers SKU.</p>
+        <div className="flex-1 min-h-0 flex items-center justify-center border border-dashed border-zinc-200 rounded-xl bg-white shadow-sm">
+          <div className="text-center px-6 py-16">
+            <p className="text-sm font-semibold tracking-tight text-zinc-900">Aucun produit publié pour le moment.</p>
+            <p className="mt-1 text-xs text-zinc-400">Lance l’agent pour publier les premiers SKU.</p>
+          </div>
         </div>
       )}
 
       {products.length > 0 && (
-        <section className="border border-zinc-200 rounded-xl overflow-hidden bg-zinc-50">
-          <div className="overflow-x-auto">
+        <section className="flex-1 min-h-0 flex flex-col border border-zinc-200 rounded-xl overflow-hidden bg-white shadow-sm">
+          <div className="overflow-auto flex-1 min-h-0">
             <table className="w-full min-w-[760px] text-sm">
-              <thead className="bg-zinc-50/60 text-kicker uppercase tracking-header text-zinc-400">
-                <tr>
+              <thead className="bg-zinc-50 text-kicker uppercase tracking-header text-zinc-400 sticky top-0">
+                <tr className="border-b border-zinc-200">
                   <th className="text-left px-5 py-3 font-medium w-16"></th>
                   <th className="text-left px-5 py-3 font-medium">Produit</th>
                   <th className="text-left px-5 py-3 font-medium">Handle</th>
@@ -65,7 +68,7 @@ export default async function CatalogPage() {
               </thead>
               <tbody className="divide-y divide-zinc-100">
                 {products.map((p) => (
-                  <tr key={p.id} className="hover:bg-zinc-50/60 transition-colors">
+                  <tr key={p.id} className="hover:bg-indigo-50/40 transition-colors">
                     <td className="px-5 py-3">
                       {p.thumbnail ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -87,7 +90,7 @@ export default async function CatalogPage() {
                         {p.status}
                       </StatusPill>
                     </td>
-                    <td className="px-5 py-3 text-zinc-600 tabular-nums">{p.variants?.length ?? 0}</td>
+                    <td className="px-5 py-3 text-zinc-500 tabular-nums">{p.variants?.length ?? 0}</td>
                     <td className="px-5 py-3 text-right">
                       <Link
                         href={`/products/${p.handle}`}

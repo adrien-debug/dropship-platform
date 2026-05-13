@@ -91,59 +91,59 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
   }, {});
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col flex-1 space-y-4">
       {/* Store header — branding + destructive actions only.
           Navigation lives in the StoreTabs rendered by the layout. */}
-      <div className="border rounded-xl overflow-hidden shadow-sm">
-        <div className="h-16 flex items-center px-6 gap-4" style={{ backgroundColor: store.primary_color || '#111827' }}>
-          <span className="text-white inline-flex"><StoreLogo emoji={store.logo_emoji} size={28} strokeWidth={1.5} /></span>
-          <div className="text-white">
-            <h2 className="text-xl font-bold">{store.name}</h2>
-            {store.tagline && <p className="text-sm opacity-75">{store.tagline}</p>}
+      <div className="border border-zinc-200 rounded-xl overflow-hidden shadow-sm bg-white">
+        <div className="h-14 flex items-center px-5 gap-3" style={{ backgroundColor: store.primary_color || '#111827' }}>
+          <span className="text-white inline-flex"><StoreLogo emoji={store.logo_emoji} size={24} strokeWidth={1.5} /></span>
+          <div className="text-white min-w-0">
+            <h2 className="text-base font-semibold truncate">{store.name}</h2>
+            {store.tagline && <p className="text-xs opacity-75 truncate">{store.tagline}</p>}
           </div>
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex items-center gap-2 shrink-0">
             <StoreActions storeId={store.id} storeName={store.name} />
           </div>
         </div>
 
-        <div className="p-6 bg-zinc-50">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="p-4 bg-white">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
             <Stat label="Produits" value={products.length.toString()} />
             <Stat label="Prix moyen" value={`${avgPrice.toFixed(2)} €`} />
             <Stat label="Marge moy." value={`${margin.toFixed(2)} €`} />
             <Stat label="Statut" value={store.status} highlight={store.status === 'active'} />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-zinc-600">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-zinc-500">
             <div>
-              <span className="font-medium">Niche :</span> {store.niche}
+              <span className="font-medium text-zinc-900">Niche :</span> {store.niche}
             </div>
             <div>
-              <span className="font-medium">Fournisseurs :</span>{' '}
+              <span className="font-medium text-zinc-900">Fournisseurs :</span>{' '}
               {Object.entries(supplierCounts).map(([s, count]) => `${s} (${count})`).join(', ') || '—'}
             </div>
             {store.medusa_publishable_key && (
               <div className="col-span-2">
-                <span className="font-medium">Clé API :</span>{' '}
+                <span className="font-medium text-zinc-900">Clé API :</span>{' '}
                 <code className="text-xs bg-zinc-100 px-2 py-0.5 rounded">{store.medusa_publishable_key.slice(0, 24)}…</code>
               </div>
             )}
             {store.description && (
               <div className="col-span-2">
-                <span className="font-medium">Description :</span> {store.description}
+                <span className="font-medium text-zinc-900">Description :</span> {store.description}
               </div>
             )}
             <div>
-              <span className="font-medium">Domaine :</span> {store.custom_domain || '—'}
+              <span className="font-medium text-zinc-900">Domaine :</span> {store.custom_domain || '—'}
             </div>
             {store.error_message && store.status !== 'active' && (
               <div className="col-span-2 text-zinc-500">
-                <span className="font-medium">Erreur :</span> {store.error_message}
+                <span className="font-medium text-zinc-900">Erreur :</span> {store.error_message}
                 <Link
                   href={`/admin/stores/new?niche=${encodeURIComponent(store.niche)}&name=${encodeURIComponent(store.name)}`}
                   className="ml-3 text-xs text-indigo-600 hover:underline font-medium"
                 >
-                  → Recréer ce store
+                  Recréer ce store
                 </Link>
               </div>
             )}
@@ -153,19 +153,19 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
 
       {/* Per-store product list lives on its own tab (`Catalogue`).
           Keep the overview clean: just a teaser linking there. */}
-      <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-6 flex items-center justify-between">
+      <div className="rounded-xl border border-zinc-200 bg-white shadow-sm p-4 flex items-center justify-between">
         <div>
           <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">Catalogue</p>
-          <p className="mt-1 text-sm text-zinc-600">
+          <p className="mt-1 text-sm text-zinc-500">
             <span className="font-medium text-zinc-900">{products.length}</span>{' '}
             produit{products.length > 1 ? 's' : ''} importé{products.length > 1 ? 's' : ''}.
           </p>
         </div>
         <Link
           href={`/admin/stores/${store.id}/catalog`}
-          className="text-sm font-medium px-4 py-2 rounded-lg bg-zinc-900 text-white hover:bg-zinc-800 transition-colors"
+          className="text-sm font-medium px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
         >
-          Voir le catalogue →
+          Voir le catalogue
         </Link>
       </div>
     </div>
@@ -174,9 +174,12 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
 
 function Stat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
-    <div className="bg-zinc-50 rounded-lg p-3 text-center">
-      <div className={`text-xl font-bold ${highlight ? 'text-green-600' : 'text-zinc-900'}`}>{value}</div>
-      <div className="text-xs text-zinc-400 mt-0.5">{label}</div>
+    <div className="border border-zinc-200 bg-white rounded-xl px-4 py-3 shadow-sm">
+      <div className="flex items-center gap-2 text-kicker uppercase tracking-cta text-zinc-400 font-medium">
+        <span className="inline-block w-1.5 h-1.5 rounded-full bg-indigo-500" aria-hidden />
+        {label}
+      </div>
+      <div className={`mt-1.5 text-2xl font-bold tracking-[-0.03em] ${highlight ? 'text-indigo-600' : 'text-zinc-900'}`}>{value}</div>
     </div>
   );
 }

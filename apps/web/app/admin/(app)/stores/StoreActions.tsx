@@ -2,9 +2,17 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { IconButton, TrashIcon } from '../../_components/AdminUI';
+import { TrashIcon } from '../../_components/AdminUI';
 
-export function StoreActions({ storeId, storeName }: { storeId: string; storeName: string }) {
+export function StoreActions({
+  storeId,
+  storeName,
+  compact = false,
+}: {
+  storeId: string;
+  storeName: string;
+  compact?: boolean;
+}) {
   const [deleting, setDeleting] = useState(false);
   const router = useRouter();
 
@@ -19,14 +27,17 @@ export function StoreActions({ storeId, storeName }: { storeId: string; storeNam
     router.refresh();
   };
 
+  const sizeCls = compact ? 'w-7 h-7' : 'w-9 h-9';
   return (
-    <IconButton
-      label={`Supprimer ${storeName}`}
+    <button
+      type="button"
       onClick={handleDelete}
       disabled={deleting}
-      tone="danger"
+      aria-label={`Supprimer ${storeName}`}
+      title={`Supprimer ${storeName}`}
+      className={`inline-flex items-center justify-center rounded-lg border bg-white border-zinc-200 text-zinc-400 hover:bg-indigo-50 hover:text-zinc-900 hover:border-zinc-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${sizeCls}`}
     >
-      <TrashIcon size={15} />
-    </IconButton>
+      <TrashIcon size={compact ? 13 : 15} />
+    </button>
   );
 }

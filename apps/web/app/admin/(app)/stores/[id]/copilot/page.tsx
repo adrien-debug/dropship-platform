@@ -92,34 +92,24 @@ export default async function CopilotHubPage({
     : 'curation';
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3 text-sm">
-        <Link href="/admin/stores" className="text-zinc-400 hover:underline">← Stores</Link>
-        <span className="text-zinc-300">/</span>
-        <Link href={`/admin/stores/${store.id}`} className="text-zinc-400 hover:underline">
-          {store.name}
-        </Link>
-        <span className="text-zinc-300">/</span>
-        <span className="text-zinc-700 font-medium">Copilote</span>
-      </div>
-
-      <header className="flex items-end justify-between gap-4">
+    <div className="flex flex-col flex-1 min-h-0 space-y-4">
+      <header className="flex items-end justify-between gap-4 shrink-0">
         <div>
           <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">Copilote hub</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight text-zinc-900 leading-tight inline-flex items-center gap-3">
+          <h1 className="mt-0.5 text-2xl sm:text-3xl xl:text-4xl font-extrabold tracking-[-0.035em] text-zinc-900 leading-[1.02] inline-flex items-center gap-3">
             <StoreLogo emoji={store.logo_emoji} size={28} strokeWidth={1.5} />
             {store.name}
           </h1>
-          <p className="mt-2 text-sm text-zinc-500">
-            Un chat, cinq modes. Niche : <span className="font-medium text-zinc-700">{store.niche}</span>.
+          <p className="mt-1 text-xs text-zinc-500">
+            Un chat, cinq modes. Niche : <span className="font-medium text-zinc-900">{store.niche}</span>.
           </p>
         </div>
         <Link
           href={`/shop/${store.slug}`}
           target="_blank"
-          className="text-sm px-4 py-1.5 rounded-lg border border-zinc-200 text-zinc-600 hover:bg-zinc-50"
+          className="text-sm px-4 py-1.5 rounded-lg border border-zinc-200 bg-white text-zinc-500 hover:bg-indigo-50 hover:text-zinc-900 transition-colors"
         >
-          Voir le store →
+          Voir le store
         </Link>
       </header>
 

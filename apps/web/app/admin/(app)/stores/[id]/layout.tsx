@@ -32,13 +32,13 @@ export default async function StoreLayout({
 
   return (
     <StoreLayoutClient storeId={id} storeSlug={store.slug} storeName={store.name}>
-      <div className="space-y-5">
-        <div className="flex items-center gap-3 text-sm">
+      <div className="flex flex-col flex-1 min-h-0 gap-3">
+        <div className="flex items-center gap-2 text-sm shrink-0">
           <Link href="/admin/stores" className="text-zinc-400 hover:text-zinc-900 transition-colors">
             ← Stores
           </Link>
           <span className="text-zinc-300">/</span>
-          <span className="text-zinc-600 inline-flex"><StoreLogo emoji={store.logo_emoji} size={18} /></span>
+          <span className="text-zinc-500 inline-flex"><StoreLogo emoji={store.logo_emoji} size={16} /></span>
           <span className="font-medium text-zinc-900 truncate">{store.name}</span>
           {store.status !== 'active' && (
             <span className="text-xs px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full font-medium">
@@ -49,7 +49,7 @@ export default async function StoreLayout({
 
         <StoreTabs storeId={id} storeSlug={store.slug} />
 
-        <div className="pt-2">{children}</div>
+        <div className="flex-1 min-h-0 flex flex-col">{children}</div>
       </div>
     </StoreLayoutClient>
   );

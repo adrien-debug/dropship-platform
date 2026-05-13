@@ -175,7 +175,7 @@ export default async function PortfolioDashboard() {
   const errorRate = cost.runs ? (cost.errors / cost.runs) * 100 : 0;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3 flex flex-col flex-1 min-h-0">
       <PageHeader
         kicker="Portfolio"
         title={<span>Vue <em className="italic text-zinc-400">d&apos;ensemble</em></span>}
@@ -183,7 +183,7 @@ export default async function PortfolioDashboard() {
       />
 
       {/* Row 1 — store + revenue snapshot */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 xl:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Link href="/admin/stores" className="block hover:opacity-90 transition-opacity">
           <StatCard
             label="Stores actifs"
@@ -219,7 +219,7 @@ export default async function PortfolioDashboard() {
       </div>
 
       {/* Row 3 — top stores + funnel + cost */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 xl:gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 flex-1 min-h-0">
         <SectionCard kicker="Performance 7j" title={<span>Top <em className="italic text-zinc-400">stores</em></span>}>
           <div className="space-y-2">
             {topStores.length === 0 && (

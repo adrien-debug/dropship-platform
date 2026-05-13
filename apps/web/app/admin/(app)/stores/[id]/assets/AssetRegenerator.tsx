@@ -198,8 +198,8 @@ export function AssetRegenerator({
   const successRuns = runs.filter((r) => r.status === 'success' && r.resultUrl);
 
   return (
-    <section className="border border-zinc-200 bg-zinc-50 rounded-xl overflow-hidden">
-      <div className="px-6 pt-5 pb-4 border-b border-zinc-200/70 flex items-start gap-4">
+    <section className="border border-zinc-200 bg-white rounded-xl overflow-hidden shadow-sm">
+      <div className="px-5 pt-4 pb-3 border-b border-zinc-200/70 flex items-start gap-4">
         <div className="flex-1 min-w-0">
           <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">
             {kind}
@@ -211,13 +211,13 @@ export function AssetRegenerator({
           type="button"
           onClick={() => setPanelOpen((v) => !v)}
           disabled={running || !referenceImageUrl}
-          className="bg-zinc-900 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
+          className="bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
         >
           {panelOpen ? 'Fermer' : 'Régénérer'}
         </button>
       </div>
 
-      <div className="p-6 space-y-6">
+      <div className="p-5 space-y-5">
         <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-6">
           {/* Current preview */}
           <div>
@@ -269,7 +269,7 @@ export function AssetRegenerator({
                   disabled={running}
                   rows={5}
                   placeholder="Laisse vide pour laisser Claude rédiger un nouveau prompt..."
-                  className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm font-mono text-zinc-900 focus:outline-none focus:border-zinc-900 disabled:bg-zinc-50"
+                  className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm font-mono text-zinc-900 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 disabled:bg-zinc-100"
                 />
                 <p className="mt-1 text-kicker text-zinc-400">
                   Vide = Claude réécrit le prompt à partir du produit et de la niche.
@@ -280,7 +280,7 @@ export function AssetRegenerator({
                   type="button"
                   onClick={launch}
                   disabled={running || !referenceImageUrl}
-                  className="bg-zinc-900 text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="bg-indigo-600 text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   {running ? 'Génération en cours…' : 'Lancer'}
                 </button>
@@ -288,7 +288,7 @@ export function AssetRegenerator({
               </div>
 
               {logs.length > 0 && (
-                <div className="border border-zinc-200 rounded-lg bg-zinc-950 text-zinc-100 font-mono text-xs max-h-56 overflow-y-auto p-3 space-y-1">
+                <div className="border border-zinc-200 rounded-lg bg-zinc-900 text-zinc-100 font-mono text-xs max-h-56 overflow-y-auto p-3 space-y-1">
                   {logs.map((l) => (
                     <div
                       key={l.id}
@@ -326,8 +326,8 @@ export function AssetRegenerator({
                 return (
                   <div
                     key={r.id}
-                    className={`border rounded-lg overflow-hidden bg-zinc-50 transition-colors ${
-                      r.isCurrent ? 'border-zinc-900 ring-2 ring-zinc-900/10' : 'border-zinc-200'
+                    className={`border rounded-lg overflow-hidden bg-white transition-colors ${
+                      r.isCurrent ? 'border-indigo-600 ring-2 ring-indigo-500/15' : 'border-zinc-200'
                     }`}
                   >
                     <div className="aspect-square bg-zinc-100 relative">
@@ -354,7 +354,7 @@ export function AssetRegenerator({
                         </div>
                       )}
                       {r.isCurrent && (
-                        <span className="absolute top-1.5 left-1.5 bg-zinc-900 text-white text-kicker uppercase tracking-cta px-1.5 py-0.5 rounded">
+                        <span className="absolute top-1.5 left-1.5 bg-indigo-600 text-white text-kicker uppercase tracking-cta px-1.5 py-0.5 rounded">
                           Courant
                         </span>
                       )}

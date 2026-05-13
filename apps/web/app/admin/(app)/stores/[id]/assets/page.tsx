@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getDbRead } from '@/lib/db';
 import { ASSET_KINDS, type AssetKind } from '@/lib/agent/asset-regenerator';
@@ -96,43 +95,33 @@ export default async function StoreAssetsPage({ params }: { params: Promise<{ id
   };
 
   return (
-    <div className="space-y-10">
-      <div>
-        <Link
-          href={`/admin/stores/${id}`}
-          className="text-xs text-zinc-400 hover:text-zinc-600 transition-colors"
-        >
-          ← Retour au store
-        </Link>
-        <div className="mt-2">
-          <PageHeader
-            kicker={`Production · Assets · ${store.niche}`}
-            title={
-              <>
-                Assets de <em className="italic text-zinc-400">{store.name}</em>
-              </>
-            }
-            lede={
-              <>
-                Régénère chaque visuel sans toucher au produit. Le prompt est éditable, l’historique
-                conserve les 10 derniers runs et un clic suffit pour revenir à une version
-                précédente. Le storefront <code className="font-mono text-zinc-600">/shop/{store.slug}</code>{' '}
-                reflète immédiatement la version courante.
-              </>
-            }
-          />
-        </div>
-      </div>
+    <div className="flex flex-col flex-1 space-y-4">
+      <PageHeader
+        kicker={`Production · Assets · ${store.niche}`}
+        title={
+          <>
+            Assets de <em className="italic text-zinc-400">{store.name}</em>
+          </>
+        }
+        lede={
+          <>
+            Régénère chaque visuel sans toucher au produit. Le prompt est éditable, l’historique
+            conserve les 10 derniers runs et un clic suffit pour revenir à une version
+            précédente. Le storefront <code className="font-mono text-zinc-500">/shop/{store.slug}</code>{' '}
+            reflète immédiatement la version courante.
+          </>
+        }
+      />
 
       {!product?.image_url && (
-        <div className="border border-[var(--warning-muted)] bg-[var(--warning-muted)] rounded-xl px-5 py-4 text-sm text-indigo-600">
+        <div className="border border-indigo-200 bg-indigo-50 rounded-xl px-5 py-4 text-sm text-indigo-700">
           <strong className="font-medium">Aucun produit de référence.</strong> Aucune image produit
           n’est associée à ce store — la régénération ne peut pas s’appuyer sur un visuel source.
           Importe un produit avec une image avant d’utiliser cette page.
         </div>
       )}
 
-      <div className="space-y-6">
+      <div className="space-y-4">
         {ASSET_KINDS.map((kind) => (
           <AssetRegenerator
             key={kind}

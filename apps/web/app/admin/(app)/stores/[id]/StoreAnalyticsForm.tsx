@@ -60,8 +60,8 @@ export function StoreAnalyticsForm({ storeId, initial }: Props) {
   }
 
   return (
-    <div className="border rounded-xl bg-zinc-50">
-      <div className="px-6 py-4 border-b flex items-baseline justify-between">
+    <div className="border border-zinc-200 rounded-xl bg-white shadow-sm">
+      <div className="px-5 py-4 border-b border-zinc-200 flex items-baseline justify-between">
         <div>
           <h3 className="text-base font-semibold tracking-tight">
             Analytics & <em className="italic text-zinc-600">attribution</em>
@@ -72,7 +72,7 @@ export function StoreAnalyticsForm({ storeId, initial }: Props) {
         </div>
       </div>
 
-      <div className="p-6 space-y-8">
+      <div className="p-5 space-y-6">
         <Group title="Acquisition (UA)" hint="Pixels client-side. Indispensables pour les ads.">
           <Field
             label="Google Analytics 4"
@@ -165,7 +165,7 @@ export function StoreAnalyticsForm({ storeId, initial }: Props) {
         </Group>
       </div>
 
-      <div className="px-6 py-4 border-t bg-zinc-50/60 flex items-center justify-between gap-4">
+      <div className="px-5 py-4 border-t border-zinc-200 bg-zinc-100/60 flex items-center justify-between gap-4">
         {feedback ? (
           <span className={`text-sm ${feedback.type === 'ok' ? 'text-indigo-600' : 'text-zinc-500'}`}>
             {feedback.msg}
@@ -179,7 +179,7 @@ export function StoreAnalyticsForm({ storeId, initial }: Props) {
           type="button"
           onClick={submit}
           disabled={pending}
-          className="bg-zinc-950 text-white px-6 py-2.5 rounded-full text-xs uppercase tracking-cta font-medium hover:bg-black transition-colors disabled:opacity-60"
+          className="bg-indigo-600 text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-60"
         >
           {pending ? 'Enregistrement…' : 'Enregistrer'}
         </button>
@@ -240,7 +240,7 @@ function Field({
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400"
+        className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
         autoComplete="off"
         spellCheck={false}
       />

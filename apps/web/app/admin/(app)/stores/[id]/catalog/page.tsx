@@ -61,22 +61,22 @@ export default async function StoreCatalogPage({ params }: { params: Promise<{ i
   }, {});
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col flex-1 space-y-4">
       <PageHeader
         kicker="Catalogue"
         title={<span>Produits <em className="italic text-zinc-400">du store</em></span>}
         lede={`Niche · ${store.niche} · Géré par l'agent à la création, modifiable via Curation.`}
         actions={
           <Link
-            href={`/admin/stores/${id}/curate`}
-            className="text-sm font-medium px-4 py-2 rounded-lg bg-zinc-900 text-white hover:bg-zinc-800 transition-colors"
+            href={`/admin/stores/${id}/copilot`}
+            className="text-sm font-medium px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
           >
-            Discuter avec le copilote →
+            Discuter avec le copilote
           </Link>
         }
       />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard label="Produits" value={products.length.toString()} />
         <StatCard label="Prix moyen" value={`${avgPrice.toFixed(2)} €`} />
         <StatCard
@@ -94,12 +94,13 @@ export default async function StoreCatalogPage({ params }: { params: Promise<{ i
       <SectionCard
         kicker="Table"
         title={<span>{products.length} produit{products.length > 1 ? 's' : ''}</span>}
+        className="flex-1 min-h-0"
       >
         {products.length === 0 ? (
           <div className="p-10 text-center">
             <p className="text-sm text-zinc-400">
               Aucun produit dans ce store. Utilise le{' '}
-              <Link href={`/admin/stores/${id}/curate`} className="text-zinc-900 underline">
+              <Link href={`/admin/stores/${id}/copilot`} className="text-indigo-600 underline">
                 copilote de curation
               </Link>{' '}
               pour en ajouter.
@@ -125,7 +126,7 @@ export default async function StoreCatalogPage({ params }: { params: Promise<{ i
                   const marginPct = p.cost_cents > 0
                     ? Math.round(((p.price_cents - p.cost_cents) / p.cost_cents) * 100)
                     : 0;
-                  const supplierTone = p.supplier === 'ai-generated' ? 'red' : 'blue';
+                  const supplierTone: 'neutral' | 'blue' = p.supplier === 'ai-generated' ? 'neutral' : 'blue';
                   return (
                     <tr key={p.id} className="border-b border-zinc-200 last:border-0 hover:bg-zinc-50/60">
                       <td className="px-5 py-3 align-middle">
@@ -174,7 +175,7 @@ export default async function StoreCatalogPage({ params }: { params: Promise<{ i
                         {p.medusa_product_id ? (
                           <StatusPill tone="emerald">Live</StatusPill>
                         ) : (
-                          <StatusPill tone="amber">En attente</StatusPill>
+                          <StatusPill tone="neutral">En attente</StatusPill>
                         )}
                       </td>
                     </tr>

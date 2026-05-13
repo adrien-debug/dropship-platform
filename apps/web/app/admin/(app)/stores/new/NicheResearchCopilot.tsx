@@ -706,8 +706,8 @@ function ShortlistCard({
   const fpPrice = fp ? (fp.suggested_price_cents / 100).toFixed(2) : null;
   const fpMargin = fp ? ((fp.suggested_price_cents - fp.cost_cents) / 100).toFixed(2) : null;
   const supplierTag = fp?.supplier === 'cj'
-    ? 'bg-blue-50 text-blue-700 border-blue-200'
-    : 'bg-orange-50 text-orange-700 border-orange-200';
+    ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+    : 'bg-zinc-100 text-zinc-700 border-zinc-200';
 
   return (
     <div className={`rounded-xl border ${verdictTone} px-5 py-4 space-y-4 min-w-0 max-w-full`}>
@@ -941,10 +941,10 @@ function DesignPickerBlock({
 }
 
 const CHANNEL_COLOR: Record<MediaChannel['name'], string> = {
-  meta: 'bg-blue-500',
+  meta: 'bg-indigo-600',
   tiktok: 'bg-zinc-900',
-  google: 'bg-indigo-100',
-  pinterest: 'bg-zinc-100',
+  google: 'bg-indigo-300',
+  pinterest: 'bg-zinc-400',
 };
 
 const CHANNEL_LABEL: Record<MediaChannel['name'], string> = {
@@ -1262,7 +1262,7 @@ function SupplierRenderer({
       </p>
     );
   }
-  const tag = supplier === 'aliexpress' ? 'bg-orange-50 text-orange-700' : 'bg-blue-50 text-blue-700';
+  const tag = supplier === 'aliexpress' ? 'bg-zinc-100 text-zinc-700' : 'bg-indigo-50 text-indigo-700';
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full text-xs">

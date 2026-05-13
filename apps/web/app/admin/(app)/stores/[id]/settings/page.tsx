@@ -39,7 +39,7 @@ export default async function StoreSettingsPage({ params }: { params: Promise<{ 
   if (!store) notFound();
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col flex-1 space-y-4">
       <PageHeader
         kicker="Réglages"
         title={<span>Configuration <em className="italic text-zinc-400">du store</em></span>}

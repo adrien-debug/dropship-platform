@@ -77,8 +77,8 @@ export function StoreTemplateForm({
   };
 
   return (
-    <section className="border border-zinc-200 bg-zinc-50 rounded-xl overflow-hidden">
-      <div className="px-6 pt-5 pb-4 border-b border-zinc-200/70">
+    <section className="border border-zinc-200 bg-white rounded-xl overflow-hidden shadow-sm">
+      <div className="px-5 pt-4 pb-3 border-b border-zinc-200/70">
         <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">Storefront</p>
         <h3 className="mt-1 text-base font-semibold tracking-tight text-zinc-900">
           Template <em className="italic text-zinc-400">de rendu</em>
@@ -88,7 +88,7 @@ export function StoreTemplateForm({
           règle historique. Bascule sur éditorial pour les niches narratives (3 à 6 produits liés par un univers).
         </p>
       </div>
-      <div className="p-6 space-y-4">
+      <div className="p-5 space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {OPTIONS.map((opt) => {
             const active = value === opt.value;
@@ -100,8 +100,8 @@ export function StoreTemplateForm({
                 disabled={pending}
                 className={`relative text-left p-4 rounded-lg border transition-colors ${
                   active
-                    ? 'border-zinc-900 bg-zinc-900 text-white'
-                    : 'border-zinc-200 hover:border-zinc-300 bg-zinc-50 text-zinc-600'
+                    ? 'border-indigo-600 bg-indigo-600 text-white'
+                    : 'border-zinc-200 hover:border-zinc-300 hover:bg-indigo-50 bg-white text-zinc-500'
                 }`}
               >
                 <div className="text-sm font-semibold mb-0.5">{opt.label}</div>
@@ -109,7 +109,7 @@ export function StoreTemplateForm({
                   {opt.hint}
                 </div>
                 {active && (
-                  <span className="absolute top-3 right-3 w-2 h-2 rounded-full bg-zinc-50" aria-hidden />
+                  <span className="absolute top-3 right-3 w-2 h-2 rounded-full bg-white" aria-hidden />
                 )}
               </button>
             );
@@ -121,7 +121,7 @@ export function StoreTemplateForm({
             type="button"
             onClick={submit}
             disabled={!dirty || pending}
-            className="bg-zinc-900 text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="bg-indigo-600 text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {pending ? 'Enregistrement…' : 'Enregistrer'}
           </button>

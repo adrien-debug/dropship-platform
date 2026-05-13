@@ -104,31 +104,25 @@ export default async function StoreAnalyticsPage({ params, searchParams }: Props
   const cartToPurchase = totalAdds > 0 ? (totalPurchases / totalAdds) * 100 : 0;
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center gap-3">
-        <Link href={`/admin/stores/${id}`} className="text-sm text-zinc-400 hover:underline">
-          ← {store.name}
-        </Link>
-      </div>
-
+    <div className="flex flex-col flex-1 space-y-4">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">
             Analytics · {store.name}
           </p>
-          <h2 className="mt-1 text-3xl font-semibold tracking-tight">
-            Acquisition <em className="italic text-zinc-600">&amp; comportement</em>
+          <h2 className="mt-0.5 text-2xl sm:text-3xl xl:text-4xl font-extrabold tracking-[-0.035em] text-zinc-900 leading-[1.02]">
+            Acquisition <em className="italic text-zinc-400">&amp; comportement</em>
           </h2>
-          <p className="mt-2 text-sm text-zinc-400">Période : {cfg.label}.</p>
+          <p className="mt-1 text-xs text-zinc-500">Période : {cfg.label}.</p>
         </div>
-        <div className="flex items-center gap-1 border border-zinc-200 rounded-full p-1 bg-zinc-50">
+        <div className="flex items-center gap-1 border border-zinc-200 rounded-full p-1 bg-white shadow-sm">
           {Object.entries(RANGE_TO_INTERVAL).map(([key, c]) => (
             <Link
               key={key}
               href={`?range=${key}`}
               className={
                 'px-4 py-1.5 rounded-full text-xs uppercase tracking-cta font-medium transition-colors ' +
-                (key === range ? 'bg-zinc-950 text-white' : 'text-zinc-400 hover:text-zinc-900')
+                (key === range ? 'bg-indigo-600 text-white' : 'text-zinc-500 hover:text-zinc-900')
               }
             >
               {c.label}
@@ -145,21 +139,21 @@ export default async function StoreAnalyticsPage({ params, searchParams }: Props
         <Kpi
           label="Conv. cart → purchase"
           value={totalAdds > 0 ? `${cartToPurchase.toFixed(1)} %` : '—'}
-          tone={cartToPurchase >= 30 ? 'emerald' : cartToPurchase >= 15 ? 'amber' : 'red'}
+          tone={cartToPurchase >= 30 ? 'emerald' : 'neutral'}
         />
       </section>
 
       {/* UX — Funnel */}
-      <section className="border border-zinc-200 rounded-2xl overflow-hidden bg-zinc-50">
-        <div className="px-6 py-4 border-b border-zinc-200/60">
-          <h3 className="text-base font-semibold tracking-tight">
-            Comportement <em className="italic text-zinc-600">(UX)</em>
+      <section className="border border-zinc-200 rounded-xl overflow-hidden bg-white shadow-sm">
+        <div className="px-5 py-3 border-b border-zinc-200">
+          <h3 className="text-base font-semibold tracking-tight text-zinc-900">
+            Comportement <em className="italic text-zinc-400">(UX)</em>
           </h3>
           <p className="text-xs text-zinc-400 mt-0.5">
             Funnel des sessions uniques sur les events serveur. Les session_id se persistent 30 jours.
           </p>
         </div>
-        <div className="p-6 space-y-4">
+        <div className="p-5 space-y-4">
           {(() => {
             const top = funnelByName.get(FUNNEL_ORDER[0])?.sessions ?? 0;
             return FUNNEL_ORDER.map((name) => {
@@ -170,14 +164,14 @@ export default async function StoreAnalyticsPage({ params, searchParams }: Props
                 <div key={name}>
                   <div className="flex items-baseline justify-between gap-4 mb-1.5">
                     <span className="text-sm font-medium text-zinc-900">{FUNNEL_LABEL[name]}</span>
-                    <span className="text-sm tabular-nums text-zinc-600">
+                    <span className="text-sm tabular-nums text-zinc-500">
                       {sessions} sessions{' '}
                       <span className="text-xs text-zinc-400">({ratio.toFixed(0)} %)</span>
                     </span>
                   </div>
                   <div className="h-2 bg-zinc-100 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-zinc-900 rounded-full transition-all"
+                      className="h-full bg-indigo-600 rounded-full transition-all"
                       style={{ width: `${Math.max(2, ratio)}%` }}
                     />
                   </div>
@@ -203,10 +197,10 @@ export default async function StoreAnalyticsPage({ params, searchParams }: Props
       </section>
 
       {/* UA — Acquisition by source/campaign */}
-      <section className="border border-zinc-200 rounded-2xl overflow-hidden bg-zinc-50">
-        <div className="px-6 py-4 border-b border-zinc-200/60">
-          <h3 className="text-base font-semibold tracking-tight">
-            Acquisition <em className="italic text-zinc-600">(UA)</em>
+      <section className="border border-zinc-200 rounded-xl overflow-hidden bg-white shadow-sm">
+        <div className="px-5 py-3 border-b border-zinc-200">
+          <h3 className="text-base font-semibold tracking-tight text-zinc-900">
+            Acquisition <em className="italic text-zinc-400">(UA)</em>
           </h3>
           <p className="text-xs text-zinc-400 mt-0.5">
             Décomposition par utm_source / utm_campaign. Les visiteurs sans UTM sont regroupés sous{' '}
@@ -258,7 +252,7 @@ export default async function StoreAnalyticsPage({ params, searchParams }: Props
       </section>
 
       {/* Pixel/CAPI status */}
-      <section className="border border-dashed border-zinc-200 rounded-2xl bg-zinc-50/40 px-6 py-5">
+      <section className="border border-dashed border-zinc-200 rounded-xl bg-white px-5 py-4">
         <h4 className="text-xs uppercase tracking-label text-zinc-400 font-medium mb-3">
           Plomberie connectée
         </h4>
@@ -270,8 +264,8 @@ export default async function StoreAnalyticsPage({ params, searchParams }: Props
         </div>
         <p className="mt-4 text-xs text-zinc-400">
           IDs vides ?{' '}
-          <Link href={`/admin/stores/${id}`} className="underline underline-offset-2 hover:text-zinc-900">
-            Configure-les sur la fiche du store ↗
+          <Link href={`/admin/stores/${id}/settings`} className="underline underline-offset-2 hover:text-zinc-900">
+            Configure-les dans les Réglages
           </Link>
         </p>
       </section>
@@ -286,18 +280,19 @@ function Kpi({
 }: {
   label: string;
   value: string;
-  tone?: 'neutral' | 'emerald' | 'amber' | 'red';
+  tone?: 'neutral' | 'emerald';
 }) {
   const cls: Record<string, string> = {
     neutral: 'text-zinc-900',
     emerald: 'text-indigo-600',
-    amber: 'text-indigo-600',
-    red: 'text-zinc-500',
   };
   return (
-    <div className="border border-zinc-200 bg-zinc-50 rounded-xl px-5 py-4">
-      <div className="text-kicker uppercase tracking-cta text-zinc-400 font-medium">{label}</div>
-      <div className={`mt-2 text-3xl font-semibold tracking-tight ${cls[tone]}`}>{value}</div>
+    <div className="border border-zinc-200 bg-white rounded-xl px-4 py-3 shadow-sm">
+      <div className="flex items-center gap-2 text-kicker uppercase tracking-cta text-zinc-400 font-medium">
+        <span className="inline-block w-1.5 h-1.5 rounded-full bg-indigo-500" aria-hidden />
+        {label}
+      </div>
+      <div className={`mt-1.5 text-2xl font-bold tracking-[-0.03em] ${cls[tone]}`}>{value}</div>
     </div>
   );
 }
@@ -306,7 +301,7 @@ function ConnState({ label, set }: { label: string; set: boolean }) {
   return (
     <div className="flex items-center gap-2">
       <span
-        className={`inline-block h-1.5 w-1.5 rounded-full ${set ? 'bg-[var(--success-muted)]0' : 'bg-ds-text-muted'}`}
+        className={`inline-block h-1.5 w-1.5 rounded-full ${set ? 'bg-indigo-500' : 'bg-zinc-300'}`}
         aria-hidden="true"
       />
       <span className={set ? 'text-zinc-900 font-medium' : 'text-zinc-400'}>{label}</span>

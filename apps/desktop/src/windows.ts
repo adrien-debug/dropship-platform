@@ -98,10 +98,10 @@ export function openWindow(opts: OpenWindowOptions): BrowserWindow {
   }
 
   const win = new BrowserWindow({
-    width: 1280,
-    height: 800,
-    minWidth: 960,
-    minHeight: 600,
+    width: 1200,
+    height: 780,
+    minWidth: 1200,
+    minHeight: 780,
     title: titleForKind(kind, storeId),
     frame: false,
     backgroundColor: '#4f46e5',

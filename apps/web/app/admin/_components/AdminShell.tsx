@@ -68,12 +68,12 @@ export function AdminShell({ children }: { children: ReactNode }) {
       <TitleBar />
 
       <main className="flex-1 min-w-0 flex flex-col relative overflow-hidden">
-        <div className="flex-1 overflow-y-auto">
-          <div className="max-w-7xl mx-auto w-full px-5 sm:px-7 py-5 xl:py-7">{children}</div>
+        <div className="flex-1 overflow-y-auto flex flex-col">
+          <div className="w-full px-5 py-4 flex-1 flex flex-col">{children}</div>
         </div>
 
-        <footer className="shrink-0 bg-indigo-600 px-5 sm:px-7 py-4 relative">
-          <div className="max-w-7xl mx-auto w-full grid grid-cols-3 items-center">
+        <footer className="shrink-0 bg-indigo-600 px-5 py-3 relative">
+          <div className="w-full grid grid-cols-3 items-center">
             <span className="text-xs text-indigo-200">Dropship · Production · Agent IA</span>
 
             {/* Dock centré dans le footer */}

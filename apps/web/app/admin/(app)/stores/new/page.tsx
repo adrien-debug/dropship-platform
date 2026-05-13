@@ -5,7 +5,6 @@ import { apiFetch } from '@/lib/client-fetch';
 import { useState, useRef, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { useNavigation } from '@/components/layout/NavigationContext';
 import {
   Home,
   Smartphone,
@@ -91,7 +90,6 @@ function FieldLabel({
 }
 
 function NewStoreForm() {
-  const { setChatSurface } = useNavigation();
   const searchParams = useSearchParams();
   const [niche, setNiche] = useState('');
   const [storeName, setStoreName] = useState('');
@@ -112,12 +110,6 @@ function NewStoreForm() {
   const counterRef = useRef(0);
   const startTimeRef = useRef(0);
   const detailsEndRef = useRef<HTMLDivElement>(null);
-
-  // Activate research copilot in persistent chat panel
-  useEffect(() => {
-    setChatSurface({ type: 'research-copilot' });
-    return () => { setChatSurface({ type: 'none' }); };
-  }, [setChatSurface]);
 
   // Prefill from query string (used by "recréer ce store" link)
   useEffect(() => {
@@ -334,23 +326,21 @@ function NewStoreForm() {
   };
 
   return (
-    <div className="max-w-5xl space-y-8">
-      <div>
-        <Link href="/admin/stores" className="text-xs text-zinc-400 hover:text-zinc-700 transition-colors">
-          ← Tous les stores
-        </Link>
-        <div className="mt-2">
-          <PageHeader
-            kicker="Production · Agent IA"
-            title={
-              <>
-                Nouveau <em className="italic text-zinc-500">store</em>.
-              </>
-            }
-            lede="L’agent compose un store complet en une passe. Il choisit les fournisseurs (AliExpress, CJ ou Claude), écrit les fiches, génère les visuels puis publie le storefront."
-          />
-        </div>
-      </div>
+    <div className="flex flex-col flex-1 space-y-6">
+      <PageHeader
+        kicker="Production · Agent IA"
+        title={
+          <>
+            Nouveau <em className="italic text-zinc-400">store</em>.
+          </>
+        }
+        lede="L’agent compose un store complet en une passe. Il choisit les fournisseurs (AliExpress, CJ ou Claude), écrit les fiches, génère les visuels puis publie le storefront."
+        actions={
+          <Link href="/admin/stores" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors">
+            ← Tous les stores
+          </Link>
+        }
+      />
 
       {/* ===== COPILOTE (recherche de niche pré-création) ===== */}
       {!result && (
@@ -358,7 +348,7 @@ function NewStoreForm() {
       )}
 
       {/* Form anchor — the copilot scrolls here when "Lancer cette niche" is clicked. */}
-      <div id="store-creation-form" className="max-w-3xl space-y-8 scroll-mt-8">
+      <div id="store-creation-form" className="space-y-6 scroll-mt-8">
 
       {/* Manual fieldsets — collapsed by default. The copilote card
           decides mode + name + niche + template + media plan and
@@ -405,8 +395,8 @@ function NewStoreForm() {
                   onClick={() => setNiche(p.value)}
                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs border transition-colors ${
                     active
-                      ? 'bg-zinc-900 text-white border-zinc-900'
-                      : 'border-zinc-200 text-zinc-600 hover:border-zinc-400 hover:text-zinc-900'
+                      ? 'bg-indigo-600 text-white border-indigo-600'
+                      : 'bg-white border-zinc-200 text-zinc-500 hover:border-zinc-300 hover:bg-indigo-50 hover:text-zinc-900'
                   }`}
                 >
                   <Icon size={13} strokeWidth={1.75} aria-hidden />
@@ -421,13 +411,13 @@ function NewStoreForm() {
               value={niche}
               onChange={(e) => setNiche(e.target.value)}
               placeholder="ex. wireless earbuds, scandinavian lamp, eco bottles…"
-              className="flex-1 border border-zinc-200 rounded-lg px-3.5 py-2.5 text-sm placeholder:text-zinc-400 focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 transition-colors"
+              className="flex-1 border border-zinc-200 rounded-lg px-3.5 py-2.5 text-sm placeholder:text-zinc-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-colors"
             />
             <button
               type="button"
               onClick={validateNiche}
               disabled={!niche.trim() || validating}
-              className="shrink-0 border border-zinc-200 text-zinc-700 px-4 py-2.5 rounded-lg text-sm font-medium hover:border-zinc-400 hover:bg-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="shrink-0 border border-zinc-200 bg-white text-zinc-500 px-4 py-2.5 rounded-lg text-sm font-medium hover:border-zinc-300 hover:bg-indigo-50 hover:text-zinc-900 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               title="Estimer la saturation Meta Ads de cette niche"
             >
               {validating ? (
@@ -450,7 +440,7 @@ function NewStoreForm() {
             value={storeName}
             onChange={(e) => setStoreName(e.target.value)}
             placeholder="ex. ZenShop, Brisa, PhoneWorld Pro"
-            className="w-full border border-zinc-200 rounded-lg px-3.5 py-2.5 text-sm placeholder:text-zinc-400 focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 transition-colors"
+            className="w-full border border-zinc-200 rounded-lg px-3.5 py-2.5 text-sm placeholder:text-zinc-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-colors"
           />
         </div>
       </fieldset>
@@ -470,18 +460,18 @@ function NewStoreForm() {
                 onChange={(e) => setMaxProducts(Number(e.target.value))}
                 min={3}
                 max={25}
-                className="w-full border border-zinc-200 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 transition-colors"
+                className="w-full border border-zinc-200 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-colors"
               />
             </label>
           ) : (
-            <label className="flex items-center gap-3 border border-zinc-200 rounded-lg px-3.5 py-2.5 cursor-pointer hover:border-zinc-400 transition-colors">
+            <label className="flex items-center gap-3 border border-zinc-200 rounded-lg px-3.5 py-2.5 cursor-pointer hover:border-zinc-300 hover:bg-indigo-50 transition-colors">
               <input
                 type="checkbox"
                 checked={!skipVideo}
                 onChange={(e) => setSkipVideo(!e.target.checked)}
-                className="accent-zinc-900 w-4 h-4"
+                className="accent-indigo-600 w-4 h-4"
               />
-              <span className="text-sm text-zinc-700">Générer la vidéo promo (5 secondes)</span>
+              <span className="text-sm text-zinc-500">Générer la vidéo promo (5 secondes)</span>
             </label>
           )}
 
@@ -492,7 +482,7 @@ function NewStoreForm() {
             <select
               value={language}
               onChange={(e) => setLanguage(e.target.value as 'fr' | 'en')}
-              className="w-full border border-zinc-200 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 transition-colors bg-white"
+              className="w-full border border-zinc-200 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-colors bg-white"
             >
               <option value="fr">Français</option>
               <option value="en">English</option>
@@ -508,7 +498,7 @@ function NewStoreForm() {
         <button
           onClick={() => launch()}
           disabled={!canLaunch}
-          className="w-full bg-zinc-900 text-white py-3.5 rounded-lg font-medium text-sm hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-cta"
+          className="w-full bg-indigo-600 text-white py-3.5 rounded-lg font-medium text-sm hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-cta"
         >
           {running ? (
             <span className="inline-flex items-center justify-center gap-3">
@@ -554,20 +544,20 @@ function NewStoreForm() {
               href={`/shop/${result.slug}`}
               target="_blank"
               rel="noreferrer"
-              className="bg-zinc-900 text-white px-6 py-3 rounded-lg text-sm font-medium hover:bg-zinc-800 transition-colors shadow-cta"
+              className="bg-indigo-600 text-white px-6 py-3 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors shadow-cta"
             >
-              Ouvrir le store <span aria-hidden>↗</span>
+              Ouvrir le store
             </Link>
             <Link
               href="/admin/stores"
-              className="border border-zinc-200 text-zinc-700 px-6 py-3 rounded-lg text-sm font-medium hover:bg-zinc-50 hover:border-zinc-300 transition-colors"
+              className="border border-zinc-200 bg-white text-zinc-500 px-6 py-3 rounded-lg text-sm font-medium hover:bg-indigo-50 hover:text-zinc-900 hover:border-zinc-300 transition-colors"
             >
               Tous les stores
             </Link>
             <button
               type="button"
               onClick={reset}
-              className="border border-zinc-200 text-zinc-700 px-6 py-3 rounded-lg text-sm font-medium hover:bg-zinc-50 hover:border-zinc-300 transition-colors"
+              className="border border-zinc-200 bg-white text-zinc-500 px-6 py-3 rounded-lg text-sm font-medium hover:bg-indigo-50 hover:text-zinc-900 hover:border-zinc-300 transition-colors"
             >
               Créer un autre
             </button>
@@ -604,8 +594,8 @@ function ModeCard({
       onClick={onClick}
       className={`relative p-5 rounded-lg border text-left transition-all ${
         selected
-          ? 'border-zinc-900 bg-zinc-900 text-white'
-          : 'border-zinc-200 hover:border-zinc-400 bg-white text-zinc-700'
+          ? 'border-indigo-600 bg-indigo-600 text-white'
+          : 'border-zinc-200 hover:border-zinc-300 hover:bg-indigo-50 bg-white text-zinc-500'
       }`}
     >
       <div className="text-sm font-semibold mb-1">{title}</div>
@@ -667,7 +657,7 @@ function RunStatus({
       <div className="px-6 pt-4">
         <div className="h-1.5 bg-zinc-100 rounded-full overflow-hidden">
           <div
-            className="h-full bg-zinc-900 rounded-full transition-[width] duration-500 ease-out"
+            className="h-full bg-indigo-600 rounded-full transition-[width] duration-500 ease-out"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -680,11 +670,11 @@ function RunStatus({
           const isSuccess = line.type === 'success';
           const isActive = running && isLast && !isError && !isSuccess;
           const dotClass = isError
-            ? 'bg-zinc-100'
+            ? 'bg-zinc-300'
             : isSuccess
-            ? 'bg-indigo-100'
+            ? 'bg-indigo-500'
             : isActive
-            ? 'bg-zinc-900 admin-step-pulse'
+            ? 'bg-indigo-600 admin-step-pulse'
             : 'bg-zinc-300';
           const textClass = isError
             ? 'text-zinc-500'
@@ -735,7 +725,7 @@ function RunStatus({
 
 function NicheValidationPanel({ result }: { result: NicheValidationResult }) {
   const verdictTone: Tone =
-    result.verdict === 'no-go' ? 'red' : result.verdict === 'caution' ? 'amber' : 'emerald';
+    result.verdict === 'no-go' ? 'neutral' : result.verdict === 'caution' ? 'amber' : 'emerald';
   const verdictLabel =
     result.verdict === 'no-go'
       ? 'Marché saturé'

@@ -126,7 +126,7 @@ export default async function ObservabilityPage() {
   const errorRate = totals.call_count > 0 ? totals.error_count / totals.call_count : 0;
 
   return (
-    <div className="space-y-10">
+    <div className="flex flex-col flex-1 space-y-4">
       <PageHeader
         kicker="Production · Agent IA · 7 derniers jours"
         title={
@@ -134,7 +134,7 @@ export default async function ObservabilityPage() {
             <em className="italic text-zinc-400">Observabilité</em> agent
           </>
         }
-        lede="Chaque appel Anthropic est tracé dans dropship_ai_runs avec tokens, latence, coût EUR et erreur. Source unique pour piloter la dépense IA quand on multipliera les stores."
+        lede="Chaque appel Anthropic est tracé dans dropship_ai_runs avec tokens, latence, coût EUR et erreur. Source unique pour piloter la dépense IA."
       />
 
       <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -163,49 +163,49 @@ export default async function ObservabilityPage() {
       </section>
 
       {steps.length === 0 && (
-        <div className="border border-dashed border-zinc-200 rounded-xl px-6 py-16 text-center bg-zinc-50">
-          <p className="text-sm font-semibold tracking-tight text-zinc-600">Aucun appel agent ces 7 derniers jours.</p>
+        <div className="flex-1 min-h-0 border border-dashed border-zinc-200 rounded-xl px-6 py-12 text-center bg-white shadow-sm">
+          <p className="text-sm font-semibold tracking-tight text-zinc-900">Aucun appel agent ces 7 derniers jours.</p>
           <p className="mt-1 text-xs text-zinc-400">Lance un store de test pour voir les premières lignes.</p>
         </div>
       )}
 
       {steps.length > 0 && (
-        <section className="border border-zinc-200 rounded-xl overflow-hidden bg-zinc-50">
-          <div className="px-5 py-4 border-b border-zinc-200/60 flex items-baseline gap-3">
-            <h3 className="text-base font-semibold tracking-tight">
-              Par <em className="italic text-zinc-600">étape</em>
+        <section className="border border-zinc-200 rounded-xl overflow-hidden bg-white shadow-sm">
+          <div className="px-4 py-3 border-b border-zinc-100 flex items-baseline gap-2">
+            <h3 className="text-base font-semibold tracking-[-0.02em] text-zinc-900">
+              Par <em className="italic text-zinc-400">étape</em>
             </h3>
-            <span className="text-xs uppercase tracking-wider text-zinc-400">· {steps.length} steps</span>
+            <span className="text-[11px] uppercase tracking-wider text-zinc-400">· {steps.length} steps</span>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px] text-sm">
-              <thead className="bg-zinc-50/60 text-kicker uppercase tracking-header text-zinc-400">
+            <table className="w-full text-xs">
+              <thead className="bg-zinc-50/60 text-[10px] uppercase tracking-wider text-zinc-400">
                 <tr>
-                  <th className="text-left px-5 py-3 font-medium">Étape</th>
-                  <th className="text-right px-5 py-3 font-medium">Appels</th>
-                  <th className="text-right px-5 py-3 font-medium">Coût</th>
-                  <th className="text-right px-5 py-3 font-medium">Latence moy.</th>
-                  <th className="text-right px-5 py-3 font-medium">p95</th>
-                  <th className="text-right px-5 py-3 font-medium">Erreurs</th>
+                  <th className="text-left px-3 py-2 font-medium">Étape</th>
+                  <th className="text-right px-3 py-2 font-medium">Appels</th>
+                  <th className="text-right px-3 py-2 font-medium">Coût</th>
+                  <th className="text-right px-3 py-2 font-medium">Latence moy.</th>
+                  <th className="text-right px-3 py-2 font-medium">p95</th>
+                  <th className="text-right px-3 py-2 font-medium">Erreurs</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
                 {steps.map((s) => {
                   const errRate = s.call_count > 0 ? s.error_count / s.call_count : 0;
                   return (
-                    <tr key={s.step} className="hover:bg-zinc-50/60 transition-colors">
-                      <td className="px-5 py-3 font-mono text-xs text-zinc-600">{s.step}</td>
-                      <td className="px-5 py-3 text-right tabular-nums">{fmtInt(s.call_count)}</td>
-                      <td className="px-5 py-3 text-right tabular-nums font-semibold">{fmtEur(s.total_cost)}</td>
-                      <td className="px-5 py-3 text-right tabular-nums text-zinc-600">{fmtMs(s.avg_latency_ms)}</td>
-                      <td className="px-5 py-3 text-right tabular-nums text-zinc-400">{fmtMs(s.p95_latency_ms)}</td>
-                      <td className="px-5 py-3 text-right">
+                    <tr key={s.step} className="hover:bg-indigo-50/40 transition-colors">
+                      <td className="px-3 py-1.5 font-mono text-[11px] text-zinc-600">{s.step}</td>
+                      <td className="px-3 py-1.5 text-right tabular-nums text-zinc-900">{fmtInt(s.call_count)}</td>
+                      <td className="px-3 py-1.5 text-right tabular-nums font-semibold text-zinc-900">{fmtEur(s.total_cost)}</td>
+                      <td className="px-3 py-1.5 text-right tabular-nums text-zinc-500">{fmtMs(s.avg_latency_ms)}</td>
+                      <td className="px-3 py-1.5 text-right tabular-nums text-zinc-400">{fmtMs(s.p95_latency_ms)}</td>
+                      <td className="px-3 py-1.5 text-right">
                         {s.error_count > 0 ? (
                           <StatusPill tone={errRate > 0.05 ? 'red' : 'amber'}>
                             {fmtInt(s.error_count)} ({(errRate * 100).toFixed(1)}%)
                           </StatusPill>
                         ) : (
-                          <span className="text-xs text-zinc-400">—</span>
+                          <span className="text-[11px] text-zinc-400">—</span>
                         )}
                       </td>
                     </tr>
@@ -218,29 +218,29 @@ export default async function ObservabilityPage() {
       )}
 
       {topStores.length > 0 && (
-        <section className="border border-zinc-200 rounded-xl overflow-hidden bg-zinc-50">
-          <div className="px-5 py-4 border-b border-zinc-200/60 flex items-baseline gap-3">
-            <h3 className="text-base font-semibold tracking-tight">
-              Top 10 par <em className="italic text-zinc-600">coût</em>
+        <section className="border border-zinc-200 rounded-xl overflow-hidden bg-white shadow-sm">
+          <div className="px-4 py-3 border-b border-zinc-100 flex items-baseline gap-2">
+            <h3 className="text-base font-semibold tracking-[-0.02em] text-zinc-900">
+              Top 10 par <em className="italic text-zinc-400">coût</em>
             </h3>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[600px] text-sm">
-              <thead className="bg-zinc-50/60 text-kicker uppercase tracking-header text-zinc-400">
+            <table className="w-full text-xs">
+              <thead className="bg-zinc-50/60 text-[10px] uppercase tracking-wider text-zinc-400">
                 <tr>
-                  <th className="text-left px-5 py-3 font-medium">Store</th>
-                  <th className="text-right px-5 py-3 font-medium">Appels</th>
-                  <th className="text-right px-5 py-3 font-medium">Coût</th>
+                  <th className="text-left px-3 py-2 font-medium">Store</th>
+                  <th className="text-right px-3 py-2 font-medium">Appels</th>
+                  <th className="text-right px-3 py-2 font-medium">Coût</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
                 {topStores.map((s) => (
-                  <tr key={s.store_id} className="hover:bg-zinc-50/60 transition-colors">
-                    <td className="px-5 py-3">
+                  <tr key={s.store_id} className="hover:bg-indigo-50/40 transition-colors">
+                    <td className="px-3 py-1.5">
                       {s.store_id ? (
                         <Link
                           href={`/admin/stores/${s.store_id}`}
-                          className="font-medium text-zinc-900 hover:underline underline-offset-4 decoration-zinc-300 hover:decoration-zinc-700"
+                          className="font-medium text-zinc-900 hover:text-indigo-600 hover:underline underline-offset-4 decoration-zinc-300 hover:decoration-indigo-500"
                         >
                           {s.store_name || s.store_slug || s.store_id.slice(0, 8)}
                         </Link>
@@ -248,11 +248,11 @@ export default async function ObservabilityPage() {
                         <span className="text-zinc-400">— (orphan)</span>
                       )}
                       {s.store_slug && (
-                        <div className="text-kicker font-mono text-zinc-400 mt-0.5">/shop/{s.store_slug}</div>
+                        <div className="text-[10px] font-mono text-zinc-400 mt-0.5">/shop/{s.store_slug}</div>
                       )}
                     </td>
-                    <td className="px-5 py-3 text-right tabular-nums">{fmtInt(s.call_count)}</td>
-                    <td className="px-5 py-3 text-right tabular-nums font-semibold">{fmtEur(s.total_cost)}</td>
+                    <td className="px-3 py-1.5 text-right tabular-nums text-zinc-900">{fmtInt(s.call_count)}</td>
+                    <td className="px-3 py-1.5 text-right tabular-nums font-semibold text-zinc-900">{fmtEur(s.total_cost)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -262,39 +262,39 @@ export default async function ObservabilityPage() {
       )}
 
       {errors.length > 0 && (
-        <section className="border border-[var(--danger-muted)] bg-[var(--danger-muted)]/30 rounded-xl overflow-hidden">
-          <div className="px-5 py-4 border-b border-[var(--danger-muted)]/60 bg-[var(--danger-muted)]/60">
-            <h3 className="text-base font-semibold tracking-tight text-zinc-500">
-              Erreurs <em className="italic">récentes</em>
+        <section className="border border-zinc-200 bg-white rounded-xl overflow-hidden shadow-sm">
+          <div className="px-4 py-3 border-b border-zinc-100">
+            <h3 className="text-base font-semibold tracking-[-0.02em] text-zinc-900">
+              Erreurs <em className="italic text-zinc-400">récentes</em>
             </h3>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px] text-sm">
-              <thead className="text-kicker uppercase tracking-header text-zinc-500/60 bg-[var(--danger-muted)]/40">
+            <table className="w-full text-xs">
+              <thead className="bg-zinc-50/60 text-[10px] uppercase tracking-wider text-zinc-400">
                 <tr>
-                  <th className="text-left px-5 py-3 font-medium">Quand</th>
-                  <th className="text-left px-5 py-3 font-medium">Étape</th>
-                  <th className="text-left px-5 py-3 font-medium">Store</th>
-                  <th className="text-left px-5 py-3 font-medium">Message</th>
+                  <th className="text-left px-3 py-2 font-medium">Quand</th>
+                  <th className="text-left px-3 py-2 font-medium">Étape</th>
+                  <th className="text-left px-3 py-2 font-medium">Store</th>
+                  <th className="text-left px-3 py-2 font-medium">Message</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-red-200/40">
+              <tbody className="divide-y divide-zinc-100">
                 {errors.map((e) => (
-                  <tr key={e.id}>
-                    <td className="px-5 py-3 text-xs text-zinc-400 tabular-nums">
+                  <tr key={e.id} className="hover:bg-indigo-50/40 transition-colors">
+                    <td className="px-3 py-1.5 text-[11px] text-zinc-400 tabular-nums">
                       {new Date(e.created_at).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                     </td>
-                    <td className="px-5 py-3 font-mono text-xs text-zinc-600">{e.step}</td>
-                    <td className="px-5 py-3">
+                    <td className="px-3 py-1.5 font-mono text-[11px] text-zinc-600">{e.step}</td>
+                    <td className="px-3 py-1.5">
                       {e.store_id ? (
-                        <Link href={`/admin/stores/${e.store_id}`} className="text-xs text-zinc-600 underline underline-offset-4 decoration-zinc-300">
+                        <Link href={`/admin/stores/${e.store_id}`} className="text-[11px] text-zinc-500 hover:text-indigo-600 underline underline-offset-4 decoration-zinc-300">
                           {e.store_id.slice(0, 8)}
                         </Link>
                       ) : (
-                        <span className="text-xs text-zinc-400">—</span>
+                        <span className="text-[11px] text-zinc-400">—</span>
                       )}
                     </td>
-                    <td className="px-5 py-3 text-xs text-zinc-500 line-clamp-2 max-w-md">
+                    <td className="px-3 py-1.5 text-[11px] text-zinc-500 line-clamp-2 max-w-md">
                       {e.error_json?.message ?? 'erreur sans message'}
                     </td>
                   </tr>
