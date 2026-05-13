@@ -44,7 +44,7 @@ function NavList({
   onNavigate?: () => void;
 }) {
   return (
-    <nav className="flex-1 px-3">
+    <nav className="flex-1 px-3 flex flex-col justify-center">
       {!collapsed && (
         <p className="px-4 mb-2 text-kicker uppercase tracking-label text-zinc-600 font-medium">
           Console
