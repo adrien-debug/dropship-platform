@@ -146,8 +146,29 @@ function NewStoreForm() {
     if (event.type === 'success') setProgress(100);
   };
 
-  const launch = async () => {
-    if (!niche.trim() || !storeName.trim()) return;
+  /**
+   * Kick off store creation. Reads from local state by default, but an
+   * `overrides` payload wins — that's how the shortlist card launches
+   * directly without depending on React state propagation (setMode is
+   * async, the value isn't there yet on the next render).
+   */
+  const launch = async (overrides?: {
+    niche?: string;
+    storeName?: string;
+    mode?: 'mono' | 'collection';
+    maxProducts?: number;
+    language?: 'fr' | 'en';
+    skipVideo?: boolean;
+  }) => {
+    const eff = {
+      niche: overrides?.niche ?? niche,
+      storeName: overrides?.storeName ?? storeName,
+      mode: overrides?.mode ?? mode,
+      maxProducts: overrides?.maxProducts ?? maxProducts,
+      language: overrides?.language ?? language,
+      skipVideo: overrides?.skipVideo ?? skipVideo,
+    };
+    if (!eff.niche.trim() || !eff.storeName.trim()) return;
     setRunning(true);
     setLogs([]);
     setResult(null);
@@ -155,12 +176,17 @@ function NewStoreForm() {
     setProgress(4);
     setElapsed(0);
     startTimeRef.current = Date.now();
+    // Persist the values too so the form reflects what's running and the
+    // operator can edit-and-retry if creation fails.
+    setNiche(eff.niche);
+    setStoreName(eff.storeName);
+    setMode(eff.mode);
 
     try {
       const res = await apiFetch('/api/agent/create-store', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ niche, storeName, mode, maxProducts, language, skipVideo }),
+        body: JSON.stringify(eff),
       });
 
       if (!res.ok || !res.body) {
@@ -248,16 +274,22 @@ function NewStoreForm() {
   // changed), and keeps the existing form 100% functional — the operator
   // can still tweak any field before pressing "Lancer l'agent".
   const applyShortlist = useCallback((payload: ShortlistPayload) => {
-    setNiche(payload.niche);
-    setStoreName(payload.suggested_store_name);
-    // Pre-fill mode when the agent has already decided. The form keeps
-    // the toggle so the operator can override.
-    if (payload.suggested_mode === 'mono' || payload.suggested_mode === 'collection') {
-      setMode(payload.suggested_mode);
-    }
     setValidation(null);
     setValidationError(null);
-  }, []);
+    // Operator clicked "Lancer cette niche" on the shortlist card — they
+    // already validated everything visually (mode, template, featured
+    // product, media plan). No need to send them through the legacy form
+    // below; fire create-store immediately with the agent's choices.
+    const effMode: 'mono' | 'collection' =
+      payload.suggested_mode === 'mono' || payload.suggested_mode === 'collection'
+        ? payload.suggested_mode
+        : 'mono';
+    void launch({
+      niche: payload.niche,
+      storeName: payload.suggested_store_name,
+      mode: effMode,
+    });
+  }, [launch]);
 
   return (
     <div className="max-w-5xl space-y-8">
@@ -285,6 +317,17 @@ function NewStoreForm() {
 
       {/* Form anchor — the copilot scrolls here when "Lancer cette niche" is clicked. */}
       <div id="store-creation-form" className="max-w-3xl space-y-8 scroll-mt-8">
+
+      {/* Manual fieldsets — collapsed by default. The copilote card
+          decides mode + name + niche + template + media plan and
+          launches in one click; the form stays as a fallback for the
+          rare case where the operator wants to override before launch. */}
+      <details className="group" open={running || !!error}>
+        <summary className="cursor-pointer list-none flex items-center justify-between text-xs uppercase tracking-label text-zinc-400 hover:text-zinc-700 transition-colors py-2 select-none">
+          <span>Réglages manuels (avancé)</span>
+          <span className="text-zinc-300 group-open:rotate-90 transition-transform">▸</span>
+        </summary>
+      <div className="space-y-8 mt-4">
 
       {/* ===== STEP 1 — FORMAT ===== */}
       <fieldset disabled={formDisabled} className="border border-zinc-200 bg-white rounded-xl p-6">
@@ -415,11 +458,13 @@ function NewStoreForm() {
           </label>
         </div>
       </fieldset>
+      </div>
+      </details>
 
       {/* ===== CTA ===== */}
       {!result && (
         <button
-          onClick={launch}
+          onClick={() => launch()}
           disabled={!canLaunch}
           className="w-full bg-zinc-900 text-white py-3.5 rounded-lg font-medium text-sm hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-cta"
         >
