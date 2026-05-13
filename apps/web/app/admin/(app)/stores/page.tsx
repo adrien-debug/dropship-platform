@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { ArrowUpRight } from 'lucide-react';
 import { getDbRead } from '@/lib/db';
 import { PageHeader, StatCard, StatusPill, type Tone } from '../../_components/AdminUI';
-import { StoreLogo } from '@/components/ui';
+import { StoreAvatar, ButtonLink } from '@/components/ui';
 import { StoreActions } from './StoreActions';
 
 export const dynamic = 'force-dynamic';
@@ -77,7 +77,7 @@ export default async function StoresPage({
   const totalProducts = active.reduce((acc, s) => acc + (s.product_count || 0), 0);
 
   return (
-    <div className="flex flex-col flex-1 space-y-6">
+    <div className="flex flex-col flex-1 space-y-4">
       <PageHeader
         kicker="Production · Agent IA"
         title={
@@ -87,13 +87,14 @@ export default async function StoresPage({
         }
         lede="L’agent recherche les produits, enrichit les fiches puis publie le store Medusa complet. Mono-produit pour une landing DTC, collection pour un catalogue."
         actions={
-          <Link
+          <ButtonLink
             href="/admin/stores/new"
-            className="inline-flex items-center gap-2 bg-indigo-600 text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-indigo-700 transition-colors"
+            variant="primary"
+            size="md"
+            leading={<span aria-hidden className="text-base leading-none">+</span>}
           >
-            <span aria-hidden className="text-base leading-none">+</span>
             Nouveau store
-          </Link>
+          </ButtonLink>
         }
       />
 
@@ -107,7 +108,7 @@ export default async function StoresPage({
       {rows.length === 0 ? (
         <EmptyState />
       ) : (
-        <div className="space-y-6 flex-1 min-h-0">
+        <div className="space-y-5 flex-1 min-h-0">
           {active.length > 0 && (
             <StoreGroup kicker={`Stores actifs · ${active.length}`} stores={active} />
           )}
@@ -170,12 +171,9 @@ function EmptyState() {
       <p className="mt-3 text-sm text-zinc-500 max-w-md mx-auto leading-relaxed">
         L’agent IA recherche les produits, génère les visuels, écrit les fiches et publie le store. Une niche suffit.
       </p>
-      <Link
-        href="/admin/stores/new"
-        className="mt-8 inline-flex items-center gap-2 bg-indigo-600 text-white text-sm font-medium px-6 py-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-cta"
-      >
+      <ButtonLink href="/admin/stores/new" variant="primary" size="lg" className="mt-8 shadow-cta">
         Créer un store
-      </Link>
+      </ButtonLink>
     </div>
   );
 }
@@ -206,8 +204,6 @@ function StoreGroup({
 function StoreCard({ store }: { store: StoreRow }) {
   const s = statusOf(store);
   const cover = pickStoreCover(store);
-  const primary = store.primary_color || '#0f172a';
-  const accent = store.accent_color || primary;
 
   return (
     <article className="group relative bg-white rounded-xl overflow-hidden flex items-center gap-4 border border-zinc-200 shadow-sm transition-all duration-200 hover:border-zinc-300 hover:shadow-[0_12px_28px_-12px_rgba(0,0,0,0.12)] p-3">
@@ -217,21 +213,11 @@ function StoreCard({ store }: { store: StoreRow }) {
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={cover} alt="" className="absolute inset-0 w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-tr from-black/40 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-tr from-black/30 to-transparent" />
           </>
         ) : (
-          <div
-            className="absolute inset-0"
-            style={{
-              background: `radial-gradient(circle at 80% 0%, ${accent}88 0%, transparent 55%), linear-gradient(155deg, ${primary} 0%, #0a0a0a 100%)`,
-            }}
-          />
+          <StoreAvatar slug={store.slug} name={store.name} size={80} className="rounded-none w-full h-full text-2xl" />
         )}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-white drop-shadow">
-            <StoreLogo emoji={store.logo_emoji} size={28} strokeWidth={1.5} />
-          </span>
-        </div>
       </div>
 
       {/* ── Détails au centre */}
@@ -272,12 +258,9 @@ function StoreCard({ store }: { store: StoreRow }) {
 
       {/* ── Actions à droite */}
       <div className="flex items-center gap-1.5 shrink-0">
-        <Link
-          href={`/admin/stores/${store.id}`}
-          className="text-xs px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 transition-colors font-medium text-white"
-        >
+        <ButtonLink href={`/admin/stores/${store.id}`} variant="primary" size="sm">
           Gérer
-        </Link>
+        </ButtonLink>
         {store.status === 'active' && (
           <Link
             href={`/shop/${store.slug}`}
@@ -285,7 +268,7 @@ function StoreCard({ store }: { store: StoreRow }) {
             rel="noreferrer"
             aria-label="Ouvrir la boutique"
             title="Ouvrir la boutique"
-            className="inline-flex items-center justify-center w-7 h-7 rounded-lg border border-zinc-200 hover:bg-indigo-50 hover:border-zinc-300 transition-colors text-zinc-500"
+            className="inline-flex items-center justify-center w-7 h-7 rounded-lg border border-zinc-200 hover:bg-indigo-50 hover:border-zinc-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 focus-visible:ring-offset-1 transition-colors text-zinc-500"
           >
             <ArrowUpRight size={13} strokeWidth={1.75} aria-hidden />
           </Link>

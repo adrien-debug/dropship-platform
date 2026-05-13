@@ -27,10 +27,12 @@ function callWindowControl(action: WindowAction) {
 function TitleBar() {
   return (
     <div
-      className="relative shrink-0 h-10 flex items-center px-4 gap-2 select-none border-b border-indigo-500/40"
+      className="relative shrink-0 h-10 flex items-center px-4 gap-2 select-none"
       style={{
-        background: 'linear-gradient(180deg, #6056f5 0%, #4f46e5 60%, #4338ca 100%)',
+        background:
+          'linear-gradient(180deg, var(--shell-titlebar-from) 0%, var(--shell-titlebar-mid) 60%, var(--shell-titlebar-to) 100%)',
         boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.22), 0 1px 0 rgba(0,0,0,0.10)',
+        borderBottom: '1px solid var(--shell-border)',
         WebkitAppRegion: 'drag',
       } as React.CSSProperties}
     >

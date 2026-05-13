@@ -13,3 +13,5 @@ export { BrandLogo } from './BrandLogo';
 export { Parallax } from './Parallax';
 export { GestureIcon } from './GestureIcon';
 export { StoreLogo } from './StoreLogo';
+export { StoreAvatar } from './StoreAvatar';
+export { Button, ButtonLink } from './Button';

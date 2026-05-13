@@ -1,6 +1,7 @@
 import { getDbRead } from '@/lib/db';
 import { tryDecryptSecret } from '@/lib/secrets';
 import type { StorePalette } from '@/lib/design/presets';
+import type { StoreTemplate as CatalogStoreTemplate } from '@/lib/template-catalog';
 
 export interface StoreConfig {
   id: string;
@@ -85,15 +86,7 @@ export interface LandingContent {
   };
 }
 
-export type StoreTemplate =
-  | 'auto'
-  | 'mono'
-  | 'collection-grid'
-  | 'collection-editorial'
-  | 'luxury-minimal'
-  | 'gen-z-bold'
-  | 'editorial-fashion'
-  | 'wellness-soft';
+export type StoreTemplate = CatalogStoreTemplate;
 
 interface StoreRow {
   id: string;

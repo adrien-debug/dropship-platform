@@ -9,6 +9,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { PageHeader, StatCard } from '../../_components/AdminUI';
+import { Button } from '@/components/ui';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -261,19 +262,19 @@ export default function MarketingPage() {
         actions={
           <div className="flex items-center gap-3">
             <PeriodTabs value={period} onChange={setPeriod} />
-            <button
-              type="button"
-              className="inline-flex items-center gap-1.5 bg-indigo-600 text-white text-xs font-medium px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+            <Button
+              variant="primary"
+              size="sm"
+              leading={<Plus size={13} strokeWidth={2} />}
             >
-              <Plus size={13} strokeWidth={2} />
               Nouvelle campagne
-            </button>
+            </Button>
           </div>
         }
       />
 
       {/* KPIs globaux */}
-      <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
         <StatCard label="Dépensé" value={fmtEur(totalSpent)} tone="neutral" />
         <StatCard label="Revenus" value={fmtEur(totalRevenue)} tone={totalRevenue > totalSpent ? 'emerald' : 'neutral'} />
         <StatCard label="ROAS global" value={roas(totalRevenue, totalSpent)} hint="revenue / dépense" tone={totalRevenue / totalSpent >= 2 ? 'emerald' : 'neutral'} />

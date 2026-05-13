@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { getDb } from '@/lib/db';
 import { medusa } from '@/lib/medusa';
 import { encryptSecret, secretsConfigured } from '@/lib/secrets';
+import { TEMPLATE_IDS } from '@/lib/template-catalog';
 
 export async function DELETE(
   _req: NextRequest,
@@ -72,16 +73,7 @@ const analyticsSchema = z.object({
   googleAdsMerchantId: safeId(/^\d{6,20}$/),
 });
 
-const templateSchema = z.enum([
-  'auto',
-  'mono',
-  'collection-grid',
-  'collection-editorial',
-  'luxury-minimal',
-  'gen-z-bold',
-  'editorial-fashion',
-  'wellness-soft',
-]);
+const templateSchema = z.enum(TEMPLATE_IDS as unknown as [string, ...string[]]);
 
 // P1.1: custom domain — apex hostname like "maison-chic.com". Empty string clears it.
 // Accepts: lowercase alphanumeric, hyphens, dots; at least one dot; valid TLD (2+ chars).

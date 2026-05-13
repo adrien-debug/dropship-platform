@@ -4,50 +4,15 @@ import { apiFetch } from '@/lib/client-fetch';
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-const OPTIONS = [
-  {
-    value: 'auto',
-    label: 'Auto',
-    hint: '1 produit → mono, 2+ → grille',
-  },
-  {
-    value: 'mono',
-    label: 'Mono-produit',
-    hint: 'Landing DTC long-form, 1 SKU mis en scène',
-  },
-  {
-    value: 'collection-grid',
-    label: 'Collection grille',
-    hint: 'Grille 4 colonnes classique',
-  },
-  {
-    value: 'collection-editorial',
-    label: 'Collection éditoriale',
-    hint: '3 à 6 pièces en sections alternées, ton narratif',
-  },
-  {
-    value: 'luxury-minimal',
-    label: 'Luxury minimal',
-    hint: 'Noir & blanc, typo Satoshi black, blanc généreux, photos pleine page',
-  },
-  {
-    value: 'gen-z-bold',
-    label: 'Gen-Z bold',
-    hint: 'Couleur saturée full-bleed, gros titres, marquee, grain, motion',
-  },
-  {
-    value: 'editorial-fashion',
-    label: 'Editorial fashion',
-    hint: 'Hero portrait pleine page, logotype serif, diptyque produits, grille Instagram',
-  },
-  {
-    value: 'wellness-soft',
-    label: 'Wellness soft',
-    hint: 'Hero photo + plates info slate-blue, Poppins light, grille 3x2, footer navy',
-  },
-] as const;
+import { TEMPLATE_CATALOG, type StoreTemplate } from '@/lib/template-catalog';
 
-type Template = (typeof OPTIONS)[number]['value'];
+const OPTIONS = TEMPLATE_CATALOG.map((t) => ({
+  value: t.id,
+  label: t.label,
+  hint: t.hint,
+}));
+
+type Template = StoreTemplate;
 
 export function StoreTemplateForm({
   storeId,

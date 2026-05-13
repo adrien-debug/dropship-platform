@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { getDbRead } from '@/lib/db';
 import { PageHeader, StatCard, SectionCard } from '../_components/AdminUI';
-import { StoreLogo } from '@/components/ui';
+import { StoreAvatar, ButtonLink } from '@/components/ui';
 import { cn } from '@/lib/utils/cn';
 
 export const dynamic = 'force-dynamic';
@@ -138,7 +138,7 @@ export default async function PortfolioDashboard() {
            WHERE s.status = 'active'
            GROUP BY s.slug, s.name, s.logo_emoji, s.created_at
            ORDER BY revenue_cents DESC NULLS LAST, s.created_at DESC
-           LIMIT 5`,
+           LIMIT 7`,
         );
         return rows;
       },
@@ -175,7 +175,7 @@ export default async function PortfolioDashboard() {
   const errorRate = cost.runs ? (cost.errors / cost.runs) * 100 : 0;
 
   return (
-    <div className="space-y-3 flex flex-col flex-1 min-h-0">
+    <div className="space-y-4 flex flex-col flex-1 min-h-0">
       <PageHeader
         kicker="Portfolio"
         title={<span>Vue <em className="italic text-zinc-400">d&apos;ensemble</em></span>}
@@ -229,18 +229,18 @@ export default async function PortfolioDashboard() {
               <Link
                 key={s.slug}
                 href={`/admin/stores/${s.slug}`}
-                className="flex items-center gap-3 -mx-2 px-2 py-1.5 rounded-md hover:bg-zinc-100 transition-colors"
+                className="flex items-center gap-3 -mx-2 px-2 py-1.5 rounded-md hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 focus-visible:bg-zinc-50 transition-colors"
               >
-                <span className="text-indigo-600 inline-flex"><StoreLogo emoji={s.logo_emoji} size={20} /></span>
+                <StoreAvatar slug={s.slug} name={s.name} size={28} />
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium text-zinc-900 truncate">{s.name}</div>
                   <div className="text-xs text-zinc-400 truncate">/shop/{s.slug}</div>
                 </div>
                 <div className="text-right shrink-0">
-                  <div className="text-sm font-medium text-zinc-900">
+                  <div className="text-sm font-medium text-zinc-900 tabular-nums">
                     {eur(Number(s.revenue_cents))}
                   </div>
-                  <div className="text-xs text-zinc-400">
+                  <div className="text-xs text-zinc-400 tabular-nums">
                     {s.orders} commande{s.orders > 1 ? 's' : ''}
                   </div>
                 </div>
@@ -292,12 +292,14 @@ export default async function PortfolioDashboard() {
                 </dd>
               </div>
             </dl>
-            <Link
+            <ButtonLink
               href="/admin/observability"
-              className="block text-center text-xs font-medium text-zinc-600 hover:text-zinc-900 border border-zinc-200 hover:border-zinc-300 rounded-xl px-3 py-2 transition-colors"
+              variant="tertiary"
+              size="sm"
+              className="w-full"
             >
               Voir le détail par step →
-            </Link>
+            </ButtonLink>
           </div>
         </SectionCard>
       </div>

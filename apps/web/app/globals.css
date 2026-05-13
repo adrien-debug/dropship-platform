@@ -42,6 +42,19 @@
     --accent-blue-glow: rgba(56, 189, 248, 0.15);
     --accent-cyan-glow: rgba(0, 183, 255, 0.20);
 
+    /* ── Admin shell brand (Electron TitleBar + Footer gradient) ── */
+    /* Stops are tuned to feel premium under macOS-style chrome: a soft top
+       highlight, a saturated mid, a deep ink at the bottom. Keep all three
+       on the indigo axis — any divergence reads as "off-brand". */
+    --shell-bg: #0f0e1a;
+    --shell-titlebar-from: #6056f5;
+    --shell-titlebar-mid:  #4f46e5;
+    --shell-titlebar-to:   #4338ca;
+    --shell-footer-from:   #5b52f0;
+    --shell-footer-mid:    #4338ca;
+    --shell-footer-to:     #3730a3;
+    --shell-border:        rgba(99, 102, 241, 0.40);
+
     /* ── Semantic ── */
     --success: #22c55e;
     --success-muted: rgba(34, 197, 94, 0.15);

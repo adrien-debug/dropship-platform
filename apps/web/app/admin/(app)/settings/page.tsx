@@ -1,5 +1,6 @@
 import { getDbRead } from '@/lib/db';
 import { PageHeader, StatusPill, type Tone } from '../../_components/AdminUI';
+import { ButtonLink } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +27,7 @@ export default async function SettingsPage() {
   const aliLabel = isConnected && !isExpired ? 'Connecté' : isConnected ? 'Token expiré' : 'Non connecté';
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 gap-5">
+    <div className="flex flex-col flex-1 min-h-0 gap-4">
       <PageHeader
         kicker="Production · Intégrations"
         title={
@@ -86,13 +87,14 @@ export default async function SettingsPage() {
           )}
 
           <div className="pt-2">
-            <a
+            <ButtonLink
               href="/api/aliexpress/oauth/start"
-              className="inline-flex items-center gap-2 bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+              variant="primary"
+              size="md"
+              trailing={<span aria-hidden>↗</span>}
             >
               {isConnected && !isExpired ? 'Re-autoriser AliExpress' : 'Connecter AliExpress'}
-              <span aria-hidden>↗</span>
-            </a>
+            </ButtonLink>
           </div>
         </ProviderCard>
 
