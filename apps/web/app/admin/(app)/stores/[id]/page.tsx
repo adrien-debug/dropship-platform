@@ -106,7 +106,7 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
           </div>
         </div>
 
-        <div className="p-6 bg-ds-surface-subtle">
+        <div className="p-6 bg-zinc-50">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <Stat label="Produits" value={products.length.toString()} />
             <Stat label="Prix moyen" value={`${avgPrice.toFixed(2)} €`} />
@@ -114,7 +114,7 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
             <Stat label="Statut" value={store.status} highlight={store.status === 'active'} />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-ds-text-secondary">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-zinc-600">
             <div>
               <span className="font-medium">Niche :</span> {store.niche}
             </div>
@@ -125,7 +125,7 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
             {store.medusa_publishable_key && (
               <div className="col-span-2">
                 <span className="font-medium">Clé API :</span>{' '}
-                <code className="text-xs bg-ds-surface-default px-2 py-0.5 rounded">{store.medusa_publishable_key.slice(0, 24)}…</code>
+                <code className="text-xs bg-zinc-100 px-2 py-0.5 rounded">{store.medusa_publishable_key.slice(0, 24)}…</code>
               </div>
             )}
             {store.description && (
@@ -137,7 +137,7 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
               <span className="font-medium">Domaine :</span> {store.custom_domain || '—'}
             </div>
             {store.error_message && store.status !== 'active' && (
-              <div className="col-span-2 text-[var(--danger)]">
+              <div className="col-span-2 text-zinc-500">
                 <span className="font-medium">Erreur :</span> {store.error_message}
                 <Link
                   href={`/admin/stores/new?niche=${encodeURIComponent(store.niche)}&name=${encodeURIComponent(store.name)}`}
@@ -153,11 +153,11 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
 
       {/* Per-store product list lives on its own tab (`Catalogue`).
           Keep the overview clean: just a teaser linking there. */}
-      <div className="rounded-xl border border-ds-border-subtle bg-ds-surface-subtle p-6 flex items-center justify-between">
+      <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-6 flex items-center justify-between">
         <div>
-          <p className="text-kicker uppercase tracking-label text-ds-text-muted font-medium">Catalogue</p>
-          <p className="mt-1 text-sm text-ds-text-secondary">
-            <span className="font-medium text-ds-text-primary">{products.length}</span>{' '}
+          <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">Catalogue</p>
+          <p className="mt-1 text-sm text-zinc-600">
+            <span className="font-medium text-zinc-900">{products.length}</span>{' '}
             produit{products.length > 1 ? 's' : ''} importé{products.length > 1 ? 's' : ''}.
           </p>
         </div>
@@ -174,9 +174,9 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
 
 function Stat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
-    <div className="bg-ds-surface-subtle rounded-lg p-3 text-center">
-      <div className={`text-xl font-bold ${highlight ? 'text-green-600' : 'text-ds-text-primary'}`}>{value}</div>
-      <div className="text-xs text-ds-text-muted mt-0.5">{label}</div>
+    <div className="bg-zinc-50 rounded-lg p-3 text-center">
+      <div className={`text-xl font-bold ${highlight ? 'text-green-600' : 'text-zinc-900'}`}>{value}</div>
+      <div className="text-xs text-zinc-400 mt-0.5">{label}</div>
     </div>
   );
 }

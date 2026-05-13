@@ -106,29 +106,29 @@ export default async function StoreAnalyticsPage({ params, searchParams }: Props
   return (
     <div className="space-y-8">
       <div className="flex items-center gap-3">
-        <Link href={`/admin/stores/${id}`} className="text-sm text-ds-text-muted hover:underline">
+        <Link href={`/admin/stores/${id}`} className="text-sm text-zinc-400 hover:underline">
           ← {store.name}
         </Link>
       </div>
 
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-kicker uppercase tracking-label text-ds-text-muted font-medium">
+          <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">
             Analytics · {store.name}
           </p>
           <h2 className="mt-1 text-3xl font-semibold tracking-tight">
-            Acquisition <em className="italic text-ds-text-secondary">&amp; comportement</em>
+            Acquisition <em className="italic text-zinc-600">&amp; comportement</em>
           </h2>
-          <p className="mt-2 text-sm text-ds-text-muted">Période : {cfg.label}.</p>
+          <p className="mt-2 text-sm text-zinc-400">Période : {cfg.label}.</p>
         </div>
-        <div className="flex items-center gap-1 border border-ds-border-subtle rounded-full p-1 bg-ds-surface-subtle">
+        <div className="flex items-center gap-1 border border-zinc-200 rounded-full p-1 bg-zinc-50">
           {Object.entries(RANGE_TO_INTERVAL).map(([key, c]) => (
             <Link
               key={key}
               href={`?range=${key}`}
               className={
                 'px-4 py-1.5 rounded-full text-xs uppercase tracking-cta font-medium transition-colors ' +
-                (key === range ? 'bg-zinc-950 text-white' : 'text-ds-text-muted hover:text-ds-text-primary')
+                (key === range ? 'bg-zinc-950 text-white' : 'text-zinc-400 hover:text-zinc-900')
               }
             >
               {c.label}
@@ -150,12 +150,12 @@ export default async function StoreAnalyticsPage({ params, searchParams }: Props
       </section>
 
       {/* UX — Funnel */}
-      <section className="border border-ds-border-subtle rounded-2xl overflow-hidden bg-ds-surface-subtle">
-        <div className="px-6 py-4 border-b border-ds-border-subtle/60">
+      <section className="border border-zinc-200 rounded-2xl overflow-hidden bg-zinc-50">
+        <div className="px-6 py-4 border-b border-zinc-200/60">
           <h3 className="text-base font-semibold tracking-tight">
-            Comportement <em className="italic text-ds-text-secondary">(UX)</em>
+            Comportement <em className="italic text-zinc-600">(UX)</em>
           </h3>
-          <p className="text-xs text-ds-text-muted mt-0.5">
+          <p className="text-xs text-zinc-400 mt-0.5">
             Funnel des sessions uniques sur les events serveur. Les session_id se persistent 30 jours.
           </p>
         </div>
@@ -169,13 +169,13 @@ export default async function StoreAnalyticsPage({ params, searchParams }: Props
               return (
                 <div key={name}>
                   <div className="flex items-baseline justify-between gap-4 mb-1.5">
-                    <span className="text-sm font-medium text-ds-text-primary">{FUNNEL_LABEL[name]}</span>
-                    <span className="text-sm tabular-nums text-ds-text-secondary">
+                    <span className="text-sm font-medium text-zinc-900">{FUNNEL_LABEL[name]}</span>
+                    <span className="text-sm tabular-nums text-zinc-600">
                       {sessions} sessions{' '}
-                      <span className="text-xs text-ds-text-muted">({ratio.toFixed(0)} %)</span>
+                      <span className="text-xs text-zinc-400">({ratio.toFixed(0)} %)</span>
                     </span>
                   </div>
-                  <div className="h-2 bg-ds-surface-default rounded-full overflow-hidden">
+                  <div className="h-2 bg-zinc-100 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-zinc-900 rounded-full transition-all"
                       style={{ width: `${Math.max(2, ratio)}%` }}
@@ -187,13 +187,13 @@ export default async function StoreAnalyticsPage({ params, searchParams }: Props
           })()}
         </div>
         {store.clarity_id && (
-          <div className="px-6 py-3 border-t border-ds-border-subtle/60 bg-ds-surface-subtle/60 text-xs text-ds-text-muted">
+          <div className="px-6 py-3 border-t border-zinc-200/60 bg-zinc-50/60 text-xs text-zinc-400">
             Pour les replays vidéo et les heatmaps, ouvre le projet sur{' '}
             <a
               href={`https://clarity.microsoft.com/projects/view/${store.clarity_id}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="underline underline-offset-2 hover:text-ds-text-primary"
+              className="underline underline-offset-2 hover:text-zinc-900"
             >
               Microsoft Clarity ↗
             </a>
@@ -203,23 +203,23 @@ export default async function StoreAnalyticsPage({ params, searchParams }: Props
       </section>
 
       {/* UA — Acquisition by source/campaign */}
-      <section className="border border-ds-border-subtle rounded-2xl overflow-hidden bg-ds-surface-subtle">
-        <div className="px-6 py-4 border-b border-ds-border-subtle/60">
+      <section className="border border-zinc-200 rounded-2xl overflow-hidden bg-zinc-50">
+        <div className="px-6 py-4 border-b border-zinc-200/60">
           <h3 className="text-base font-semibold tracking-tight">
-            Acquisition <em className="italic text-ds-text-secondary">(UA)</em>
+            Acquisition <em className="italic text-zinc-600">(UA)</em>
           </h3>
-          <p className="text-xs text-ds-text-muted mt-0.5">
+          <p className="text-xs text-zinc-400 mt-0.5">
             Décomposition par utm_source / utm_campaign. Les visiteurs sans UTM sont regroupés sous{' '}
-            <code className="text-[11px] bg-ds-surface-default px-1.5 py-0.5 rounded">(direct)</code>.
+            <code className="text-[11px] bg-zinc-100 px-1.5 py-0.5 rounded">(direct)</code>.
           </p>
         </div>
         {acquisitionRes.rows.length === 0 ? (
-          <div className="px-6 py-12 text-center text-sm text-ds-text-muted">
+          <div className="px-6 py-12 text-center text-sm text-zinc-400">
             Aucun événement enregistré sur cette période.
           </div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-ds-surface-subtle/60 text-kicker uppercase tracking-header text-ds-text-muted">
+            <thead className="bg-zinc-50/60 text-kicker uppercase tracking-header text-zinc-400">
               <tr>
                 <th className="text-left px-5 py-3 font-medium">Source</th>
                 <th className="text-left px-5 py-3 font-medium">Campagne</th>
@@ -234,16 +234,16 @@ export default async function StoreAnalyticsPage({ params, searchParams }: Props
               {acquisitionRes.rows.map((r, i) => {
                 const conv = r.adds_to_cart > 0 ? (r.purchases / r.adds_to_cart) * 100 : 0;
                 return (
-                  <tr key={i} className="hover:bg-ds-surface-subtle/60">
+                  <tr key={i} className="hover:bg-zinc-50/60">
                     <td className="px-5 py-3 font-medium">{r.source}</td>
-                    <td className="px-5 py-3 text-ds-text-secondary">{r.campaign}</td>
-                    <td className="px-5 py-3 text-right tabular-nums text-ds-text-secondary">{r.visits}</td>
-                    <td className="px-5 py-3 text-right tabular-nums text-ds-text-secondary">{r.adds_to_cart}</td>
-                    <td className="px-5 py-3 text-right tabular-nums text-ds-text-secondary">{r.initiate_checkouts}</td>
+                    <td className="px-5 py-3 text-zinc-600">{r.campaign}</td>
+                    <td className="px-5 py-3 text-right tabular-nums text-zinc-600">{r.visits}</td>
+                    <td className="px-5 py-3 text-right tabular-nums text-zinc-600">{r.adds_to_cart}</td>
+                    <td className="px-5 py-3 text-right tabular-nums text-zinc-600">{r.initiate_checkouts}</td>
                     <td className="px-5 py-3 text-right tabular-nums">
                       <span className="font-medium">{r.purchases}</span>
                       {r.adds_to_cart > 0 && (
-                        <span className="text-kicker text-ds-text-muted ml-1.5">{conv.toFixed(0)} %</span>
+                        <span className="text-kicker text-zinc-400 ml-1.5">{conv.toFixed(0)} %</span>
                       )}
                     </td>
                     <td className="px-5 py-3 text-right font-semibold tracking-tight">
@@ -258,8 +258,8 @@ export default async function StoreAnalyticsPage({ params, searchParams }: Props
       </section>
 
       {/* Pixel/CAPI status */}
-      <section className="border border-dashed border-ds-border-subtle rounded-2xl bg-ds-surface-subtle/40 px-6 py-5">
-        <h4 className="text-xs uppercase tracking-label text-ds-text-muted font-medium mb-3">
+      <section className="border border-dashed border-zinc-200 rounded-2xl bg-zinc-50/40 px-6 py-5">
+        <h4 className="text-xs uppercase tracking-label text-zinc-400 font-medium mb-3">
           Plomberie connectée
         </h4>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
@@ -268,9 +268,9 @@ export default async function StoreAnalyticsPage({ params, searchParams }: Props
           <ConnState label="TikTok Pixel" set={!!store.tiktok_pixel_id} />
           <ConnState label="Clarity" set={!!store.clarity_id} />
         </div>
-        <p className="mt-4 text-xs text-ds-text-muted">
+        <p className="mt-4 text-xs text-zinc-400">
           IDs vides ?{' '}
-          <Link href={`/admin/stores/${id}`} className="underline underline-offset-2 hover:text-ds-text-primary">
+          <Link href={`/admin/stores/${id}`} className="underline underline-offset-2 hover:text-zinc-900">
             Configure-les sur la fiche du store ↗
           </Link>
         </p>
@@ -289,14 +289,14 @@ function Kpi({
   tone?: 'neutral' | 'emerald' | 'amber' | 'red';
 }) {
   const cls: Record<string, string> = {
-    neutral: 'text-ds-text-primary',
-    emerald: 'text-[var(--success)]',
-    amber: 'text-[var(--warning)]',
-    red: 'text-[var(--danger)]',
+    neutral: 'text-zinc-900',
+    emerald: 'text-indigo-600',
+    amber: 'text-indigo-600',
+    red: 'text-zinc-500',
   };
   return (
-    <div className="border border-ds-border-subtle bg-ds-surface-subtle rounded-xl px-5 py-4">
-      <div className="text-kicker uppercase tracking-cta text-ds-text-muted font-medium">{label}</div>
+    <div className="border border-zinc-200 bg-zinc-50 rounded-xl px-5 py-4">
+      <div className="text-kicker uppercase tracking-cta text-zinc-400 font-medium">{label}</div>
       <div className={`mt-2 text-3xl font-semibold tracking-tight ${cls[tone]}`}>{value}</div>
     </div>
   );
@@ -309,8 +309,8 @@ function ConnState({ label, set }: { label: string; set: boolean }) {
         className={`inline-block h-1.5 w-1.5 rounded-full ${set ? 'bg-[var(--success-muted)]0' : 'bg-ds-text-muted'}`}
         aria-hidden="true"
       />
-      <span className={set ? 'text-ds-text-primary font-medium' : 'text-ds-text-muted'}>{label}</span>
-      <span className="text-kicker uppercase tracking-cta text-ds-text-muted ml-auto">
+      <span className={set ? 'text-zinc-900 font-medium' : 'text-zinc-400'}>{label}</span>
+      <span className="text-kicker uppercase tracking-cta text-zinc-400 ml-auto">
         {set ? 'connecté' : 'inactif'}
       </span>
     </div>

@@ -64,7 +64,7 @@ export default async function StoreCatalogPage({ params }: { params: Promise<{ i
     <div className="space-y-6">
       <PageHeader
         kicker="Catalogue"
-        title={<span>Produits <em className="italic text-ds-text-muted">du store</em></span>}
+        title={<span>Produits <em className="italic text-zinc-400">du store</em></span>}
         lede={`Niche · ${store.niche} · Géré par l'agent à la création, modifiable via Curation.`}
         actions={
           <Link
@@ -97,9 +97,9 @@ export default async function StoreCatalogPage({ params }: { params: Promise<{ i
       >
         {products.length === 0 ? (
           <div className="p-10 text-center">
-            <p className="text-sm text-ds-text-muted">
+            <p className="text-sm text-zinc-400">
               Aucun produit dans ce store. Utilise le{' '}
-              <Link href={`/admin/stores/${id}/curate`} className="text-ds-text-primary underline">
+              <Link href={`/admin/stores/${id}/curate`} className="text-zinc-900 underline">
                 copilote de curation
               </Link>{' '}
               pour en ajouter.
@@ -108,7 +108,7 @@ export default async function StoreCatalogPage({ params }: { params: Promise<{ i
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="text-xs uppercase tracking-label text-ds-text-muted bg-ds-surface-subtle/60 border-y border-ds-border-subtle/70">
+              <thead className="text-xs uppercase tracking-label text-zinc-400 bg-zinc-50/60 border-y border-zinc-200/70">
                 <tr>
                   <th className="text-left font-medium px-5 py-3">Produit</th>
                   <th className="text-left font-medium px-3 py-3">Source</th>
@@ -127,10 +127,10 @@ export default async function StoreCatalogPage({ params }: { params: Promise<{ i
                     : 0;
                   const supplierTone = p.supplier === 'ai-generated' ? 'red' : 'blue';
                   return (
-                    <tr key={p.id} className="border-b border-ds-border-subtle last:border-0 hover:bg-ds-surface-subtle/60">
+                    <tr key={p.id} className="border-b border-zinc-200 last:border-0 hover:bg-zinc-50/60">
                       <td className="px-5 py-3 align-middle">
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-10 h-10 rounded-md overflow-hidden bg-ds-surface-default shrink-0">
+                          <div className="w-10 h-10 rounded-md overflow-hidden bg-zinc-100 shrink-0">
                             {p.image_url ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img src={p.image_url} alt="" className="w-full h-full object-cover" />
@@ -141,10 +141,10 @@ export default async function StoreCatalogPage({ params }: { params: Promise<{ i
                             )}
                           </div>
                           <div className="min-w-0">
-                            <div className="text-ds-text-primary font-medium truncate max-w-[28ch]">
+                            <div className="text-zinc-900 font-medium truncate max-w-[28ch]">
                               {p.enriched_title}
                             </div>
-                            <div className="text-xs text-ds-text-muted truncate max-w-[36ch]">
+                            <div className="text-xs text-zinc-400 truncate max-w-[36ch]">
                               {p.enriched_description}
                             </div>
                           </div>
@@ -153,19 +153,19 @@ export default async function StoreCatalogPage({ params }: { params: Promise<{ i
                       <td className="px-3 py-3 align-middle">
                         <StatusPill tone={supplierTone}>{p.supplier}</StatusPill>
                       </td>
-                      <td className="px-3 py-3 align-middle text-right text-ds-text-secondary tabular-nums">
+                      <td className="px-3 py-3 align-middle text-right text-zinc-600 tabular-nums">
                         {(p.cost_cents / 100).toFixed(2)} €
                       </td>
-                      <td className="px-3 py-3 align-middle text-right font-medium text-ds-text-primary tabular-nums">
+                      <td className="px-3 py-3 align-middle text-right font-medium text-zinc-900 tabular-nums">
                         {(p.price_cents / 100).toFixed(2)} €
                       </td>
                       <td className="px-3 py-3 align-middle text-right tabular-nums">
-                        <span className="text-[var(--success)] font-medium">
+                        <span className="text-indigo-600 font-medium">
                           +{margin.toFixed(2)} €
                         </span>
-                        <span className="block text-xs text-ds-text-muted">{marginPct}%</span>
+                        <span className="block text-xs text-zinc-400">{marginPct}%</span>
                       </td>
-                      <td className="px-3 py-3 align-middle text-right text-ds-text-secondary tabular-nums">
+                      <td className="px-3 py-3 align-middle text-right text-zinc-600 tabular-nums">
                         {p.image_quality_score != null
                           ? `${Math.round(parseFloat(p.image_quality_score) * 100)}%`
                           : '—'}

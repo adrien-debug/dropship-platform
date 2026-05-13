@@ -506,7 +506,7 @@ export function NicheResearchCopilot({ onApplyShortlist }: Props) {
           </div>
 
           {error && (
-            <div className="px-5 py-2 bg-red-50 border-t border-red-200 text-xs text-red-700">
+            <div className="px-5 py-2 bg-zinc-100 border-t border-zinc-200 text-xs text-zinc-500">
               {error}
             </div>
           )}
@@ -626,7 +626,7 @@ function ResearchToolCard({ message, onApplyShortlist }: ResearchToolCardProps) 
   return (
     <div
       className={`rounded-xl border bg-white text-sm overflow-hidden ${
-        isError ? 'border-red-200' : 'border-zinc-200'
+        isError ? 'border-zinc-200' : 'border-zinc-200'
       }`}
     >
       <button
@@ -637,10 +637,10 @@ function ResearchToolCard({ message, onApplyShortlist }: ResearchToolCardProps) 
         <span
           className={`inline-block w-1.5 h-1.5 rounded-full ${
             isError
-              ? 'bg-red-500'
+              ? 'bg-zinc-100'
               : message.tool_output
-              ? 'bg-emerald-500'
-              : 'bg-amber-500'
+              ? 'bg-indigo-100'
+              : 'bg-indigo-50'
           }`}
         />
         <code className="font-mono text-xs text-zinc-700">{name}</code>
@@ -695,12 +695,12 @@ function ShortlistCard({
   const sat = payload.saturation;
   const verdictTone =
     sat == null
-      ? 'border-emerald-200 bg-emerald-50/40'
+      ? 'border-indigo-200 bg-indigo-100/40'
       : sat > 70
-      ? 'border-red-200 bg-red-50/40'
+      ? 'border-zinc-200 bg-zinc-100/40'
       : sat >= 30
-      ? 'border-amber-200 bg-amber-50/40'
-      : 'border-emerald-200 bg-emerald-50/40';
+      ? 'border-indigo-200 bg-indigo-50/40'
+      : 'border-indigo-200 bg-indigo-100/40';
   const fp = payload.featured_product;
   const fpCost = fp ? (fp.cost_cents / 100).toFixed(2) : null;
   const fpPrice = fp ? (fp.suggested_price_cents / 100).toFixed(2) : null;
@@ -764,7 +764,7 @@ function ShortlistCard({
               <span className="text-zinc-500">{fpCost} €</span>
               <span className="text-zinc-300">→</span>
               <span className="text-zinc-900 font-semibold">{fpPrice} €</span>
-              <span className="text-emerald-700 font-medium">+{fpMargin} €</span>
+              <span className="text-indigo-600 font-medium">+{fpMargin} €</span>
               {fp.expected_aov_eur != null && (
                 <span className="text-zinc-400 ml-auto">AOV ~{fp.expected_aov_eur} €</span>
               )}
@@ -943,8 +943,8 @@ function DesignPickerBlock({
 const CHANNEL_COLOR: Record<MediaChannel['name'], string> = {
   meta: 'bg-blue-500',
   tiktok: 'bg-zinc-900',
-  google: 'bg-emerald-500',
-  pinterest: 'bg-red-500',
+  google: 'bg-indigo-100',
+  pinterest: 'bg-zinc-100',
 };
 
 const CHANNEL_LABEL: Record<MediaChannel['name'], string> = {
@@ -1172,10 +1172,10 @@ function MetaLibraryRenderer({ output }: { output: unknown }) {
   const verdict = data.verdict ?? 'caution';
   const tone =
     verdict === 'no-go'
-      ? 'bg-red-500'
+      ? 'bg-zinc-100'
       : verdict === 'caution'
-      ? 'bg-amber-500'
-      : 'bg-emerald-500';
+      ? 'bg-indigo-50'
+      : 'bg-indigo-100';
   return (
     <div className="space-y-3">
       <div>
@@ -1258,7 +1258,7 @@ function SupplierRenderer({
   if (candidates.length === 0) {
     return (
       <p className="text-xs text-zinc-500">
-        Aucun produit. {data.error && <span className="text-red-600">{data.error}</span>}
+        Aucun produit. {data.error && <span className="text-zinc-500">{data.error}</span>}
       </p>
     );
   }
@@ -1303,7 +1303,7 @@ function SupplierRenderer({
               <td className="py-1.5 px-2 text-right tabular-nums">
                 {(c.suggested_price_cents / 100).toFixed(2)} €
               </td>
-              <td className="py-1.5 px-2 text-right tabular-nums text-emerald-700">
+              <td className="py-1.5 px-2 text-right tabular-nums text-indigo-600">
                 +{(c.margin_cents / 100).toFixed(2)} €
               </td>
               <td className="py-1.5 pl-2 text-right tabular-nums text-zinc-500">

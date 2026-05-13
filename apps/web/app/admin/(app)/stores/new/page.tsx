@@ -438,7 +438,7 @@ function NewStoreForm() {
             </button>
           </div>
           {validationError && (
-            <p className="mt-2 text-xs text-red-600">{validationError}</p>
+            <p className="mt-2 text-xs text-zinc-500">{validationError}</p>
           )}
           {validation && <NicheValidationPanel result={validation} />}
         </div>
@@ -538,7 +538,7 @@ function NewStoreForm() {
       {/* ===== SUCCESS ===== */}
       {result && (
         <section className="border border-zinc-200 bg-white rounded-xl p-8 text-center space-y-6">
-          <p className="text-kicker uppercase tracking-label text-emerald-600 font-medium">
+          <p className="text-kicker uppercase tracking-label text-indigo-600 font-medium">
             Store en ligne
           </p>
           <h2 className="text-3xl font-semibold tracking-tight text-zinc-900">
@@ -577,9 +577,9 @@ function NewStoreForm() {
 
       {/* ===== ERROR (no result) ===== */}
       {error && !result && (
-        <div className="border border-red-200 bg-red-50/60 rounded-xl p-5">
-          <p className="text-kicker uppercase tracking-label text-red-700 font-medium">Échec de l’agent</p>
-          <p className="mt-1.5 text-sm text-red-900 leading-relaxed">{error}</p>
+        <div className="border border-zinc-200 bg-zinc-100/60 rounded-xl p-5">
+          <p className="text-kicker uppercase tracking-label text-zinc-500 font-medium">Échec de l’agent</p>
+          <p className="mt-1.5 text-sm text-zinc-500 leading-relaxed">{error}</p>
         </div>
       )}
       </div>
@@ -680,16 +680,16 @@ function RunStatus({
           const isSuccess = line.type === 'success';
           const isActive = running && isLast && !isError && !isSuccess;
           const dotClass = isError
-            ? 'bg-red-500'
+            ? 'bg-zinc-100'
             : isSuccess
-            ? 'bg-emerald-500'
+            ? 'bg-indigo-100'
             : isActive
             ? 'bg-zinc-900 admin-step-pulse'
             : 'bg-zinc-300';
           const textClass = isError
-            ? 'text-red-700'
+            ? 'text-zinc-500'
             : isSuccess
-            ? 'text-emerald-700 font-medium'
+            ? 'text-indigo-600 font-medium'
             : isActive
             ? 'text-zinc-900 font-medium'
             : 'text-zinc-500';
@@ -753,10 +753,10 @@ function NicheValidationPanel({ result }: { result: NicheValidationResult }) {
   // is bounded 0-100 so width = saturation%.
   const gaugeColor =
     result.verdict === 'no-go'
-      ? 'bg-red-500'
+      ? 'bg-zinc-100'
       : result.verdict === 'caution'
-      ? 'bg-amber-500'
-      : 'bg-emerald-500';
+      ? 'bg-indigo-50'
+      : 'bg-indigo-100';
 
   return (
     <div className="mt-4 border border-zinc-200 bg-white rounded-xl overflow-hidden">
@@ -875,7 +875,7 @@ function NicheValidationPanel({ result }: { result: NicheValidationResult }) {
       )}
 
       {result.verdict === 'no-go' && (
-        <div className="px-5 py-3 bg-red-50/60 border-t border-red-200 text-xs text-red-800 leading-relaxed">
+        <div className="px-5 py-3 bg-zinc-100/60 border-t border-zinc-200 text-xs text-zinc-500 leading-relaxed">
           Niche très saturée sur Meta Ads. La création de store n’est pas bloquée — mais prévoyez un budget acquisition supérieur ou un angle différenciant fort.
         </div>
       )}

@@ -45,11 +45,11 @@ export function MarkPaidButton({ orderId }: Props) {
       <button
         onClick={call}
         disabled={busy}
-        className="px-3 py-1.5 text-xs rounded-md border border-emerald-200 bg-white text-emerald-800 hover:border-emerald-300 hover:bg-emerald-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="px-3 py-1.5 text-xs rounded-md border border-indigo-200 bg-white text-indigo-600 hover:border-indigo-200 hover:bg-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         {busy ? '…' : 'Marquer payée'}
       </button>
-      {error && <span className="text-kicker text-red-600 max-w-[200px] text-right">{error}</span>}
+      {error && <span className="text-kicker text-zinc-500 max-w-[200px] text-right">{error}</span>}
     </div>
   );
 }

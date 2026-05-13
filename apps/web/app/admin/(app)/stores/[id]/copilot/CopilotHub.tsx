@@ -443,7 +443,7 @@ export function CopilotHub({
         <p className="mt-2 text-xs text-zinc-400">
           {MODE_LABELS[mode].tagline}
           {mode === 'dev' && (
-            <span className="ml-2 text-amber-600 font-medium">
+            <span className="ml-2 text-indigo-600 font-medium">
               Mode développeur — agent avec accès lecture/écriture sur le repo.
             </span>
           )}
@@ -491,7 +491,7 @@ export function CopilotHub({
           </div>
 
           {error && (
-            <div className="px-5 py-2 bg-red-50 border-t border-red-200 text-xs text-red-700">
+            <div className="px-5 py-2 bg-zinc-100 border-t border-zinc-200 text-xs text-zinc-500">
               {error}
             </div>
           )}
@@ -731,7 +731,7 @@ function ToolCard({ message }: { message: ChatMessage }) {
   return (
     <div className={cx(
       'rounded-xl border bg-white text-sm overflow-hidden',
-      isError ? 'border-red-200' : 'border-zinc-200',
+      isError ? 'border-zinc-200' : 'border-zinc-200',
     )}>
       <button
         type="button"
@@ -740,7 +740,7 @@ function ToolCard({ message }: { message: ChatMessage }) {
       >
         <span className={cx(
           'inline-block w-1.5 h-1.5 rounded-full',
-          isError ? 'bg-red-500' : message.tool_output ? 'bg-emerald-500' : 'bg-amber-500',
+          isError ? 'bg-zinc-100' : message.tool_output ? 'bg-indigo-100' : 'bg-indigo-50',
         )} />
         <code className="font-mono text-xs text-zinc-700">{name}</code>
         <span className="ml-auto text-xs text-zinc-500 line-clamp-1">{message.content}</span>
@@ -815,9 +815,9 @@ function SpecialisedRenderer({
           <pre className="bg-zinc-900 text-zinc-100 rounded p-3 overflow-x-auto font-mono text-xs whitespace-pre-wrap">{stdout}</pre>
         )}
         {stderr && (
-          <pre className="bg-red-900/80 text-red-100 rounded p-3 overflow-x-auto font-mono text-xs whitespace-pre-wrap">{stderr}</pre>
+          <pre className="bg-zinc-100/80 text-zinc-500 rounded p-3 overflow-x-auto font-mono text-xs whitespace-pre-wrap">{stderr}</pre>
         )}
-        <p className={cx('font-medium', exitCode === 0 ? 'text-emerald-600' : 'text-red-600')}>
+        <p className={cx('font-medium', exitCode === 0 ? 'text-indigo-600' : 'text-zinc-500')}>
           exit {exitCode}
         </p>
       </div>
@@ -826,7 +826,7 @@ function SpecialisedRenderer({
   if (name === 'git_commit') {
     if (out.empty) return <p className="text-xs text-zinc-500">Rien à commiter.</p>;
     return (
-      <div className="inline-flex items-center gap-2 text-xs bg-emerald-50 text-emerald-800 px-2 py-1 rounded-full">
+      <div className="inline-flex items-center gap-2 text-xs bg-indigo-100 text-indigo-600 px-2 py-1 rounded-full">
         <Check size={12} strokeWidth={2.5} aria-hidden />
         <span>commit</span>
         <code className="font-mono">{String(out.short_sha ?? '')}</code>
@@ -837,7 +837,7 @@ function SpecialisedRenderer({
   if (name === 'git_push') {
     if (out.confirm_required) {
       return (
-        <p className="text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded inline-flex items-center gap-1.5">
+        <p className="text-xs text-indigo-600 bg-indigo-50 px-2 py-1 rounded inline-flex items-center gap-1.5">
           <Pause size={12} strokeWidth={2.5} aria-hidden />
           En attente de confirmation utilisateur.
         </p>
@@ -888,7 +888,7 @@ function SpecialisedRenderer({
     );
   }
   if (isError && typeof out.error === 'string') {
-    return <p className="text-xs text-red-600">{out.error}</p>;
+    return <p className="text-xs text-zinc-500">{out.error}</p>;
   }
   return null;
 }

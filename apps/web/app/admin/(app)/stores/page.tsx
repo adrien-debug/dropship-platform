@@ -82,14 +82,14 @@ export default async function StoresPage({
         kicker="Production · Agent IA"
         title={
           <>
-            Stores <em className="italic text-ds-text-muted">dropshipping</em>
+            Stores <em className="italic text-zinc-400">dropshipping</em>
           </>
         }
         lede="L’agent recherche les produits, enrichit les fiches puis publie le store Medusa complet. Mono-produit pour une landing DTC, collection pour un catalogue."
         actions={
           <Link
             href="/admin/stores/new"
-            className="inline-flex items-center gap-2 bg-[var(--accent-cyan)] text-ds-bg-base text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-[var(--accent-blue)] transition-colors"
+            className="inline-flex items-center gap-2 bg-indigo-600 text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-indigo-700 transition-colors"
           >
             <span aria-hidden className="text-base leading-none">+</span>
             Nouveau store
@@ -122,7 +122,7 @@ export default async function StoresPage({
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 pt-4">
               <PaginationLink page={page - 1} disabled={page <= 1} label="← Précédent" />
-              <span className="text-sm text-ds-text-muted tabular-nums px-3">
+              <span className="text-sm text-zinc-400 tabular-nums px-3">
                 Page {page} / {totalPages}
               </span>
               <PaginationLink page={page + 1} disabled={page >= totalPages} label="Suivant →" />
@@ -145,7 +145,7 @@ function PaginationLink({
 }) {
   if (disabled) {
     return (
-      <span className="text-sm text-ds-text-disabled px-3 py-1.5 rounded-lg cursor-not-allowed">
+      <span className="text-sm text-zinc-300 px-3 py-1.5 rounded-lg cursor-not-allowed">
         {label}
       </span>
     );
@@ -153,7 +153,7 @@ function PaginationLink({
   return (
     <Link
       href={`/admin/stores?page=${page}`}
-      className="text-sm text-ds-text-secondary hover:text-ds-text-primary px-3 py-1.5 rounded-lg hover:bg-ds-surface-default transition-colors"
+      className="text-sm text-zinc-600 hover:text-zinc-900 px-3 py-1.5 rounded-xl hover:bg-zinc-50 transition-colors"
     >
       {label}
     </Link>
@@ -172,7 +172,7 @@ function EmptyState() {
       </p>
       <Link
         href="/admin/stores/new"
-        className="mt-8 inline-flex items-center gap-2 bg-zinc-900 text-white text-sm font-medium px-6 py-3 rounded-lg hover:bg-zinc-800 transition-colors shadow-cta"
+        className="mt-8 inline-flex items-center gap-2 bg-indigo-600 text-white text-sm font-medium px-6 py-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-cta"
       >
         Créer un store
       </Link>
@@ -192,7 +192,7 @@ function StoreGroup({
   return (
     <section>
       <div className="flex items-baseline justify-between mb-4">
-        <p className="text-kicker uppercase tracking-label text-ds-text-muted font-medium">{kicker}</p>
+        <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">{kicker}</p>
       </div>
       <div className={`grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 ${dim ? 'opacity-70' : ''}`}>
         {stores.map((store) => (
@@ -210,7 +210,7 @@ function StoreCard({ store }: { store: StoreRow }) {
   const accent = store.accent_color || primary;
 
   return (
-    <article className="group relative bg-ds-surface-subtle rounded-2xl overflow-hidden flex flex-col ring-1 ring-ds-border-subtle transition-all duration-300 hover:ring-ds-border-default hover:-translate-y-1 hover:shadow-[0_24px_50px_-20px_rgba(0,0,0,0.40)]">
+    <article className="group relative bg-white rounded-2xl overflow-hidden flex flex-col ring-1 ring-zinc-200 transition-all duration-300 hover:ring-zinc-300 hover:-translate-y-1 hover:shadow-[0_24px_50px_-20px_rgba(0,0,0,0.18)]">
       {/* ── COVER : hero image with gradient overlay, or rich color fallback */}
       <div className="relative aspect-[16/10] overflow-hidden">
         {cover ? (
@@ -271,15 +271,15 @@ function StoreCard({ store }: { store: StoreRow }) {
       {/* ── BODY : tagline + meta + actions */}
       <div className="p-5 flex-1 flex flex-col">
         {store.tagline ? (
-          <p className="text-sm text-ds-text-secondary leading-relaxed line-clamp-2 mb-4">
+          <p className="text-sm text-zinc-600 leading-relaxed line-clamp-2 mb-4">
             « {store.tagline} »
           </p>
         ) : (
-          <p className="text-sm text-ds-text-muted italic mb-4">Sans tagline</p>
+          <p className="text-sm text-zinc-400 italic mb-4">Sans tagline</p>
         )}
 
         {store.error_message && store.status !== 'active' && store.status !== 'creating' && (
-          <p className="text-xs text-[var(--danger)] mb-4 line-clamp-2 leading-relaxed bg-[var(--danger-muted)] border border-[var(--danger-muted)] rounded-lg px-3 py-2">
+          <p className="text-xs text-zinc-500 mb-4 line-clamp-2 leading-relaxed bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2">
             {store.error_message}
           </p>
         )}
@@ -287,7 +287,7 @@ function StoreCard({ store }: { store: StoreRow }) {
         <div className="mt-auto flex items-center gap-2">
           <Link
             href={`/admin/stores/${store.id}`}
-            className="flex-1 text-center text-xs py-2 rounded-lg bg-[var(--accent-cyan)] hover:bg-[var(--accent-blue)] transition-colors font-medium text-ds-bg-base"
+            className="flex-1 text-center text-xs py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 transition-colors font-medium text-white"
           >
             Gérer le store
           </Link>
@@ -298,7 +298,7 @@ function StoreCard({ store }: { store: StoreRow }) {
               rel="noreferrer"
               aria-label="Ouvrir la boutique"
               title="Ouvrir la boutique"
-              className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-ds-border-subtle hover:bg-ds-surface-default hover:border-ds-border-default transition-colors text-ds-text-secondary"
+              className="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300 transition-colors text-zinc-500"
             >
               <ArrowUpRight size={15} strokeWidth={1.75} aria-hidden />
             </Link>
@@ -306,7 +306,7 @@ function StoreCard({ store }: { store: StoreRow }) {
           <StoreActions storeId={store.id} storeName={store.name} />
         </div>
 
-        <p className="text-kicker font-mono text-ds-text-muted mt-3 truncate">/shop/{store.slug}</p>
+        <p className="text-kicker font-mono text-zinc-400 mt-3 truncate">/shop/{store.slug}</p>
       </div>
     </article>
   );

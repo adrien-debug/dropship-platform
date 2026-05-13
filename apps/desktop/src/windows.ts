@@ -109,7 +109,7 @@ export function openWindow(opts: OpenWindowOptions): BrowserWindow {
     titleBarStyle: 'default',
     // Solid background. Vibrancy under-window + transparent BG made the
     // Tailwind zinc-50 background look greyed-out and inconsistent.
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f4f4f5',
     show: false,
     webPreferences: {
       contextIsolation: true,

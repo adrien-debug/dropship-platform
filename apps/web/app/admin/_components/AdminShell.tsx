@@ -4,13 +4,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
 import {
-  LayoutDashboard,
-  Store,
-  ShoppingCart,
-  Activity,
-  Settings,
-  PanelLeftClose,
-  PanelLeftOpen,
+  LayoutGrid,
+  Layers,
+  Package,
+  LineChart,
+  SlidersHorizontal,
+  ChevronsRight,
+  ChevronsLeft,
   Menu,
   X,
   type LucideIcon,
@@ -25,11 +25,11 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { href: '/admin',               label: 'Dashboard',     Icon: LayoutDashboard, exact: true },
-  { href: '/admin/stores',        label: 'Stores',        Icon: Store },
-  { href: '/admin/orders',        label: 'Commandes',     Icon: ShoppingCart },
-  { href: '/admin/observability', label: 'Observabilité', Icon: Activity },
-  { href: '/admin/settings',      label: 'Réglages',      Icon: Settings },
+  { href: '/admin',               label: 'Dashboard',     Icon: LayoutGrid,        exact: true },
+  { href: '/admin/stores',        label: 'Stores',        Icon: Layers },
+  { href: '/admin/orders',        label: 'Commandes',     Icon: Package },
+  { href: '/admin/observability', label: 'Observabilité', Icon: LineChart },
+  { href: '/admin/settings',      label: 'Réglages',      Icon: SlidersHorizontal },
 ];
 
 const COLLAPSED_KEY = 'admin-sidebar-collapsed';
@@ -46,7 +46,7 @@ function NavList({
   return (
     <nav className="flex-1 px-3 flex flex-col justify-center">
       {!collapsed && (
-        <p className="px-4 mb-2 text-kicker uppercase tracking-label text-zinc-600 font-medium">
+        <p className="px-4 mb-2 text-kicker uppercase tracking-label text-indigo-300 font-medium">
           Console
         </p>
       )}
@@ -63,14 +63,14 @@ function NavList({
                 onClick={onNavigate}
                 title={collapsed ? item.label : undefined}
                 aria-label={item.label}
-                className={`group relative flex items-center rounded-lg text-sm transition-colors ${
+                className={`group relative flex items-center rounded-xl text-sm transition-all duration-150 ${
                   collapsed
-                    ? 'justify-center w-10 h-10 mx-auto'
-                    : 'gap-3 px-4 py-2'
+                    ? 'justify-center w-12 h-12 mx-auto'
+                    : 'gap-3 px-4 py-2.5'
                 } ${
                   active
-                    ? 'bg-zinc-800/80 text-white'
-                    : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
+                    ? 'bg-white/20 text-white shadow-sm'
+                    : 'text-indigo-200 hover:text-white hover:bg-white/10'
                 }`}
               >
                 {active && (
@@ -81,7 +81,7 @@ function NavList({
                     aria-hidden
                   />
                 )}
-                <Icon size={collapsed ? 18 : 16} strokeWidth={1.75} aria-hidden />
+                <Icon size={collapsed ? 22 : 16} strokeWidth={1.5} aria-hidden />
                 {!collapsed && <span>{item.label}</span>}
               </Link>
             </li>
@@ -96,12 +96,12 @@ function Brand({ collapsed }: { collapsed: boolean }) {
   return (
     <Link href="/admin" className="block group" aria-label="Dropship — Dashboard">
       {collapsed ? (
-        <span className="block text-2xl font-bold tracking-tight text-white text-center">
-          D<span className="text-zinc-500 group-hover:text-white/80 transition-colors">.</span>
+        <span className="block text-3xl font-bold tracking-tight text-white text-center leading-none">
+          D<span className="text-indigo-300 group-hover:text-white transition-colors">.</span>
         </span>
       ) : (
         <span className="font-semibold tracking-tight text-xl text-white">
-          Dropship<span className="text-zinc-500 group-hover:text-white/80 transition-colors">.</span>
+          Dropship<span className="text-indigo-300 group-hover:text-white transition-colors">.</span>
         </span>
       )}
     </Link>
@@ -160,38 +160,38 @@ export function AdminShell({ children }: { children: ReactNode }) {
     )?.label ?? 'Console';
 
   return (
-    <div className="min-h-screen bg-zinc-50 lg:flex">
+    <div className="min-h-screen bg-zinc-100 lg:flex">
       {/* Desktop sidebar */}
       <aside
-        className={`hidden lg:flex shrink-0 bg-zinc-950 text-white flex-col sticky top-0 h-screen transition-[width] duration-200 ease-out ${
-          collapsed ? 'w-16' : 'w-60'
+        className={`hidden lg:flex shrink-0 bg-indigo-600 text-white flex-col sticky top-0 h-screen transition-[width] duration-200 ease-out ${
+          collapsed ? 'w-[72px]' : 'w-60'
         }`}
       >
         <div className={`pt-7 pb-6 ${collapsed ? 'px-2' : 'px-6'}`}>
           <Brand collapsed={collapsed} />
           {!collapsed && (
-            <p className="mt-1 text-kicker uppercase tracking-label text-zinc-600 font-medium">
+            <p className="mt-1 text-kicker uppercase tracking-label text-indigo-300 font-medium">
               Production · Agent IA
             </p>
           )}
         </div>
         <NavList pathname={pathname} collapsed={collapsed} />
-        <div className={`border-t border-zinc-900 ${collapsed ? 'p-2 space-y-2' : 'p-3 space-y-2'}`}>
+        <div className={`border-t border-indigo-500 ${collapsed ? 'p-2 space-y-2' : 'p-3 space-y-2'}`}>
           {!collapsed && <AdminLogoutButton />}
           <button
             type="button"
             onClick={toggleCollapsed}
             title={collapsed ? 'Étendre' : 'Réduire'}
             aria-label={collapsed ? 'Étendre la barre latérale' : 'Réduire la barre latérale'}
-            className={`flex items-center text-zinc-500 hover:text-white hover:bg-zinc-900 rounded-lg transition-colors ${
-              collapsed ? 'justify-center w-10 h-10 mx-auto' : 'gap-2 px-3 py-2 text-xs w-full'
+            className={`flex items-center text-indigo-200 hover:text-white hover:bg-white/10 rounded-xl transition-colors ${
+              collapsed ? 'justify-center w-12 h-12 mx-auto' : 'gap-2 px-3 py-2 text-xs w-full'
             }`}
           >
             {collapsed ? (
-              <PanelLeftOpen size={18} strokeWidth={1.75} aria-hidden />
+              <ChevronsRight size={20} strokeWidth={1.5} aria-hidden />
             ) : (
               <>
-                <PanelLeftClose size={16} strokeWidth={1.75} aria-hidden />
+                <ChevronsLeft size={16} strokeWidth={1.5} aria-hidden />
                 <span>Réduire</span>
               </>
             )}
@@ -200,16 +200,16 @@ export function AdminShell({ children }: { children: ReactNode }) {
       </aside>
 
       {/* Mobile topbar */}
-      <header className="lg:hidden sticky top-0 z-20 flex items-center justify-between bg-zinc-950 text-white px-4 py-3 border-b border-zinc-900">
+      <header className="lg:hidden sticky top-0 z-20 flex items-center justify-between bg-indigo-600 text-white px-4 py-3 border-b border-indigo-500">
         <Brand collapsed={false} />
         <div className="flex items-center gap-3">
-          <span className="text-kicker uppercase tracking-label text-zinc-500 font-medium">
+          <span className="text-kicker uppercase tracking-label text-indigo-200 font-medium">
             {currentLabel}
           </span>
           <button
             aria-label="Ouvrir la navigation"
             onClick={() => setDrawerOpen(true)}
-            className="p-2 -mr-2 text-zinc-200 hover:text-white"
+            className="p-2 -mr-2 text-indigo-100 hover:text-white"
           >
             <Menu size={22} strokeWidth={1.75} aria-hidden />
           </button>
@@ -224,19 +224,19 @@ export function AdminShell({ children }: { children: ReactNode }) {
             onClick={() => setDrawerOpen(false)}
             className="absolute inset-0 bg-black/60 cursor-default"
           />
-          <aside className="relative w-72 max-w-[85vw] bg-zinc-950 text-white flex flex-col admin-drawer-in">
+          <aside className="relative w-72 max-w-[85vw] bg-indigo-600 text-white flex flex-col admin-drawer-in">
             <div className="px-6 pt-6 pb-5 flex items-center justify-between">
               <Brand collapsed={false} />
               <button
                 aria-label="Fermer"
                 onClick={() => setDrawerOpen(false)}
-                className="p-2 -mr-2 text-zinc-400 hover:text-white"
+                className="p-2 -mr-2 text-indigo-200 hover:text-white"
               >
                 <X size={20} strokeWidth={1.75} aria-hidden />
               </button>
             </div>
             <NavList pathname={pathname} collapsed={false} onNavigate={() => setDrawerOpen(false)} />
-            <div className="p-3 border-t border-zinc-900">
+            <div className="p-3 border-t border-indigo-500">
               <AdminLogoutButton />
             </div>
           </aside>

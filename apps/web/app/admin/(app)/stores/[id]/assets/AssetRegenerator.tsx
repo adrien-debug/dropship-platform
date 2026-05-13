@@ -198,14 +198,14 @@ export function AssetRegenerator({
   const successRuns = runs.filter((r) => r.status === 'success' && r.resultUrl);
 
   return (
-    <section className="border border-ds-border-subtle bg-ds-surface-subtle rounded-xl overflow-hidden">
-      <div className="px-6 pt-5 pb-4 border-b border-ds-border-subtle/70 flex items-start gap-4">
+    <section className="border border-zinc-200 bg-zinc-50 rounded-xl overflow-hidden">
+      <div className="px-6 pt-5 pb-4 border-b border-zinc-200/70 flex items-start gap-4">
         <div className="flex-1 min-w-0">
-          <p className="text-kicker uppercase tracking-label text-ds-text-muted font-medium">
+          <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">
             {kind}
           </p>
-          <h3 className="mt-1 text-base font-semibold tracking-tight text-ds-text-primary">{label.title}</h3>
-          <p className="mt-1.5 text-xs text-ds-text-muted max-w-2xl">{label.hint}</p>
+          <h3 className="mt-1 text-base font-semibold tracking-tight text-zinc-900">{label.title}</h3>
+          <p className="mt-1.5 text-xs text-zinc-400 max-w-2xl">{label.hint}</p>
         </div>
         <button
           type="button"
@@ -221,7 +221,7 @@ export function AssetRegenerator({
         <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-6">
           {/* Current preview */}
           <div>
-            <p className="text-kicker uppercase tracking-cta text-ds-text-muted font-medium mb-2">
+            <p className="text-kicker uppercase tracking-cta text-zinc-400 font-medium mb-2">
               Version courante
             </p>
             {currentUrl ? (
@@ -229,7 +229,7 @@ export function AssetRegenerator({
                 href={currentUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="block border border-ds-border-subtle rounded-lg overflow-hidden bg-ds-surface-subtle hover:border-ds-border-default transition-colors"
+                className="block border border-zinc-200 rounded-lg overflow-hidden bg-zinc-50 hover:border-zinc-300 transition-colors"
               >
                 {isVideo ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -250,7 +250,7 @@ export function AssetRegenerator({
                 )}
               </a>
             ) : (
-              <div className="border border-dashed border-ds-border-subtle rounded-lg aspect-square flex items-center justify-center text-xs text-ds-text-muted">
+              <div className="border border-dashed border-zinc-200 rounded-lg aspect-square flex items-center justify-center text-xs text-zinc-400">
                 Pas encore généré
               </div>
             )}
@@ -260,7 +260,7 @@ export function AssetRegenerator({
           {panelOpen && (
             <div className="space-y-3">
               <div>
-                <label className="block text-kicker uppercase tracking-cta text-ds-text-muted font-medium mb-1.5">
+                <label className="block text-kicker uppercase tracking-cta text-zinc-400 font-medium mb-1.5">
                   Prompt FLUX (anglais, sans texte/badges)
                 </label>
                 <textarea
@@ -269,9 +269,9 @@ export function AssetRegenerator({
                   disabled={running}
                   rows={5}
                   placeholder="Laisse vide pour laisser Claude rédiger un nouveau prompt..."
-                  className="w-full border border-ds-border-subtle rounded-lg px-3 py-2 text-sm font-mono text-ds-text-primary focus:outline-none focus:border-zinc-900 disabled:bg-ds-surface-subtle"
+                  className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm font-mono text-zinc-900 focus:outline-none focus:border-zinc-900 disabled:bg-zinc-50"
                 />
-                <p className="mt-1 text-kicker text-ds-text-muted">
+                <p className="mt-1 text-kicker text-zinc-400">
                   Vide = Claude réécrit le prompt à partir du produit et de la niche.
                 </p>
               </div>
@@ -284,25 +284,25 @@ export function AssetRegenerator({
                 >
                   {running ? 'Génération en cours…' : 'Lancer'}
                 </button>
-                {error && <span className="text-xs text-[var(--danger)]">{error}</span>}
+                {error && <span className="text-xs text-zinc-500">{error}</span>}
               </div>
 
               {logs.length > 0 && (
-                <div className="border border-ds-border-subtle rounded-lg bg-zinc-950 text-zinc-100 font-mono text-xs max-h-56 overflow-y-auto p-3 space-y-1">
+                <div className="border border-zinc-200 rounded-lg bg-zinc-950 text-zinc-100 font-mono text-xs max-h-56 overflow-y-auto p-3 space-y-1">
                   {logs.map((l) => (
                     <div
                       key={l.id}
                       className={
                         l.type === 'error'
-                          ? 'text-red-400'
+                          ? 'text-zinc-500'
                           : l.type === 'success'
-                          ? 'text-emerald-400'
+                          ? 'text-indigo-600'
                           : l.type === 'step'
                           ? 'text-zinc-100'
-                          : 'text-ds-text-muted'
+                          : 'text-zinc-400'
                       }
                     >
-                      <span className="text-ds-text-muted">[{l.ts}]</span> {l.message}
+                      <span className="text-zinc-400">[{l.ts}]</span> {l.message}
                     </div>
                   ))}
                   <div ref={logsEndRef} />
@@ -314,11 +314,11 @@ export function AssetRegenerator({
 
         {/* History strip */}
         <div>
-          <p className="text-kicker uppercase tracking-cta text-ds-text-muted font-medium mb-2">
+          <p className="text-kicker uppercase tracking-cta text-zinc-400 font-medium mb-2">
             Historique des runs ({runs.length})
           </p>
           {runs.length === 0 ? (
-            <p className="text-xs text-ds-text-muted italic">Aucune régénération enregistrée.</p>
+            <p className="text-xs text-zinc-400 italic">Aucune régénération enregistrée.</p>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
               {runs.slice(0, 5).map((r) => {
@@ -326,11 +326,11 @@ export function AssetRegenerator({
                 return (
                   <div
                     key={r.id}
-                    className={`border rounded-lg overflow-hidden bg-ds-surface-subtle transition-colors ${
-                      r.isCurrent ? 'border-zinc-900 ring-2 ring-zinc-900/10' : 'border-ds-border-subtle'
+                    className={`border rounded-lg overflow-hidden bg-zinc-50 transition-colors ${
+                      r.isCurrent ? 'border-zinc-900 ring-2 ring-zinc-900/10' : 'border-zinc-200'
                     }`}
                   >
-                    <div className="aspect-square bg-ds-surface-default relative">
+                    <div className="aspect-square bg-zinc-100 relative">
                       {usable ? (
                         isVideo ? (
                           // eslint-disable-next-line @next/next/no-img-element
@@ -349,7 +349,7 @@ export function AssetRegenerator({
                           />
                         )
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-xs text-ds-text-muted">
+                        <div className="w-full h-full flex items-center justify-center text-xs text-zinc-400">
                           {r.status === 'error' ? 'Échec' : r.status === 'running' ? 'En cours…' : '—'}
                         </div>
                       )}
@@ -360,19 +360,19 @@ export function AssetRegenerator({
                       )}
                     </div>
                     <div className="p-2 space-y-1.5">
-                      <p className="text-xs text-ds-text-secondary leading-snug">
+                      <p className="text-xs text-zinc-600 leading-snug">
                         Run du {formatRunDate(r.createdAt)}
                       </p>
                       {r.prompt && (
                         <p
-                          className="text-kicker text-ds-text-muted line-clamp-2"
+                          className="text-kicker text-zinc-400 line-clamp-2"
                           title={r.prompt}
                         >
                           {r.prompt}
                         </p>
                       )}
                       {r.errorMessage && (
-                        <p className="text-kicker text-[var(--danger)] line-clamp-2" title={r.errorMessage}>
+                        <p className="text-kicker text-zinc-500 line-clamp-2" title={r.errorMessage}>
                           {r.errorMessage}
                         </p>
                       )}
@@ -381,7 +381,7 @@ export function AssetRegenerator({
                           type="button"
                           onClick={() => setAsCurrent(r.id)}
                           disabled={pendingSet}
-                          className="w-full text-xs font-medium border border-ds-border-subtle text-ds-text-secondary hover:bg-ds-surface-subtle px-2 py-1.5 rounded transition-colors disabled:opacity-40"
+                          className="w-full text-xs font-medium border border-zinc-200 text-zinc-600 hover:bg-zinc-50 px-2 py-1.5 rounded transition-colors disabled:opacity-40"
                         >
                           {pendingSet ? '…' : 'Définir comme courant'}
                         </button>
@@ -393,7 +393,7 @@ export function AssetRegenerator({
             </div>
           )}
           {successRuns.length === 0 && runs.length > 0 && (
-            <p className="mt-2 text-kicker text-ds-text-muted">
+            <p className="mt-2 text-kicker text-zinc-400">
               Aucun run réussi pour le moment.
             </p>
           )}

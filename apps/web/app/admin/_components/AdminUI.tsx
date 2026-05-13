@@ -1,36 +1,39 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils/cn';
 
+// ── Accent : indigo ──────────────────────────────────────────────────────────
+// Trois fontes : zinc-900 (noir), zinc-500 (gris), zinc-400 (gris clair)
+// Couleurs sémantiques : accent indigo uniquement — pas d'amber/emerald/red
+
 export type Tone = 'neutral' | 'zinc' | 'amber' | 'emerald' | 'red' | 'blue';
 
+// Toutes les tones convergent vers indigo ou zinc
 const dotTone: Record<Tone, string> = {
-  neutral: 'bg-ds-text-muted',
-  zinc: 'bg-ds-text-muted',
-  amber: 'bg-[var(--warning)]',
-  emerald: 'bg-[var(--success)]',
-  red: 'bg-[var(--danger)]',
-  blue: 'bg-[var(--info)]',
+  neutral: 'bg-zinc-400',
+  zinc:    'bg-zinc-400',
+  amber:   'bg-indigo-500',
+  emerald: 'bg-indigo-500',
+  red:     'bg-zinc-400',
+  blue:    'bg-indigo-500',
 };
 
 const labelTone: Record<Tone, string> = {
-  neutral: 'text-ds-text-secondary',
-  zinc: 'text-ds-text-muted',
-  amber: 'text-[var(--warning)]',
-  emerald: 'text-[var(--success)]',
-  red: 'text-[var(--danger)]',
-  blue: 'text-[var(--info)]',
+  neutral: 'text-zinc-500',
+  zinc:    'text-zinc-500',
+  amber:   'text-indigo-600',
+  emerald: 'text-indigo-600',
+  red:     'text-zinc-500',
+  blue:    'text-indigo-600',
 };
 
 const valueTone: Record<Tone, string> = {
-  neutral: 'text-ds-text-primary',
-  zinc: 'text-ds-text-primary',
-  amber: 'text-[var(--warning)]',
-  emerald: 'text-[var(--success)]',
-  red: 'text-[var(--danger)]',
-  blue: 'text-[var(--info)]',
+  neutral: 'text-zinc-900',
+  zinc:    'text-zinc-900',
+  amber:   'text-indigo-700',
+  emerald: 'text-indigo-700',
+  red:     'text-zinc-900',
+  blue:    'text-indigo-700',
 };
-
-// ── Dark theme variants ──
 
 export function PageHeader({
   kicker,
@@ -47,12 +50,12 @@ export function PageHeader({
     <header className="flex flex-wrap items-end justify-between gap-4">
       <div className="min-w-0">
         {kicker && (
-          <p className="text-kicker uppercase tracking-label text-ds-text-muted font-medium">{kicker}</p>
+          <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">{kicker}</p>
         )}
-        <h1 className="mt-1 text-4xl sm:text-5xl font-extrabold tracking-[-0.035em] text-ds-text-primary leading-[1.02]">
+        <h1 className="mt-1 text-4xl sm:text-5xl font-extrabold tracking-[-0.035em] text-zinc-900 leading-[1.02]">
           {title}
         </h1>
-        {lede && <p className="mt-2 text-sm text-ds-text-muted max-w-2xl leading-relaxed">{lede}</p>}
+        {lede && <p className="mt-2 text-sm text-zinc-500 max-w-2xl leading-relaxed">{lede}</p>}
       </div>
       {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
     </header>
@@ -71,13 +74,13 @@ export function StatCard({
   tone?: Tone;
 }) {
   return (
-    <div className="border border-ds-border-subtle bg-ds-surface-subtle rounded-xl px-5 py-4 hover:border-ds-border-default transition-colors">
-      <div className="flex items-center gap-2 text-kicker uppercase tracking-cta text-ds-text-muted font-medium">
-        <span className="inline-block w-1 h-1 rounded-full bg-ds-text-muted" aria-hidden />
+    <div className="border border-zinc-200 bg-white rounded-2xl px-6 py-5 hover:border-zinc-300 transition-colors shadow-sm">
+      <div className="flex items-center gap-2 text-kicker uppercase tracking-cta text-zinc-400 font-medium">
+        <span className="inline-block w-1.5 h-1.5 rounded-full bg-zinc-200" aria-hidden />
         {label}
       </div>
-      <div className={cn('mt-2 text-4xl font-bold tracking-[-0.03em]', valueTone[tone])}>{value}</div>
-      {hint && <div className="mt-1 text-xs text-ds-text-muted">{hint}</div>}
+      <div className={cn('mt-3 text-4xl font-bold tracking-[-0.03em]', valueTone[tone])}>{value}</div>
+      {hint && <div className="mt-1.5 text-xs text-zinc-400">{hint}</div>}
     </div>
   );
 }
@@ -103,13 +106,13 @@ export function SectionCard({
   className?: string;
 }) {
   return (
-    <section className={cn('border border-ds-border-subtle bg-ds-surface-subtle rounded-xl', className)}>
+    <section className={cn('border border-zinc-200 bg-white rounded-2xl shadow-sm', className)}>
       {(kicker || title) && (
-        <div className="px-6 pt-5 pb-4 border-b border-ds-border-subtle">
+        <div className="px-6 pt-6 pb-5 border-b border-zinc-100">
           {kicker && (
-            <p className="text-kicker uppercase tracking-label text-ds-text-muted font-medium">{kicker}</p>
+            <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">{kicker}</p>
           )}
-          {title && <h3 className="mt-1 text-xl font-bold tracking-[-0.02em] text-ds-text-primary">{title}</h3>}
+          {title && <h3 className="mt-1 text-xl font-bold tracking-[-0.02em] text-zinc-900">{title}</h3>}
         </div>
       )}
       <div className="p-6">{children}</div>
@@ -132,8 +135,8 @@ export function IconButton({
 }) {
   const styles =
     tone === 'danger'
-      ? 'border-[var(--danger-muted)] text-[var(--danger)] hover:bg-[var(--danger-muted)] hover:border-[var(--danger)]'
-      : 'border-ds-border-subtle text-ds-text-muted hover:bg-ds-surface-default hover:text-ds-text-primary hover:border-ds-border-default';
+      ? 'border-zinc-200 text-zinc-400 hover:bg-zinc-50 hover:text-zinc-900 hover:border-zinc-300'
+      : 'border-zinc-200 text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900 hover:border-zinc-300';
   return (
     <button
       type="button"
@@ -142,7 +145,7 @@ export function IconButton({
       aria-label={label}
       title={label}
       className={cn(
-        'inline-flex items-center justify-center w-9 h-9 rounded-lg border bg-ds-surface-subtle transition-colors disabled:opacity-40 disabled:cursor-not-allowed',
+        'inline-flex items-center justify-center w-9 h-9 rounded-xl border bg-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed',
         styles,
       )}
     >

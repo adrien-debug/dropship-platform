@@ -41,19 +41,19 @@ function StatCard({
   tone?: 'neutral' | 'amber' | 'emerald' | 'red';
 }) {
   const toneClasses: Record<string, string> = {
-    neutral: 'text-ds-text-primary',
-    amber: 'text-[var(--warning)]',
-    emerald: 'text-[var(--success)]',
-    red: 'text-[var(--danger)]',
+    neutral: 'text-zinc-900',
+    amber: 'text-indigo-600',
+    emerald: 'text-indigo-600',
+    red: 'text-zinc-500',
   };
   return (
-    <div className="border border-ds-border-subtle bg-ds-surface-subtle rounded-xl px-5 py-4">
-      <div className="flex items-center gap-2 text-kicker uppercase tracking-cta text-ds-text-muted font-medium">
+    <div className="border border-zinc-200 bg-zinc-50 rounded-xl px-5 py-4">
+      <div className="flex items-center gap-2 text-kicker uppercase tracking-cta text-zinc-400 font-medium">
         <span className="inline-block w-1 h-1 rounded-full bg-ds-text-muted" />
         {label}
       </div>
       <div className={`mt-2 text-3xl font-semibold tracking-tight ${toneClasses[tone]}`}>{value}</div>
-      {hint && <div className="mt-1 text-xs text-ds-text-muted">{hint}</div>}
+      {hint && <div className="mt-1 text-xs text-zinc-400">{hint}</div>}
     </div>
   );
 }
@@ -83,8 +83,8 @@ function StatusDot({ tone }: { tone: 'amber' | 'emerald' | 'blue' | 'red' | 'zin
 function AnomalyPanel({ data }: { data: AnomalyWatchResult | { ok: false; error: string } }) {
   if (!data.ok) {
     return (
-      <section className="border border-[var(--danger-muted)] bg-[var(--danger-muted)]/50 rounded-xl px-5 py-4 text-sm text-red-800">
-        <div className="text-kicker uppercase tracking-cta text-[var(--danger)]/70 font-medium mb-1">
+      <section className="border border-[var(--danger-muted)] bg-[var(--danger-muted)]/50 rounded-xl px-5 py-4 text-sm text-zinc-500">
+        <div className="text-kicker uppercase tracking-cta text-zinc-500/70 font-medium mb-1">
           Surveillance commandes
         </div>
         Impossible de lancer le scan d&apos;anomalies : {data.error}
@@ -98,20 +98,20 @@ function AnomalyPanel({ data }: { data: AnomalyWatchResult | { ok: false; error:
     return (
       <section className="border border-[var(--success-muted)] bg-[var(--success-muted)]/40 rounded-xl px-5 py-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <div className="text-kicker uppercase tracking-cta text-[var(--success)]/70 font-medium">
+          <div className="text-kicker uppercase tracking-cta text-indigo-600/70 font-medium">
             Surveillance commandes · P1.3
           </div>
           <div className="mt-1 inline-flex items-center gap-2 text-sm">
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-medium">
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-600 text-xs font-medium">
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--success-muted)]0" />
               Aucune anomalie détectée
             </span>
-            <span className="text-ds-text-muted">
+            <span className="text-zinc-400">
               Stranded AE 15j+, Stripe→AE 4h+, erreurs 48h+ : tout est clean.
             </span>
           </div>
         </div>
-        <div className="text-kicker text-[var(--success)]/70">
+        <div className="text-kicker text-indigo-600/70">
           Scanné{' '}
           {new Date(generated_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
         </div>
@@ -120,17 +120,17 @@ function AnomalyPanel({ data }: { data: AnomalyWatchResult | { ok: false; error:
   }
 
   return (
-    <section className="border border-amber-300 bg-[var(--warning-muted)]/40 rounded-xl overflow-hidden">
+    <section className="border border-indigo-200 bg-[var(--warning-muted)]/40 rounded-xl overflow-hidden">
       <div className="px-5 py-4 border-b border-[var(--warning-muted)]/60 bg-[var(--warning-muted)]/60 flex flex-wrap items-baseline justify-between gap-3">
         <div>
-          <div className="text-kicker uppercase tracking-cta text-amber-800/70 font-medium">
+          <div className="text-kicker uppercase tracking-cta text-indigo-600/70 font-medium">
             Surveillance commandes · P1.3
           </div>
-          <h3 className="mt-1 text-base font-semibold tracking-tight text-amber-900">
+          <h3 className="mt-1 text-base font-semibold tracking-tight text-indigo-600">
             <strong>{total}</strong> anomalie{total > 1 ? 's' : ''} à <em className="italic">trier</em>
           </h3>
         </div>
-        <div className="text-kicker text-amber-800/70">
+        <div className="text-kicker text-indigo-600/70">
           Scanné{' '}
           {new Date(generated_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
         </div>
@@ -138,14 +138,14 @@ function AnomalyPanel({ data }: { data: AnomalyWatchResult | { ok: false; error:
       <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-amber-200/60">
         <div className="px-5 py-4">
           <div className="flex items-baseline justify-between gap-2">
-            <div className="text-sm font-medium text-amber-900">Stranded AE</div>
-            <div className="text-2xl font-semibold tracking-tight text-amber-900">{counts.stranded}</div>
+            <div className="text-sm font-medium text-indigo-600">Stranded AE</div>
+            <div className="text-2xl font-semibold tracking-tight text-indigo-600">{counts.stranded}</div>
           </div>
-          <div className="mt-0.5 text-kicker text-amber-800/70">
+          <div className="mt-0.5 text-kicker text-indigo-600/70">
             sent + impayé &gt; 15 jours
           </div>
           {stranded.slice(0, 3).map((r) => (
-            <div key={r.medusa_order_id} className="mt-2 text-xs text-ds-text-secondary">
+            <div key={r.medusa_order_id} className="mt-2 text-xs text-zinc-600">
               <a
                 href={aliExpressOrderUrl(r.ae_order_id)}
                 target="_blank"
@@ -154,11 +154,11 @@ function AnomalyPanel({ data }: { data: AnomalyWatchResult | { ok: false; error:
               >
                 {r.ae_order_id}
               </a>
-              <span className="text-ds-text-muted"> · {r.age_days}j</span>
+              <span className="text-zinc-400"> · {r.age_days}j</span>
             </div>
           ))}
           {counts.stranded > 3 && (
-            <div className="mt-1 text-kicker text-amber-800/70">
+            <div className="mt-1 text-kicker text-indigo-600/70">
               + {counts.stranded - 3} de plus
             </div>
           )}
@@ -166,23 +166,23 @@ function AnomalyPanel({ data }: { data: AnomalyWatchResult | { ok: false; error:
 
         <div className="px-5 py-4">
           <div className="flex items-baseline justify-between gap-2">
-            <div className="text-sm font-medium text-amber-900">Stripe → AE</div>
-            <div className="text-2xl font-semibold tracking-tight text-amber-900">{counts.stuck}</div>
+            <div className="text-sm font-medium text-indigo-600">Stripe → AE</div>
+            <div className="text-2xl font-semibold tracking-tight text-indigo-600">{counts.stuck}</div>
           </div>
-          <div className="mt-0.5 text-kicker text-amber-800/70">
+          <div className="mt-0.5 text-kicker text-indigo-600/70">
             payé Stripe, pas de forward &gt; 4h
           </div>
           {stuck.slice(0, 3).map((r) => (
-            <div key={r.medusa_order_id} className="mt-2 text-xs text-ds-text-secondary">
+            <div key={r.medusa_order_id} className="mt-2 text-xs text-zinc-600">
               <span className="font-medium">
                 #{r.display_id ?? r.medusa_order_id.slice(0, 8)}
               </span>
-              <span className="text-ds-text-muted"> · {r.age_hours}h</span>
-              {r.email && <span className="text-ds-text-muted"> · {r.email}</span>}
+              <span className="text-zinc-400"> · {r.age_hours}h</span>
+              {r.email && <span className="text-zinc-400"> · {r.email}</span>}
             </div>
           ))}
           {counts.stuck > 3 && (
-            <div className="mt-1 text-kicker text-amber-800/70">
+            <div className="mt-1 text-kicker text-indigo-600/70">
               + {counts.stuck - 3} de plus
             </div>
           )}
@@ -190,33 +190,33 @@ function AnomalyPanel({ data }: { data: AnomalyWatchResult | { ok: false; error:
 
         <div className="px-5 py-4">
           <div className="flex items-baseline justify-between gap-2">
-            <div className="text-sm font-medium text-amber-900">Erreurs</div>
-            <div className="text-2xl font-semibold tracking-tight text-amber-900">{counts.errors}</div>
+            <div className="text-sm font-medium text-indigo-600">Erreurs</div>
+            <div className="text-2xl font-semibold tracking-tight text-indigo-600">{counts.errors}</div>
           </div>
-          <div className="mt-0.5 text-kicker text-amber-800/70">
+          <div className="mt-0.5 text-kicker text-indigo-600/70">
             forwards en erreur &gt; 48h
           </div>
           {errors.slice(0, 3).map((r) => (
-            <div key={r.medusa_order_id} className="mt-2 text-xs text-ds-text-secondary">
-              <div className="font-mono text-ds-text-secondary truncate">
+            <div key={r.medusa_order_id} className="mt-2 text-xs text-zinc-600">
+              <div className="font-mono text-zinc-600 truncate">
                 {r.medusa_order_id.slice(0, 18)}…
               </div>
               {r.error_message && (
-                <div className="text-ds-text-muted truncate" title={r.error_message}>
+                <div className="text-zinc-400 truncate" title={r.error_message}>
                   {r.error_message}
                 </div>
               )}
             </div>
           ))}
           {counts.errors > 3 && (
-            <div className="mt-1 text-kicker text-amber-800/70">
+            <div className="mt-1 text-kicker text-indigo-600/70">
               + {counts.errors - 3} de plus
             </div>
           )}
         </div>
       </div>
       {warnings.length > 0 && (
-        <div className="px-5 py-2 border-t border-[var(--warning-muted)]/60 bg-amber-100/40 text-kicker text-amber-900/80">
+        <div className="px-5 py-2 border-t border-[var(--warning-muted)]/60 bg-indigo-50/40 text-kicker text-indigo-600/80">
           {warnings.join(' · ')}
         </div>
       )}
@@ -314,13 +314,13 @@ export default async function OrdersPage() {
     <div className="space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-kicker uppercase tracking-label text-ds-text-muted font-medium">
+          <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">
             Production · Dropship
           </p>
           <h2 className="mt-1 text-3xl font-semibold tracking-tight">
-            Carnet de <em className="italic text-ds-text-secondary">commandes</em>
+            Carnet de <em className="italic text-zinc-600">commandes</em>
           </h2>
-          <p className="mt-2 text-sm text-ds-text-muted max-w-2xl">
+          <p className="mt-2 text-sm text-zinc-400 max-w-2xl">
             Forward chaque commande payée vers AliExpress. Le <strong>dry-run</strong> sauve le payload sans rien envoyer ;{' '}
             <strong>envoyer à AE</strong> place une vraie commande dropshipping qu&apos;il faudra payer sur aliexpress.com.
           </p>
@@ -355,7 +355,7 @@ export default async function OrdersPage() {
       </section>
 
       {fetchError && (
-        <div className="border border-[var(--danger-muted)] bg-[var(--danger-muted)] rounded-xl p-4 text-sm text-red-800">
+        <div className="border border-[var(--danger-muted)] bg-[var(--danger-muted)] rounded-xl p-4 text-sm text-zinc-500">
           Erreur Medusa : {fetchError}
         </div>
       )}
@@ -364,14 +364,14 @@ export default async function OrdersPage() {
         <section className="border border-[var(--warning-muted)] bg-[var(--warning-muted)]/30 rounded-xl overflow-hidden">
           <div className="px-5 py-4 border-b border-[var(--warning-muted)]/60 bg-[var(--warning-muted)]/60">
             <div className="flex items-baseline gap-3">
-              <h3 className="text-base font-semibold tracking-tight text-amber-900">
+              <h3 className="text-base font-semibold tracking-tight text-indigo-600">
                 À payer <em className="italic">chez AliExpress</em>
               </h3>
-              <span className="text-xs uppercase tracking-wider text-[var(--warning)]/70">
+              <span className="text-xs uppercase tracking-wider text-indigo-600/70">
                 · {awaitingPayment.length} commande{awaitingPayment.length > 1 ? 's' : ''}
               </span>
             </div>
-            <p className="mt-1 text-xs text-amber-800/80 max-w-3xl">
+            <p className="mt-1 text-xs text-indigo-600/80 max-w-3xl">
               AliExpress n&apos;a pas d&apos;API de paiement. Clique le lien pour ouvrir la commande sur ton compte AE,
               paie, puis reviens cliquer <strong>Marquer payée</strong>. Annulation automatique après{' '}
               <strong>20 jours</strong> sans paiement.
@@ -379,7 +379,7 @@ export default async function OrdersPage() {
           </div>
           <div className="overflow-x-auto">
           <table className="w-full min-w-[700px] text-sm">
-            <thead className="bg-[var(--warning-muted)]/40 text-kicker uppercase tracking-header text-amber-900/60">
+            <thead className="bg-[var(--warning-muted)]/40 text-kicker uppercase tracking-header text-indigo-600/60">
               <tr>
                 <th className="text-left px-5 py-3 font-medium">Commande</th>
                 <th className="text-left px-5 py-3 font-medium">Client</th>
@@ -402,9 +402,9 @@ export default async function OrdersPage() {
                       <div className="font-medium">
                         #{row.display_id ?? row.medusa_order_id.slice(0, 8)}
                       </div>
-                      <div className="text-kicker text-ds-text-muted font-mono mt-0.5">{row.medusa_order_id}</div>
+                      <div className="text-kicker text-zinc-400 font-mono mt-0.5">{row.medusa_order_id}</div>
                     </td>
-                    <td className="px-5 py-4 text-ds-text-secondary">{row.customer_email ?? '—'}</td>
+                    <td className="px-5 py-4 text-zinc-600">{row.customer_email ?? '—'}</td>
                     <td className="px-5 py-4 font-semibold tracking-tight text-base">
                       {row.total_minor != null && row.currency_code
                         ? formatMoney(row.total_minor, row.currency_code)
@@ -421,7 +421,7 @@ export default async function OrdersPage() {
                         <span aria-hidden="true">↗</span>
                       </a>
                     </td>
-                    <td className={`px-5 py-4 text-xs ${stale ? 'text-[var(--danger)]' : 'text-ds-text-muted'}`}>
+                    <td className={`px-5 py-4 text-xs ${stale ? 'text-zinc-500' : 'text-zinc-400'}`}>
                       <div className="flex items-center gap-2">
                         <StatusDot tone={stale ? 'red' : 'amber'} />
                         il y a {ageLabel}
@@ -441,27 +441,27 @@ export default async function OrdersPage() {
       )}
 
       {!fetchError && orders.length === 0 && (
-        <div className="border border-dashed border-ds-border-subtle rounded-xl px-6 py-16 text-center bg-ds-surface-subtle/40">
-          <p className="text-sm font-semibold tracking-tight text-ds-text-secondary">Aucune commande pour le moment.</p>
-          <p className="mt-1 text-xs text-ds-text-muted">
+        <div className="border border-dashed border-zinc-200 rounded-xl px-6 py-16 text-center bg-zinc-50/40">
+          <p className="text-sm font-semibold tracking-tight text-zinc-600">Aucune commande pour le moment.</p>
+          <p className="mt-1 text-xs text-zinc-400">
             Les commandes Medusa payées apparaîtront ici dès qu&apos;un client passera commande.
           </p>
         </div>
       )}
 
       {orders.length > 0 && (
-        <section className="border border-ds-border-subtle rounded-xl overflow-hidden bg-ds-surface-subtle">
-          <div className="px-5 py-4 border-b border-ds-border-subtle/60 flex items-baseline gap-3">
+        <section className="border border-zinc-200 rounded-xl overflow-hidden bg-zinc-50">
+          <div className="px-5 py-4 border-b border-zinc-200/60 flex items-baseline gap-3">
             <h3 className="text-base font-semibold tracking-tight">
-              Toutes les <em className="italic text-ds-text-secondary">commandes</em>
+              Toutes les <em className="italic text-zinc-600">commandes</em>
             </h3>
-            <span className="text-xs uppercase tracking-wider text-ds-text-muted">
+            <span className="text-xs uppercase tracking-wider text-zinc-400">
               · {orders.length} affichée{orders.length > 1 ? 's' : ''}
             </span>
           </div>
           <div className="overflow-x-auto">
           <table className="w-full min-w-[700px] text-sm">
-            <thead className="bg-ds-surface-subtle/60 text-kicker uppercase tracking-header text-ds-text-muted">
+            <thead className="bg-zinc-50/60 text-kicker uppercase tracking-header text-zinc-400">
               <tr>
                 <th className="text-left px-5 py-3 font-medium">Commande</th>
                 <th className="text-left px-5 py-3 font-medium">Client</th>
@@ -478,10 +478,10 @@ export default async function OrdersPage() {
                 const paymentOk =
                   order.payment_status === 'captured' || order.payment_status === 'authorized';
                 return (
-                  <tr key={order.id} className="hover:bg-ds-surface-subtle/60 transition-colors">
+                  <tr key={order.id} className="hover:bg-zinc-50/60 transition-colors">
                     <td className="px-5 py-4">
                       <div className="font-medium">#{order.display_id ?? order.id.slice(0, 8)}</div>
-                      <div className="text-kicker text-ds-text-muted mt-0.5">
+                      <div className="text-kicker text-zinc-400 mt-0.5">
                         {new Date(order.created_at).toLocaleDateString('fr-FR', {
                           day: '2-digit',
                           month: 'short',
@@ -490,9 +490,9 @@ export default async function OrdersPage() {
                       </div>
                     </td>
                     <td className="px-5 py-4">
-                      <div className="text-ds-text-secondary">{order.email ?? '—'}</div>
+                      <div className="text-zinc-600">{order.email ?? '—'}</div>
                       {order.shipping_address?.city && (
-                        <div className="text-xs text-ds-text-muted mt-0.5">{order.shipping_address.city}</div>
+                        <div className="text-xs text-zinc-400 mt-0.5">{order.shipping_address.city}</div>
                       )}
                     </td>
                     <td className="px-5 py-4 font-semibold">
@@ -500,7 +500,7 @@ export default async function OrdersPage() {
                     </td>
                     <td className="px-5 py-4">
                       <span
-                        className={`inline-flex items-center gap-1.5 text-xs ${paymentOk ? 'text-[var(--success)]' : 'text-ds-text-muted'}`}
+                        className={`inline-flex items-center gap-1.5 text-xs ${paymentOk ? 'text-indigo-600' : 'text-zinc-400'}`}
                       >
                         <StatusDot tone={paymentOk ? 'emerald' : 'zinc'} />
                         {order.payment_status ?? order.status ?? '—'}
@@ -511,7 +511,7 @@ export default async function OrdersPage() {
                         forward.status === 'sent' && forward.ae_order_id ? (
                           <div className="flex flex-col gap-0.5">
                             <span
-                              className={`inline-flex items-center gap-1.5 text-xs ${forward.paid_at ? 'text-[var(--success)]' : 'text-[var(--warning)]'}`}
+                              className={`inline-flex items-center gap-1.5 text-xs ${forward.paid_at ? 'text-indigo-600' : 'text-indigo-600'}`}
                             >
                               <StatusDot tone={forward.paid_at ? 'emerald' : 'amber'} />
                               {forward.paid_at ? 'payée' : 'à payer'}
@@ -520,7 +520,7 @@ export default async function OrdersPage() {
                               href={aliExpressOrderUrl(forward.ae_order_id)}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="font-mono text-kicker text-ds-text-muted hover:text-orange-700 hover:underline underline-offset-2"
+                              className="font-mono text-kicker text-zinc-400 hover:text-orange-700 hover:underline underline-offset-2"
                             >
                               {forward.ae_order_id}
                             </a>
@@ -532,19 +532,19 @@ export default async function OrdersPage() {
                           </span>
                         ) : (
                           <div className="flex flex-col gap-0.5 max-w-[260px]">
-                            <span className="inline-flex items-center gap-1.5 text-xs text-[var(--danger)]">
+                            <span className="inline-flex items-center gap-1.5 text-xs text-zinc-500">
                               <StatusDot tone="red" />
                               erreur
                             </span>
                             {forward.error_message && (
-                              <span className="text-kicker text-[var(--danger)]/80 line-clamp-2" title={forward.error_message}>
+                              <span className="text-kicker text-zinc-500/80 line-clamp-2" title={forward.error_message}>
                                 {forward.error_message}
                               </span>
                             )}
                           </div>
                         )
                       ) : (
-                        <span className="text-ds-text-muted text-xs">—</span>
+                        <span className="text-zinc-400 text-xs">—</span>
                       )}
                     </td>
                     <td className="px-5 py-4 text-right">

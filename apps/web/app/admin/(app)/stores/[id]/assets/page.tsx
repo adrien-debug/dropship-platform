@@ -100,7 +100,7 @@ export default async function StoreAssetsPage({ params }: { params: Promise<{ id
       <div>
         <Link
           href={`/admin/stores/${id}`}
-          className="text-xs text-ds-text-muted hover:text-ds-text-secondary transition-colors"
+          className="text-xs text-zinc-400 hover:text-zinc-600 transition-colors"
         >
           ← Retour au store
         </Link>
@@ -109,14 +109,14 @@ export default async function StoreAssetsPage({ params }: { params: Promise<{ id
             kicker={`Production · Assets · ${store.niche}`}
             title={
               <>
-                Assets de <em className="italic text-ds-text-muted">{store.name}</em>
+                Assets de <em className="italic text-zinc-400">{store.name}</em>
               </>
             }
             lede={
               <>
                 Régénère chaque visuel sans toucher au produit. Le prompt est éditable, l’historique
                 conserve les 10 derniers runs et un clic suffit pour revenir à une version
-                précédente. Le storefront <code className="font-mono text-ds-text-secondary">/shop/{store.slug}</code>{' '}
+                précédente. Le storefront <code className="font-mono text-zinc-600">/shop/{store.slug}</code>{' '}
                 reflète immédiatement la version courante.
               </>
             }
@@ -125,7 +125,7 @@ export default async function StoreAssetsPage({ params }: { params: Promise<{ id
       </div>
 
       {!product?.image_url && (
-        <div className="border border-[var(--warning-muted)] bg-[var(--warning-muted)] rounded-xl px-5 py-4 text-sm text-amber-900">
+        <div className="border border-[var(--warning-muted)] bg-[var(--warning-muted)] rounded-xl px-5 py-4 text-sm text-indigo-600">
           <strong className="font-medium">Aucun produit de référence.</strong> Aucune image produit
           n’est associée à ce store — la régénération ne peut pas s’appuyer sur un visuel source.
           Importe un produit avec une image avant d’utiliser cette page.

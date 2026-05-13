@@ -50,7 +50,7 @@ export function DryRunPendingButton() {
           {result.processed} traitée{result.processed > 1 ? 's' : ''} sur {result.scanned} payée{result.scanned > 1 ? 's' : ''}
         </span>
       )}
-      {error && <span className="text-kicker text-red-600">{error}</span>}
+      {error && <span className="text-kicker text-zinc-500">{error}</span>}
     </div>
   );
 }

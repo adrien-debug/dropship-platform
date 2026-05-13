@@ -18,7 +18,7 @@ const COLLAPSED_KEY = 'admin-sidebar-collapsed';
 export function Sidebar() {
   const pathname = usePathname() ?? '/admin';
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(true);
+  const [collapsed, setCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -245,15 +245,14 @@ export function Sidebar() {
             </nav>
 
             <div className="shrink-0 p-3 border-t border-ds-border-subtle">
-              <form action="/admin/login" method="post">
-                <button
-                  type="submit"
-                  className="flex items-center gap-2.5 px-3.5 py-2.5 text-xs text-ds-text-muted hover:text-ds-text-primary hover:bg-ds-surface-default rounded-[10px] transition-colors w-full font-medium"
-                >
-                  <LogOut size={15} strokeWidth={1.5} aria-hidden />
-                  Déconnexion
-                </button>
-              </form>
+              <button
+                type="button"
+                onClick={logout}
+                className="flex items-center gap-2.5 px-3.5 py-2.5 text-xs text-ds-text-muted hover:text-ds-text-primary hover:bg-ds-surface-default rounded-[10px] transition-colors w-full font-medium"
+              >
+                <LogOut size={15} strokeWidth={1.5} aria-hidden />
+                Déconnexion
+              </button>
             </div>
           </aside>
         </div>
