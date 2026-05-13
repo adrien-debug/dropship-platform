@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
             medusaOrderId: result.order.id,
           });
           if (eventId) {
-            console.log(`[checkout/complete] purchase tracked order=${result.order.id} event=${eventId}`);
+            console.info(`[checkout/complete] purchase tracked order=${result.order.id} event=${eventId}`);
           }
         }
       }

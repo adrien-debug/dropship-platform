@@ -37,7 +37,6 @@ import { medusa } from '@/lib/medusa';
 import * as aliexpress from '@/lib/suppliers/aliexpress';
 import * as cj from '@/lib/suppliers/cj';
 import { trackedMessage } from './anthropic';
-import { runContext } from './run-context';
 import { rankAndKeepTop } from './product-scorer';
 import { buildMedusaHandle } from './handle';
 import { extractJson } from './json';
@@ -46,8 +45,6 @@ import { extractJson } from './json';
 // use. Haiku 4.5 is cheaper but in our tests it occasionally invents tool
 // names. If a sonnet-4-7 ships, swap here.
 const CURATION_MODEL = 'claude-sonnet-4-6';
-const MAX_TOOL_LOOPS = 8;
-const MAX_TOOLS_PER_TURN = 16;
 
 // ── Tool schemas (Zod) ────────────────────────────────────────────────
 // Zod is the source of truth — we derive both the Anthropic schema string
@@ -170,13 +167,6 @@ const TOOLS: Anthropic.Messages.Tool[] = [
     },
   },
 ];
-
-// ── Public types ────────────────────────────────────────────────────────
-
-export interface CurationStreamEvent {
-  type: 'thinking' | 'tool_call' | 'tool_result' | 'message' | 'done' | 'error';
-  data: unknown;
-}
 
 interface StoredMessage {
   id: string;
@@ -876,225 +866,7 @@ async function executeTool(
   }
 }
 
-// ── Public entry point ──────────────────────────────────────────────────
 
-/**
- * Create a new curation session for a store. Returns the new session id.
- * Public so the SSE route can lazily create a session when none is passed.
- */
-export async function createCurationSession(storeId: string): Promise<string> {
-  const db = getDb();
-  const { rows } = await db.query<{ id: string }>(
-    `INSERT INTO dropship_curation_sessions (store_id) VALUES ($1) RETURNING id`,
-    [storeId],
-  );
-  return rows[0]!.id;
-}
-
-/**
- * Stream a single chat turn. Each yielded event is JSON-serializable so the
- * SSE route can pass it straight to the wire.
- */
-export async function* runCurationTurn(
-  storeId: string,
-  sessionId: string,
-  userMessage: string,
-): AsyncGenerator<CurationStreamEvent> {
-  const events: CurationStreamEvent[] = [];
-  let resolveNext: (() => void) | null = null;
-  let runDone = false;
-  let runError: unknown = null;
-
-  const emit = (e: CurationStreamEvent) => {
-    events.push(e);
-    if (resolveNext) {
-      const r = resolveNext;
-      resolveNext = null;
-      r();
-    }
-  };
-
-  const run = async () => {
-    try {
-      const store = await loadStore(storeId);
-      if (!store) throw new Error(`Store ${storeId} introuvable.`);
-
-      // Persist the user message FIRST so a crash mid-turn still leaves a
-      // queryable history.
-      await insertMessage(sessionId, { role: 'user', content: userMessage });
-
-      const history = await loadHistory(sessionId);
-      const messages = rebuildMessages(history);
-
-      await runContext.run({ storeId }, async () => {
-        let loops = 0;
-        let toolCallsThisTurn = 0;
-        let finalAssistantText = '';
-
-        while (loops < MAX_TOOL_LOOPS) {
-          loops++;
-
-          const response = await trackedMessage({ step: 'curate-turn' }, {
-            model: CURATION_MODEL,
-            max_tokens: 4096,
-            system: buildSystemPrompt(store),
-            tools: TOOLS,
-            messages,
-          });
-
-          // Extract text (concatenated across multiple text blocks) and
-          // tool_use blocks from the response.
-          const textBlocks = response.content.filter((b) => b.type === 'text') as Array<Extract<typeof response.content[number], { type: 'text' }>>;
-          const toolUseBlocks = response.content.filter((b) => b.type === 'tool_use') as Array<Extract<typeof response.content[number], { type: 'tool_use' }>>;
-          const assistantText = textBlocks.map((b) => b.text).join('\n').trim();
-
-          if (assistantText) {
-            emit({ type: 'thinking', data: { text: assistantText } });
-            finalAssistantText = assistantText;
-          }
-
-          // Push the assistant turn into the running message list verbatim.
-          messages.push({
-            role: 'assistant',
-            content: response.content
-              .filter((b) => b.type === 'text' || b.type === 'tool_use')
-              .map((b) => {
-                if (b.type === 'text') return { type: 'text', text: b.text };
-                return { type: 'tool_use', id: b.id, name: b.name, input: b.input };
-              }) as Anthropic.Messages.ContentBlockParam[],
-          });
-
-          if (response.stop_reason !== 'tool_use' || toolUseBlocks.length === 0) {
-            // Normal end-of-turn. Persist the assistant text (may be empty
-            // if Claude only emitted tool calls — uncommon at end_turn).
-            await insertMessage(sessionId, {
-              role: 'assistant',
-              content: finalAssistantText,
-            });
-            emit({ type: 'message', data: { text: finalAssistantText } });
-            emit({ type: 'done', data: { text: finalAssistantText } });
-            return;
-          }
-
-          // Persist the assistant text BEFORE running tools, so the chat
-          // history shows Claude's preamble even if a tool crashes.
-          if (assistantText) {
-            await insertMessage(sessionId, {
-              role: 'assistant',
-              content: assistantText,
-            });
-          }
-
-          // Execute every tool_use block in order, collecting tool_result
-          // blocks for the next iteration's user turn.
-          const toolResults: Anthropic.Messages.ToolResultBlockParam[] = [];
-          for (const block of toolUseBlocks) {
-            if (toolCallsThisTurn >= MAX_TOOLS_PER_TURN) {
-              const msg = `Maximum d’appels d’outils par tour atteint (${MAX_TOOLS_PER_TURN}).`;
-              await insertMessage(sessionId, {
-                role: 'tool',
-                content: msg,
-                toolName: block.name,
-                toolInput: { __tool_use_id: block.id, ...(block.input as object) },
-                toolOutput: { error: msg },
-              });
-              toolResults.push({
-                type: 'tool_result',
-                tool_use_id: block.id,
-                content: msg,
-                is_error: true,
-              });
-              continue;
-            }
-            toolCallsThisTurn++;
-
-            emit({
-              type: 'tool_call',
-              data: { id: block.id, name: block.name, input: block.input },
-            });
-
-            let toolOutput: unknown;
-            let summary = '';
-            let isError = false;
-            try {
-              const result = await executeTool(block.name, block.input, store);
-              toolOutput = result.output;
-              summary = result.summary;
-            } catch (e) {
-              isError = true;
-              const message = e instanceof Error ? e.message : String(e);
-              // Zod errors come through as ZodError — extract a cleaner
-              // message so the model can fix the input next turn.
-              const zodIssues = e instanceof z.ZodError ? e.errors.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ') : null;
-              toolOutput = { error: message, ...(zodIssues ? { issues: zodIssues } : {}) };
-              summary = `Erreur: ${message}`;
-            }
-
-            await insertMessage(sessionId, {
-              role: 'tool',
-              content: summary,
-              toolName: block.name,
-              toolInput: { __tool_use_id: block.id, ...(block.input as object) },
-              toolOutput,
-            });
-
-            emit({
-              type: 'tool_result',
-              data: { id: block.id, name: block.name, output: toolOutput, summary, is_error: isError },
-            });
-
-            toolResults.push({
-              type: 'tool_result',
-              tool_use_id: block.id,
-              content: stringifyToolOutput(toolOutput),
-              is_error: isError,
-            });
-          }
-
-          // Feed tool_results back as a user turn so Claude can synthesise.
-          messages.push({ role: 'user', content: toolResults });
-        }
-
-        // Loop guard tripped — surface and stop.
-        const guardMsg = `Boucle d’outils maximale atteinte (${MAX_TOOL_LOOPS}).`;
-        await insertMessage(sessionId, { role: 'assistant', content: guardMsg });
-        emit({ type: 'message', data: { text: guardMsg } });
-        emit({ type: 'done', data: { text: guardMsg } });
-      });
-    } catch (e) {
-      runError = e;
-      const message = e instanceof Error ? e.message : String(e);
-      emit({ type: 'error', data: { message } });
-    } finally {
-      runDone = true;
-      if (resolveNext) {
-        const r = resolveNext;
-        resolveNext = null;
-        r();
-      }
-    }
-  };
-
-  // Fire the worker without awaiting; the generator below drains `events`.
-  void run();
-
-  while (true) {
-    if (events.length > 0) {
-      yield events.shift()!;
-    } else if (runDone) {
-      return;
-    } else {
-      await new Promise<void>((resolve) => {
-        resolveNext = resolve;
-      });
-    }
-  }
-  // Touch runError so the linter doesn't strip it; the error has already
-  // been emitted to the consumer via the `error` event above.
-  void runError;
-}
-
-// Internal exports for testing only. Not part of the public surface.
 export const __internals = {
   TOOLS,
   rebuildMessages,

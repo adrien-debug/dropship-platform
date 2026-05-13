@@ -30,7 +30,7 @@ function recentFilePath(): string {
   return path.join(dir, RECENT_FILENAME);
 }
 
-export function loadRecentStores(): RecentStore[] {
+function loadRecentStores(): RecentStore[] {
   try {
     const raw = readFileSync(recentFilePath(), 'utf8');
     const parsed = JSON.parse(raw) as RecentStore[];

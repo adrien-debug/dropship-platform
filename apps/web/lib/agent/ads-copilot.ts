@@ -1,28 +1,21 @@
 /**
- * Conversational ads copilot — per-store chat agent for the ads page.
+ * Ads copilot tool library — used by copilot-router.ts (Ads mode).
  *
- * Mirrors `curation-copilot.ts` (same SSE protocol, same session/message
- * persistence) but the tool surface is ads-specific: list variants, rewrite
- * a hook, generate a visual, suggest targeting, estimate budget.
- *
- * Sessions and messages share the `dropship_curation_sessions` /
- * `dropship_curation_messages` tables (kept generic on purpose — chat
- * sessions per store, role + tool_input/tool_output JSON). The chat scope
- * is distinguished by the surface that loaded it.
+ * Tool surface: list variants, rewrite hook, generate visual (fal.ai),
+ * suggest targeting, estimate budget. History is persisted into the legacy
+ * `dropship_curation_messages` table when invoked via the old routes; new
+ * sessions go through copilot-router which writes to `dropship_copilot_messages`.
  */
 
 import type Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
 import { getDb } from '@/lib/db';
 import { trackedMessage } from './anthropic';
-import { runContext } from './run-context';
 import { extractJson } from './json';
 import { falGenerateImage } from './fal-client';
 import { uploadToR2, isR2Configured } from '@/lib/storage/r2';
 
 const ADS_MODEL = 'claude-sonnet-4-6';
-const MAX_TOOL_LOOPS = 8;
-const MAX_TOOLS_PER_TURN = 16;
 
 // ── Tool schemas ────────────────────────────────────────────────────────
 
@@ -119,13 +112,6 @@ const TOOLS: Anthropic.Messages.Tool[] = [
     },
   },
 ];
-
-// ── Public types ────────────────────────────────────────────────────────
-
-export interface AdsStreamEvent {
-  type: 'thinking' | 'tool_call' | 'tool_result' | 'message' | 'done' | 'error';
-  data: unknown;
-}
 
 interface StoredMessage {
   id: string;
@@ -735,195 +721,6 @@ async function executeTool(
   }
 }
 
-// ── Public surface ──────────────────────────────────────────────────────
-
-export async function createAdsSession(storeId: string): Promise<string> {
-  const db = getDb();
-  const { rows } = await db.query<{ id: string }>(
-    `INSERT INTO dropship_curation_sessions (store_id) VALUES ($1) RETURNING id`,
-    [storeId],
-  );
-  return rows[0]!.id;
-}
-
-export async function* runAdsTurn(
-  storeId: string,
-  sessionId: string,
-  userMessage: string,
-): AsyncGenerator<AdsStreamEvent> {
-  const events: AdsStreamEvent[] = [];
-  let resolveNext: (() => void) | null = null;
-  let runDone = false;
-  let runError: unknown = null;
-
-  const emit = (e: AdsStreamEvent) => {
-    events.push(e);
-    if (resolveNext) {
-      const r = resolveNext;
-      resolveNext = null;
-      r();
-    }
-  };
-
-  const run = async () => {
-    try {
-      const store = await loadStore(storeId);
-      if (!store) throw new Error(`Store ${storeId} introuvable.`);
-
-      await insertMessage(sessionId, { role: 'user', content: userMessage });
-
-      const history = await loadHistory(sessionId);
-      const messages = rebuildMessages(history);
-
-      await runContext.run({ storeId }, async () => {
-        let loops = 0;
-        let toolCallsThisTurn = 0;
-        let finalAssistantText = '';
-
-        while (loops < MAX_TOOL_LOOPS) {
-          loops++;
-
-          const response = await trackedMessage({ step: 'ads-turn' }, {
-            model: ADS_MODEL,
-            max_tokens: 4096,
-            system: buildSystemPrompt(store),
-            tools: TOOLS,
-            messages,
-          });
-
-          const textBlocks = response.content.filter((b) => b.type === 'text') as Array<
-            Extract<typeof response.content[number], { type: 'text' }>
-          >;
-          const toolUseBlocks = response.content.filter((b) => b.type === 'tool_use') as Array<
-            Extract<typeof response.content[number], { type: 'tool_use' }>
-          >;
-          const assistantText = textBlocks.map((b) => b.text).join('\n').trim();
-
-          if (assistantText) {
-            emit({ type: 'thinking', data: { text: assistantText } });
-            finalAssistantText = assistantText;
-          }
-
-          messages.push({
-            role: 'assistant',
-            content: response.content
-              .filter((b) => b.type === 'text' || b.type === 'tool_use')
-              .map((b) => {
-                if (b.type === 'text') return { type: 'text', text: b.text };
-                return { type: 'tool_use', id: b.id, name: b.name, input: b.input };
-              }) as Anthropic.Messages.ContentBlockParam[],
-          });
-
-          if (response.stop_reason !== 'tool_use' || toolUseBlocks.length === 0) {
-            await insertMessage(sessionId, { role: 'assistant', content: finalAssistantText });
-            emit({ type: 'message', data: { text: finalAssistantText } });
-            emit({ type: 'done', data: { text: finalAssistantText } });
-            return;
-          }
-
-          if (assistantText) {
-            await insertMessage(sessionId, { role: 'assistant', content: assistantText });
-          }
-
-          const toolResults: Anthropic.Messages.ToolResultBlockParam[] = [];
-          for (const block of toolUseBlocks) {
-            if (toolCallsThisTurn >= MAX_TOOLS_PER_TURN) {
-              const msg = `Maximum d’appels d’outils par tour atteint (${MAX_TOOLS_PER_TURN}).`;
-              await insertMessage(sessionId, {
-                role: 'tool',
-                content: msg,
-                toolName: block.name,
-                toolInput: { __tool_use_id: block.id, ...(block.input as object) },
-                toolOutput: { error: msg },
-              });
-              toolResults.push({
-                type: 'tool_result',
-                tool_use_id: block.id,
-                content: msg,
-                is_error: true,
-              });
-              continue;
-            }
-            toolCallsThisTurn++;
-
-            emit({ type: 'tool_call', data: { id: block.id, name: block.name, input: block.input } });
-
-            let toolOutput: unknown;
-            let summary = '';
-            let isError = false;
-            try {
-              const result = await executeTool(block.name, block.input, store);
-              toolOutput = result.output;
-              summary = result.summary;
-            } catch (e) {
-              isError = true;
-              const message = e instanceof Error ? e.message : String(e);
-              const zodIssues =
-                e instanceof z.ZodError
-                  ? e.errors.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')
-                  : null;
-              toolOutput = { error: message, ...(zodIssues ? { issues: zodIssues } : {}) };
-              summary = `Erreur: ${message}`;
-            }
-
-            await insertMessage(sessionId, {
-              role: 'tool',
-              content: summary,
-              toolName: block.name,
-              toolInput: { __tool_use_id: block.id, ...(block.input as object) },
-              toolOutput,
-            });
-
-            emit({
-              type: 'tool_result',
-              data: { id: block.id, name: block.name, output: toolOutput, summary, is_error: isError },
-            });
-
-            toolResults.push({
-              type: 'tool_result',
-              tool_use_id: block.id,
-              content: stringifyToolOutput(toolOutput),
-              is_error: isError,
-            });
-          }
-
-          messages.push({ role: 'user', content: toolResults });
-        }
-
-        const guardMsg = `Boucle d’outils maximale atteinte (${MAX_TOOL_LOOPS}).`;
-        await insertMessage(sessionId, { role: 'assistant', content: guardMsg });
-        emit({ type: 'message', data: { text: guardMsg } });
-        emit({ type: 'done', data: { text: guardMsg } });
-      });
-    } catch (e) {
-      runError = e;
-      const message = e instanceof Error ? e.message : String(e);
-      emit({ type: 'error', data: { message } });
-    } finally {
-      runDone = true;
-      if (resolveNext) {
-        const r = resolveNext;
-        resolveNext = null;
-        r();
-      }
-    }
-  };
-
-  void run();
-
-  while (true) {
-    if (events.length > 0) {
-      yield events.shift()!;
-    } else if (runDone) {
-      return;
-    } else {
-      await new Promise<void>((resolve) => {
-        resolveNext = resolve;
-      });
-    }
-  }
-  void runError;
-}
 
 export const __internals = {
   TOOLS,

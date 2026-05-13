@@ -60,29 +60,29 @@ vi.mock('@/lib/db', () => ({
 
 const tavilySearchMock = vi.fn();
 vi.mock('@/lib/research/tavily', () => ({
-  tavilySearch: (...args: unknown[]) => tavilySearchMock(...args),
+  tavilySearch: tavilySearchMock,
   isTavilyConfigured: () => true,
 }));
 
 const perplexityAnswerMock = vi.fn();
 vi.mock('@/lib/research/perplexity', () => ({
-  perplexityAnswer: (...args: unknown[]) => perplexityAnswerMock(...args),
+  perplexityAnswer: perplexityAnswerMock,
   isPerplexityConfigured: () => true,
 }));
 
 const validateNicheMock = vi.fn();
 vi.mock('@/lib/trends/meta-library', () => ({
-  validateNiche: (...args: unknown[]) => validateNicheMock(...args),
+  validateNiche: validateNicheMock,
 }));
 
 const aliexpressSearch = vi.fn();
 vi.mock('@/lib/suppliers/aliexpress', () => ({
-  searchProducts: (...args: unknown[]) => aliexpressSearch(...args),
+  searchProducts: aliexpressSearch,
 }));
 
 const cjSearch = vi.fn();
 vi.mock('@/lib/suppliers/cj', () => ({
-  searchProducts: (...args: unknown[]) => cjSearch(...args),
+  searchProducts: cjSearch,
 }));
 
 // ── Anthropic mock ────────────────────────────────────────────────────
@@ -104,7 +104,7 @@ const trackedMessageMock = vi.fn(async () => {
   return next;
 });
 vi.mock('./anthropic', () => ({
-  trackedMessage: (...args: unknown[]) => trackedMessageMock(...args),
+  trackedMessage: trackedMessageMock,
 }));
 
 // ── Helpers ──────────────────────────────────────────────────────────

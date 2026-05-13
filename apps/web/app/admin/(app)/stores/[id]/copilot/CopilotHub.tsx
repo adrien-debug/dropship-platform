@@ -388,14 +388,6 @@ export function CopilotHub({
               >
                 <span>{meta.emoji}</span>
                 <span className="font-medium">{meta.label}</span>
-                {m === 'dev' && (
-                  <span className={cx(
-                    'text-[10px] px-1.5 py-0.5 rounded font-medium uppercase tracking-wider',
-                    active ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-700',
-                  )}>
-                    new
-                  </span>
-                )}
               </button>
             );
           })}
