@@ -1,0 +1,26 @@
+{
+  "id": "events-arcadium",
+  "label": "Events Arcadium",
+  "hint": "Affiche cyberpunk, mono techy, accent neon jaune sur slab noir.",
+  "niches": ["events", "tech"],
+  "register": "premium",
+  "mode": "editorial",
+  "moods": ["bold", "dark", "playful"],
+  "minProducts": 2,
+  "autoCandidate": false,
+  "componentName": "EventsArcadiumLanding",
+  "componentFile": "apps/web/app/shop/[slug]/EventsArcadiumLanding.tsx",
+  "sourceUrl": "https://fr.wix.com/website-template/view/html/wh-1306?originUrl=https%3A%2F%2Ffr.wix.com%2Fwebsite%2Ftemplates%2Fhtml%2Fevents%2F6&tpClick=view_button&esi=e380ed33-b6dc-4be2-8229-67765247f36a",
+  "sourceScreenshot": ".template-previews/events-wh-1306-source.png",
+  "wixCategory": "events",
+  "designTokens": {
+    "bg": "#E9E6F0",
+    "fg": "#0A0A0F",
+    "accent": "#E2FF60",
+    "muted": "#5C5A6B",
+    "fontDisplay": "JetBrains Mono",
+    "fontBody": "Inter",
+    "radiusCard": 4,
+    "radiusPill": 4
+  }
+}

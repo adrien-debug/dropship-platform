@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ArrowUpRight } from 'lucide-react';
 import { getDbRead } from '@/lib/db';
 import { PageHeader, StatCard, SectionCard } from '../_components/AdminUI';
 import { StoreAvatar, ButtonLink } from '@/components/ui';
@@ -63,11 +64,6 @@ async function safeQuery<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
 
 function eur(cents: number): string {
   return `${(cents / 100).toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} €`;
-}
-
-function pct(num: number, denom: number): string {
-  if (!denom) return '0%';
-  return `${Math.round((num / denom) * 100)}%`;
 }
 
 export default async function PortfolioDashboard() {
@@ -173,177 +169,244 @@ export default async function PortfolioDashboard() {
   const totalCost = Number(cost.total_cost_eur || 0);
   const avgPerRun = Number(cost.avg_cost_per_run || 0);
   const errorRate = cost.runs ? (cost.errors / cost.runs) * 100 : 0;
+  const globalConv = funnel.view_content > 0 ? (funnel.purchase / funnel.view_content) * 100 : 0;
 
   return (
     <div className="space-y-4 flex flex-col flex-1 min-h-0">
       <PageHeader
         kicker="Portfolio"
-        title={<span>Vue <em className="italic text-zinc-400">d&apos;ensemble</em></span>}
+        title={
+          <span>
+            Vue <em className="not-italic text-admin-text-muted font-light">d&apos;ensemble</em>
+          </span>
+        }
         lede="KPIs agrégés sur tous les stores actifs. Cliquez sur un bloc pour drill down."
       />
 
-      {/* Row 1 — store + revenue snapshot */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Link href="/admin/stores" className="block hover:opacity-90 transition-opacity">
+      {/* Row 1 — KPIs */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Link href="/admin/stores" className="block group rounded-admin-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-admin-text/20">
           <StatCard
             label="Stores actifs"
             value={stores.active.toString()}
             hint={
               stores.created_7d > 0 ? (
-                <span className="text-indigo-600">+{stores.created_7d} cette semaine</span>
+                <span className="text-admin-accent font-medium">+{stores.created_7d} cette semaine</span>
               ) : (
                 'Aucun nouveau store 7j'
               )
             }
           />
         </Link>
-        <Link href="/admin/catalog" className="block hover:opacity-90 transition-opacity">
+        <Link href="/admin/catalog" className="block group rounded-admin-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-admin-text/20">
           <StatCard
             label="Produits"
             value={stores.total_products.toLocaleString('fr-FR')}
-            hint={stores.products_7d > 0 ? `+${stores.products_7d} 7j` : '—'}
+            hint={stores.products_7d > 0 ? `+${stores.products_7d} cette semaine` : 'Aucun nouveau 7j'}
           />
         </Link>
         <StatCard
           label="CA 30j"
           value={eur(revenue30dCents)}
-          hint={`${orders30d} commande${orders30d > 1 ? 's' : ''} · ${eur(aov30dCents)} AOV`}
+          hint={
+            <span>
+              <span className="tabular-nums">{orders30d}</span> commande{orders30d > 1 ? 's' : ''}
+              <span className="text-admin-text-faint mx-1.5">·</span>
+              <span className="tabular-nums">{eur(aov30dCents)}</span> AOV
+            </span>
+          }
           tone={revenue30dCents > 0 ? 'emerald' : 'neutral'}
         />
         <StatCard
           label="CA 7j"
           value={eur(revenue7dCents)}
-          hint={`${orders7d} commande${orders7d > 1 ? 's' : ''}`}
+          hint={
+            <span>
+              <span className="tabular-nums">{orders7d}</span> commande{orders7d > 1 ? 's' : ''}
+            </span>
+          }
           tone={revenue7dCents > 0 ? 'emerald' : 'neutral'}
         />
       </div>
 
-      {/* Row 3 — top stores + funnel + cost */}
+      {/* Row 2 — Top stores + Funnel + Coût Claude */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 flex-1 min-h-0">
-        <SectionCard kicker="Performance 7j" title={<span>Top <em className="italic text-zinc-400">stores</em></span>}>
-          <div className="space-y-2">
-            {topStores.length === 0 && (
-              <p className="text-sm text-zinc-400">Aucun store actif avec des ventes 7j.</p>
+        {/* ─── Top stores ─────────────────────────────────────────── */}
+        <SectionCard
+          kicker="Performance 7j"
+          title={<span>Top <em className="not-italic text-admin-text-muted font-light">stores</em></span>}
+          actions={
+            <Link
+              href="/admin/stores"
+              className="text-[11px] font-medium text-admin-text-muted hover:text-admin-text transition-colors flex items-center gap-0.5"
+            >
+              Tous
+              <ArrowUpRight size={12} strokeWidth={2} aria-hidden />
+            </Link>
+          }
+        >
+          <div className="-mx-1.5">
+            {topStores.length === 0 ? (
+              <p className="px-1.5 py-2 text-sm text-admin-text-faint">
+                Aucun store actif avec des ventes 7j.
+              </p>
+            ) : (
+              <ul className="divide-y divide-admin-border-soft">
+                {topStores.map((s, idx) => (
+                  <li key={s.slug}>
+                    <Link
+                      href={`/admin/stores/${s.slug}`}
+                      className="group flex items-center gap-3 px-1.5 py-2 rounded-admin-md hover:bg-admin-bg-subtle focus-visible:outline-none focus-visible:bg-admin-bg-subtle focus-visible:ring-2 focus-visible:ring-admin-border-strong transition-colors"
+                    >
+                      <span className="w-4 text-[11px] tabular-nums text-admin-text-faint text-right">
+                        {idx + 1}
+                      </span>
+                      <StoreAvatar slug={s.slug} name={s.name} size={28} />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] font-medium text-admin-text truncate leading-tight">
+                          {s.name}
+                        </div>
+                        <div className="text-[11px] text-admin-text-faint truncate tabular-nums">
+                          /shop/{s.slug}
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div
+                          className={cn(
+                            'text-[13px] font-semibold tabular-nums leading-tight',
+                            Number(s.revenue_cents) > 0 ? 'text-admin-text' : 'text-admin-text-faint',
+                          )}
+                        >
+                          {eur(Number(s.revenue_cents))}
+                        </div>
+                        <div className="text-[11px] text-admin-text-faint tabular-nums">
+                          {s.orders} cmd
+                        </div>
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             )}
-            {topStores.map((s) => (
-              <Link
-                key={s.slug}
-                href={`/admin/stores/${s.slug}`}
-                className="flex items-center gap-3 -mx-2 px-2 py-1.5 rounded-md hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 focus-visible:bg-zinc-50 transition-colors"
-              >
-                <StoreAvatar slug={s.slug} name={s.name} size={28} />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-zinc-900 truncate">{s.name}</div>
-                  <div className="text-xs text-zinc-400 truncate">/shop/{s.slug}</div>
-                </div>
-                <div className="text-right shrink-0">
-                  <div className="text-sm font-medium text-zinc-900 tabular-nums">
-                    {eur(Number(s.revenue_cents))}
-                  </div>
-                  <div className="text-xs text-zinc-400 tabular-nums">
-                    {s.orders} commande{s.orders > 1 ? 's' : ''}
-                  </div>
-                </div>
-              </Link>
-            ))}
           </div>
         </SectionCard>
 
-        <SectionCard kicker="Funnel 30j" title={<span>Conversion <em className="italic text-zinc-400">globale</em></span>}>
-          <div>
-            <FunnelBar label="View content" value={funnel.view_content} reference={funnel.view_content} tone="neutral" />
-            <FunnelBar label="Add to cart" value={funnel.add_to_cart} reference={funnel.view_content} tone="blue" />
-            <FunnelBar label="Initiate checkout" value={funnel.initiate_checkout} reference={funnel.view_content} tone="amber" />
-            <FunnelBar label="Purchase" value={funnel.purchase} reference={funnel.view_content} tone="emerald" />
-            <div className="mt-4 pt-3 border-t border-zinc-200 text-xs text-zinc-400 flex justify-between">
-              <span>Conversion globale</span>
-              <span className="font-medium text-zinc-900">
-                {pct(funnel.purchase, funnel.view_content)}
-              </span>
-            </div>
-          </div>
-        </SectionCard>
-
-        <SectionCard kicker="Coût Claude 30j" title={<span>Observabilité <em className="italic text-zinc-400">agent</em></span>}>
+        {/* ─── Funnel ─────────────────────────────────────────────── */}
+        <SectionCard
+          kicker="Funnel 30j"
+          title={<span>Conversion <em className="not-italic text-admin-text-muted font-light">globale</em></span>}
+          actions={
+            <span className="text-[11px] font-semibold tabular-nums text-admin-text">
+              {globalConv.toFixed(1)}%
+            </span>
+          }
+        >
           <div className="space-y-3">
+            <FunnelBar label="View content" value={funnel.view_content} reference={funnel.view_content} intensity={1.0} />
+            <FunnelBar label="Add to cart" value={funnel.add_to_cart} reference={funnel.view_content} intensity={0.75} />
+            <FunnelBar label="Initiate checkout" value={funnel.initiate_checkout} reference={funnel.view_content} intensity={0.5} />
+            <FunnelBar label="Purchase" value={funnel.purchase} reference={funnel.view_content} intensity={0.25} highlight />
+          </div>
+        </SectionCard>
+
+        {/* ─── Coût Claude ────────────────────────────────────────── */}
+        <SectionCard
+          kicker="Coût Claude 30j"
+          title={<span>Observabilité <em className="not-italic text-admin-text-muted font-light">agent</em></span>}
+        >
+          <div className="space-y-4">
             <div>
-              <div className="text-3xl font-semibold tracking-tight text-zinc-900">
+              <div className="text-[32px] font-semibold tracking-[-0.03em] text-admin-text tabular-nums leading-none">
                 {totalCost.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
               </div>
-              <div className="text-xs text-zinc-400 mt-1">
+              <div className="mt-1.5 text-[11px] text-admin-text-muted">
                 Total des appels Anthropic
               </div>
             </div>
-            <dl className="space-y-1.5 text-sm">
-              <div className="flex justify-between">
-                <dt className="text-zinc-400">Runs</dt>
-                <dd className="font-medium text-zinc-900">{cost.runs.toLocaleString('fr-FR')}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-zinc-400">Coût moyen / run</dt>
-                <dd className="font-medium text-zinc-900">
-                  {(avgPerRun * 1000).toFixed(3)} m€
-                </dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-zinc-400">Taux d&apos;erreur</dt>
-                <dd className={cn('font-medium', errorRate > 5 ? 'text-zinc-500' : 'text-zinc-900')}>
-                  {errorRate.toFixed(1)}%
-                </dd>
-              </div>
+            <dl className="space-y-2 text-[13px]">
+              <Stat label="Runs" value={cost.runs.toLocaleString('fr-FR')} />
+              <Stat
+                label="Coût moyen / run"
+                value={`${(avgPerRun * 1000).toFixed(3)} m€`}
+              />
+              <Stat
+                label="Taux d'erreur"
+                value={`${errorRate.toFixed(1)}%`}
+                tone={errorRate > 5 ? 'warning' : 'normal'}
+              />
             </dl>
             <ButtonLink
               href="/admin/observability"
-              variant="tertiary"
+              variant="secondary"
               size="sm"
               className="w-full"
+              trailing={<ArrowUpRight size={12} strokeWidth={2} aria-hidden />}
             >
-              Voir le détail par step →
+              Détail par step
             </ButtonLink>
           </div>
         </SectionCard>
       </div>
-
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
+// ─── Sub-components ────────────────────────────────────────────────────────────
+
+function Stat({ label, value, tone = 'normal' }: { label: string; value: string; tone?: 'normal' | 'warning' }) {
+  return (
+    <div className="flex items-baseline justify-between gap-2">
+      <dt className="text-admin-text-muted">{label}</dt>
+      <dd
+        className={cn(
+          'font-semibold tabular-nums',
+          tone === 'warning' ? 'text-admin-warning' : 'text-admin-text',
+        )}
+      >
+        {value}
+      </dd>
+    </div>
+  );
+}
 
 function FunnelBar({
   label,
   value,
   reference,
-  tone,
+  intensity,
+  highlight = false,
 }: {
   label: string;
   value: number;
   reference: number;
-  tone: 'neutral' | 'blue' | 'amber' | 'emerald';
+  /** 0..1 — controls bar opacity so top of funnel is darker, bottom lighter. */
+  intensity: number;
+  highlight?: boolean;
 }) {
   const ratio = reference > 0 ? Math.min(1, value / reference) : 0;
-  // Gradient d'intensité sur l'accent : du plus foncé (top of funnel) au plus clair (bottom)
-  const barColor = {
-    neutral: 'bg-indigo-200',
-    blue:    'bg-indigo-400',
-    amber:   'bg-indigo-500',
-    emerald: 'bg-indigo-600',
-  }[tone];
+  const pctValue = reference > 0 ? Math.round(ratio * 100) : 0;
   return (
-    <div className="mb-2.5 last:mb-0">
-      <div className="flex justify-between text-xs mb-1">
-        <span className="text-zinc-600">{label}</span>
-        <span className="font-medium text-zinc-900">
-          {value.toLocaleString('fr-FR')}{' '}
-          <span className="text-zinc-400 font-normal">
-            ({reference > 0 ? Math.round(ratio * 100) : 0}%)
+    <div>
+      <div className="flex justify-between text-[12px] mb-1 leading-tight">
+        <span className={cn(highlight ? 'text-admin-text font-medium' : 'text-admin-text-secondary')}>
+          {label}
+        </span>
+        <span className="tabular-nums">
+          <span className={cn(highlight ? 'text-admin-text font-semibold' : 'text-admin-text-secondary font-medium')}>
+            {value.toLocaleString('fr-FR')}
           </span>
+          <span className="text-admin-text-faint ml-1.5">{pctValue}%</span>
         </span>
       </div>
-      <div className="h-2 bg-zinc-100 rounded-full overflow-hidden">
-        <div className={cn('h-full', barColor)} style={{ width: `${ratio * 100}%` }} />
+      <div className="h-1.5 bg-admin-bg-muted rounded-full overflow-hidden">
+        <div
+          className={cn('h-full rounded-full transition-all', highlight ? 'bg-admin-accent' : 'bg-admin-text')}
+          style={{
+            width: `${ratio * 100}%`,
+            opacity: highlight ? 1 : 0.45 + intensity * 0.4,
+          }}
+        />
       </div>
     </div>
   );
 }
-

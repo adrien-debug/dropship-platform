@@ -1,0 +1,26 @@
+{
+  "id": "wellness-retreat",
+  "label": "Wellness retreat",
+  "hint": "Cormorant Garamond ExtraLight serif, hero océanique turquoise, CTA jaune signature, sub-line italique, contact form centré, footer turquoise.",
+  "niches": ["wellness", "health"],
+  "register": "premium",
+  "mode": "split",
+  "moods": ["soft", "serif", "cinematic"],
+  "minProducts": 1,
+  "autoCandidate": false,
+  "componentName": "WellnessRetreatLanding",
+  "componentFile": "apps/web/app/shop/[slug]/WellnessRetreatLanding.tsx",
+  "sourceUrl": "https://fr.wix.com/website-template/view/html/2179?originUrl=https%3A%2F%2Ffr.wix.com%2Fwebsite%2Ftemplates%2Fhtml%2Fhealth-wellness%2F4&tpClick=view_button&esi=956972e8-2253-4a5a-8608-e3873c2a52ca",
+  "sourceScreenshot": ".template-previews/wellness-retreat-source.png",
+  "wixCategory": "health-wellness",
+  "designTokens": {
+    "bg": "#FFFFFF",
+    "fg": "#2C3E45",
+    "accent": "#F2CB47",
+    "muted": "#8A9498",
+    "fontDisplay": "Cormorant Garamond",
+    "fontBody": "Inter",
+    "radiusCard": 0,
+    "radiusPill": 9999
+  }
+}

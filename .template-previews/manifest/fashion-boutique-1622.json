@@ -1,0 +1,26 @@
+{
+  "id": "fashion-boutique-1622",
+  "label": "Fashion boutique 1622",
+  "hint": "Boutique mode classique, hero serif sur photo, header charcoal slim, grille 3 produits, footer 3 colonnes",
+  "niches": ["fashion", "editorial"],
+  "register": "premium",
+  "mode": "collection",
+  "moods": ["serif", "minimal", "soft"],
+  "minProducts": 3,
+  "autoCandidate": false,
+  "componentName": "FashionBoutique1622Landing",
+  "componentFile": "apps/web/app/shop/[slug]/FashionBoutique1622Landing.tsx",
+  "sourceUrl": "https://fr.wix.com/website-template/view/html/1622",
+  "sourceScreenshot": ".template-previews/fashion-boutique-1622-source.png",
+  "wixCategory": "fashion-and-style",
+  "designTokens": {
+    "bg": "#F7F6F4",
+    "fg": "#303132",
+    "accent": "#303132",
+    "muted": "#5A5A5A",
+    "fontDisplay": "Cormorant Garamond",
+    "fontBody": "Raleway",
+    "radiusCard": 0,
+    "radiusPill": 0
+  }
+}

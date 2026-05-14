@@ -1,0 +1,26 @@
+{
+  "id": "wellness-pulse",
+  "label": "Wellness pulse",
+  "hint": "Coach fitness énergique, Manrope navy + plate teal et accent lime hot, tuiles 3 cartes Réserver.",
+  "niches": ["wellness", "health", "sport"],
+  "register": "premium",
+  "mode": "split",
+  "moods": ["bold", "sans", "playful"],
+  "minProducts": 3,
+  "autoCandidate": false,
+  "componentName": "WellnessPulseLanding",
+  "componentFile": "apps/web/app/shop/[slug]/WellnessPulseLanding.tsx",
+  "sourceUrl": "https://fr.wix.com/website-template/view/html/2464?originUrl=https%3A%2F%2Ffr.wix.com%2Fwebsite%2Ftemplates%2Fhtml%2Fhealth-wellness&tpClick=view_button&esi=b00e06b2-4880-411c-ac3d-fd738f70193c",
+  "sourceScreenshot": ".template-previews/wellness-pulse-source.png",
+  "wixCategory": "health-wellness",
+  "designTokens": {
+    "bg": "#FAF7F1",
+    "fg": "#253C57",
+    "accent": "#E0FF3F",
+    "muted": "#8693A6",
+    "fontDisplay": "Manrope",
+    "fontBody": "Inter",
+    "radiusCard": 0,
+    "radiusPill": 9999
+  }
+}

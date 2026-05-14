@@ -28,8 +28,38 @@ const config: Config = {
         'card-hover': '0 18px 30px -20px rgba(0,0,0,0.25)',
         glow: '0 0 20px rgba(0, 183, 255, 0.08)',
         'glow-strong': '0 0 30px rgba(0, 183, 255, 0.15)',
+        // Admin design system shadows
+        'admin-card':       'var(--admin-shadow-card)',
+        'admin-card-hover': 'var(--admin-shadow-card-hover)',
+        'admin-chrome':     'var(--admin-shadow-chrome)',
+        'admin-cta':        'var(--admin-shadow-cta)',
       },
       colors: {
+        // Admin design system (mirrors --admin-* in globals.css)
+        admin: {
+          bg:           'var(--admin-bg)',
+          'bg-subtle':  'var(--admin-bg-subtle)',
+          'bg-muted':   'var(--admin-bg-muted)',
+          chrome:       'var(--admin-chrome)',
+          'chrome-soft':'var(--admin-chrome-soft)',
+          border:       'var(--admin-border)',
+          'border-strong': 'var(--admin-border-strong)',
+          'border-soft':'var(--admin-border-soft)',
+          text:         'var(--admin-text)',
+          'text-secondary': 'var(--admin-text-secondary)',
+          'text-muted': 'var(--admin-text-muted)',
+          'text-faint': 'var(--admin-text-faint)',
+          'text-inverse':'var(--admin-text-inverse)',
+          accent:       'var(--admin-accent)',
+          'accent-hover':'var(--admin-accent-hover)',
+          'accent-soft':'var(--admin-accent-soft)',
+          success:      'var(--admin-success)',
+          'success-soft':'var(--admin-success-soft)',
+          warning:      'var(--admin-warning)',
+          'warning-soft':'var(--admin-warning-soft)',
+          danger:       'var(--admin-danger)',
+          'danger-soft':'var(--admin-danger-soft)',
+        },
         // Dark theme semantic colors (mirror CSS vars)
         ds: {
           bg: {
@@ -91,6 +121,11 @@ const config: Config = {
         'ds-md': '10px',
         'ds-lg': '14px',
         'ds-xl': '18px',
+        // Admin design system radius scale
+        'admin-sm': 'var(--admin-radius-sm)',
+        'admin-md': 'var(--admin-radius-md)',
+        'admin-lg': 'var(--admin-radius-lg)',
+        'admin-xl': 'var(--admin-radius-xl)',
       },
       zIndex: {
         panel: '10',

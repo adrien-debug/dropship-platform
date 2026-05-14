@@ -1,0 +1,26 @@
+{
+  "id": "wellness-studio",
+  "label": "Wellness studio",
+  "hint": "Salle de sport dark, Poppins Black + triptyque photo et plate blanche centrée, accent orange chaud.",
+  "niches": ["wellness", "sport", "health"],
+  "register": "mass",
+  "mode": "editorial",
+  "moods": ["bold", "dark", "cinematic"],
+  "minProducts": 2,
+  "autoCandidate": false,
+  "componentName": "WellnessStudioLanding",
+  "componentFile": "apps/web/app/shop/[slug]/WellnessStudioLanding.tsx",
+  "sourceUrl": "https://fr.wix.com/website-template/view/html/2687?originUrl=https%3A%2F%2Ffr.wix.com%2Fwebsite%2Ftemplates%2Fhtml%2Fhealth-wellness%2F2&tpClick=view_button&esi=5f8a24ea-c8b1-46ff-91ba-ec19b27600c1",
+  "sourceScreenshot": ".template-previews/wellness-studio-source.png",
+  "wixCategory": "health-wellness",
+  "designTokens": {
+    "bg": "#FFFFFF",
+    "fg": "#262626",
+    "accent": "#FF6B1A",
+    "muted": "#7A7A82",
+    "fontDisplay": "Poppins",
+    "fontBody": "Inter",
+    "radiusCard": 0,
+    "radiusPill": 9999
+  }
+}

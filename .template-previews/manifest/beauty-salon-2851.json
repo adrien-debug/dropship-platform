@@ -1,0 +1,26 @@
+{
+  "id": "beauty-salon-2851",
+  "label": "Beauty salon 2851",
+  "hint": "Salon beauté champagne, hero serif sur fond crème, bande sombre 3 services, testimonial avec plate quote, grille looks",
+  "niches": ["beauty", "wellness"],
+  "register": "premium",
+  "mode": "editorial",
+  "moods": ["serif", "soft", "minimal"],
+  "minProducts": 3,
+  "autoCandidate": false,
+  "componentName": "BeautySalon2851Landing",
+  "componentFile": "apps/web/app/shop/[slug]/BeautySalon2851Landing.tsx",
+  "sourceUrl": "https://fr.wix.com/website-template/view/html/2851",
+  "sourceScreenshot": ".template-previews/beauty-salon-2851-source.png",
+  "wixCategory": "beauty-and-hair",
+  "designTokens": {
+    "bg": "#FFFFFF",
+    "fg": "#212121",
+    "accent": "#E5D9C0",
+    "muted": "#6B6B6B",
+    "fontDisplay": "Playfair Display",
+    "fontBody": "Inter",
+    "radiusCard": 0,
+    "radiusPill": 0
+  }
+}

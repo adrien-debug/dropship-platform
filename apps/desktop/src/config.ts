@@ -34,10 +34,11 @@ const DEFAULT_DEV_URL = 'http://localhost:4302/admin';
 function isDevMode(): boolean {
   if (process.env.ELECTRON_IS_DEV === '1') return true;
   if (process.env.NODE_ENV === 'production') return false;
-  // Default: when running via `electron dist/main.js` without packaging, treat
-  // as dev. `app.isPackaged` would be more accurate but we can't import it at
-  // module-load time without circular issues; main.ts re-checks if needed.
-  return !process.env.ELECTRON_RUN_AS_NODE && !process.resourcesPath?.includes('.app/');
+  // `cross-env ELECTRON_RUN_AS_NODE=` sets the var to an empty string — not
+  // undefined — so we must check for a truthy non-empty value, not mere presence.
+  const runAsNode = process.env.ELECTRON_RUN_AS_NODE;
+  const hasRunAsNode = typeof runAsNode === 'string' && runAsNode.length > 0;
+  return !hasRunAsNode && !process.resourcesPath?.includes('.app/');
 }
 
 /**

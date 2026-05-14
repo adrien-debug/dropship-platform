@@ -1,0 +1,26 @@
+{
+  "id": "wellness-serenity",
+  "label": "Wellness serenity",
+  "hint": "Spa apaisé, Cormorant Garamond serif teal sage, sections centrées et photos lifestyle douces.",
+  "niches": ["wellness", "health", "beauty"],
+  "register": "premium",
+  "mode": "split",
+  "moods": ["soft", "serif", "minimal"],
+  "minProducts": 3,
+  "autoCandidate": false,
+  "componentName": "WellnessSerenityLanding",
+  "componentFile": "apps/web/app/shop/[slug]/WellnessSerenityLanding.tsx",
+  "sourceUrl": "https://fr.wix.com/website-template/view/html/2975?originUrl=https%3A%2F%2Ffr.wix.com%2Fwebsite%2Ftemplates%2Fhtml%2Fhealth-wellness&tpClick=view_button&esi=d1516389-b3cf-41ad-89f5-71a311809345",
+  "sourceScreenshot": ".template-previews/wellness-serenity-source.png",
+  "wixCategory": "health-wellness",
+  "designTokens": {
+    "bg": "#FFFFFF",
+    "fg": "#2D5661",
+    "accent": "#D6E3DF",
+    "muted": "#7B8E91",
+    "fontDisplay": "Cormorant Garamond",
+    "fontBody": "Inter",
+    "radiusCard": 0,
+    "radiusPill": 9999
+  }
+}

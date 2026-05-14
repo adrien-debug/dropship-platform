@@ -1,0 +1,26 @@
+{
+  "id": "events-summit",
+  "label": "Events Summit",
+  "hint": "Webinaire conference, sage card avec grille pointillee et tickets jaune.",
+  "niches": ["events", "editorial"],
+  "register": "premium",
+  "mode": "editorial",
+  "moods": ["bold", "sans", "organic"],
+  "minProducts": 2,
+  "autoCandidate": false,
+  "componentName": "EventsSummitLanding",
+  "componentFile": "apps/web/app/shop/[slug]/EventsSummitLanding.tsx",
+  "sourceUrl": "https://fr.wix.com/website-template/view/html/wh-1168?originUrl=https%3A%2F%2Ffr.wix.com%2Fwebsite%2Ftemplates%2Fhtml%2Fevents%2F6&tpClick=view_button&esi=9a6965c7-796a-47c8-9cec-9db42d0a0f90",
+  "sourceScreenshot": ".template-previews/events-wh-1168-source.png",
+  "wixCategory": "events",
+  "designTokens": {
+    "bg": "#FFFFFF",
+    "fg": "#1F2D2E",
+    "accent": "#F4F162",
+    "muted": "#5E6A6B",
+    "fontDisplay": "Space Grotesk",
+    "fontBody": "Inter",
+    "radiusCard": 8,
+    "radiusPill": 4
+  }
+}

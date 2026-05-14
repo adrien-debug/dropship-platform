@@ -13,6 +13,24 @@ import { LuxuryMinimalLanding } from './LuxuryMinimalLanding';
 import { GenZBoldLanding } from './GenZBoldLanding';
 import { EditorialFashionLanding } from './EditorialFashionLanding';
 import { WellnessSoftLanding } from './WellnessSoftLanding';
+import { LuxuryMonoLanding } from './LuxuryMonoLanding';
+import { WellnessSerenityLanding } from './WellnessSerenityLanding';
+import { WellnessPulseLanding } from './WellnessPulseLanding';
+import { WellnessDanceLanding } from './WellnessDanceLanding';
+import { WellnessStudioLanding } from './WellnessStudioLanding';
+import { WellnessRetreatLanding } from './WellnessRetreatLanding';
+import { WellnessFitnessBlogLanding } from './WellnessFitnessBlogLanding';
+import { WellnessMassageQuietLanding } from './WellnessMassageQuietLanding';
+import { WellnessOnyxGymLanding } from './WellnessOnyxGymLanding';
+import { EventsMusicartLanding } from './EventsMusicartLanding';
+import { EventsBouquetLanding } from './EventsBouquetLanding';
+import { EventsArcadiumLanding } from './EventsArcadiumLanding';
+import { EventsSummitLanding } from './EventsSummitLanding';
+import { EventsConvergeLanding } from './EventsConvergeLanding';
+import { FashionBoutique1622Landing } from './FashionBoutique1622Landing';
+import { BeautySalon2851Landing } from './BeautySalon2851Landing';
+import { FioraLocksLanding } from './FioraLocksLanding';
+import { AdventureTravel2787Landing } from './AdventureTravel2787Landing';
 
 export const dynamic = 'force-dynamic';
 
@@ -141,6 +159,53 @@ export default async function ShopPage({ params }: { params: Promise<{ slug: str
         {jsonLdHead}
         <TrackPageView slug={slug} eventName="page_view" />
         <WellnessSoftLanding store={store} products={products} />
+      </>
+    );
+  }
+
+  if (!error && resolved === 'luxury-mono' && products.length >= 1) {
+    return (
+      <>
+        {jsonLdHead}
+        <TrackPageView
+          slug={slug}
+          eventName="view_content"
+          productId={products[0].id}
+          variantId={products[0].variants?.[0]?.id}
+        />
+        <LuxuryMonoLanding store={store} products={products} />
+      </>
+    );
+  }
+
+  // ============== Wix ingest batch — May 2026 ==============
+  const ingested: Record<string, React.ComponentType<{ store: typeof store; products: typeof products }>> = {
+    'wellness-serenity': WellnessSerenityLanding,
+    'wellness-pulse': WellnessPulseLanding,
+    'wellness-dance': WellnessDanceLanding,
+    'wellness-studio': WellnessStudioLanding,
+    'wellness-retreat': WellnessRetreatLanding,
+    'wellness-fitness-blog': WellnessFitnessBlogLanding,
+    'wellness-massage-quiet': WellnessMassageQuietLanding,
+    'wellness-onyx-gym': WellnessOnyxGymLanding,
+    'events-musicart': EventsMusicartLanding,
+    'events-bouquet': EventsBouquetLanding,
+    'events-arcadium': EventsArcadiumLanding,
+    'events-summit': EventsSummitLanding,
+    'events-converge': EventsConvergeLanding,
+    'fashion-boutique-1622': FashionBoutique1622Landing,
+    'beauty-salon-2851': BeautySalon2851Landing,
+    'fiora-locks-wh1270': FioraLocksLanding,
+    'adventure-travel-2787': AdventureTravel2787Landing,
+  };
+
+  const IngestedComponent = ingested[resolved];
+  if (!error && IngestedComponent && products.length >= 1) {
+    return (
+      <>
+        {jsonLdHead}
+        <TrackPageView slug={slug} eventName="page_view" />
+        <IngestedComponent store={store} products={products} />
       </>
     );
   }

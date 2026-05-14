@@ -1,0 +1,26 @@
+{
+  "id": "wellness-onyx-gym",
+  "label": "Wellness onyx gym",
+  "hint": "Onyx black + magenta signature + cyan accent, Manrope Heavy uppercase, hero plein cadre sombre, blocs alternés cyan/onyx/magenta, strip équipements, form essai gratuit.",
+  "niches": ["wellness", "sport", "health"],
+  "register": "mass",
+  "mode": "collection",
+  "moods": ["bold", "dark", "sans"],
+  "minProducts": 3,
+  "autoCandidate": false,
+  "componentName": "WellnessOnyxGymLanding",
+  "componentFile": "apps/web/app/shop/[slug]/WellnessOnyxGymLanding.tsx",
+  "sourceUrl": "https://fr.wix.com/website-template/view/html/2726?originUrl=https%3A%2F%2Ffr.wix.com%2Fwebsite%2Ftemplates%2Fhtml%2Fhealth-wellness%2F6&tpClick=view_button&esi=cd80249e-bbca-492f-89a2-8d8707515b96",
+  "sourceScreenshot": ".template-previews/wellness-onyx-gym-source.png",
+  "wixCategory": "health-wellness",
+  "designTokens": {
+    "bg": "#FFFFFF",
+    "fg": "#111111",
+    "accent": "#E03A8C",
+    "muted": "#727275",
+    "fontDisplay": "Manrope",
+    "fontBody": "Manrope",
+    "radiusCard": 4,
+    "radiusPill": 9999
+  }
+}

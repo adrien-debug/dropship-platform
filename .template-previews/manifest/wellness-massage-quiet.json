@@ -1,0 +1,26 @@
+{
+  "id": "wellness-massage-quiet",
+  "label": "Wellness massage quiet",
+  "hint": "Palette crème chaude + brun chocolat, Cormorant Garamond italique d'accent (Find Your Quiet), liste de soins en 3 zones (mini-photo + titre + métadonnée), portrait rond Meet Your Therapist, footer cocoa profond.",
+  "niches": ["wellness", "beauty", "health"],
+  "register": "premium",
+  "mode": "split",
+  "moods": ["soft", "serif", "organic"],
+  "minProducts": 2,
+  "autoCandidate": false,
+  "componentName": "WellnessMassageQuietLanding",
+  "componentFile": "apps/web/app/shop/[slug]/WellnessMassageQuietLanding.tsx",
+  "sourceUrl": "https://fr.wix.com/website-template/view/html/wh-1252?originUrl=https%3A%2F%2Ffr.wix.com%2Fwebsite%2Ftemplates%2Fhtml%2Fhealth-wellness%2F5&tpClick=view_button&esi=60989a5f-efb8-413f-9424-29f19859c654",
+  "sourceScreenshot": ".template-previews/wellness-massage-quiet-source.png",
+  "wixCategory": "health-wellness",
+  "designTokens": {
+    "bg": "#FAF6EF",
+    "fg": "#4A3A2C",
+    "accent": "#B58A55",
+    "muted": "#8C7A68",
+    "fontDisplay": "Cormorant Garamond",
+    "fontBody": "Inter",
+    "radiusCard": 4,
+    "radiusPill": 9999
+  }
+}

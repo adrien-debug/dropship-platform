@@ -1,0 +1,26 @@
+{
+  "id": "events-bouquet",
+  "label": "Events Bouquet",
+  "hint": "Photographie romantique, serif italique, bandeau pastel mint.",
+  "niches": ["events", "gifting"],
+  "register": "premium",
+  "mode": "editorial",
+  "moods": ["soft", "serif", "cinematic"],
+  "minProducts": 3,
+  "autoCandidate": false,
+  "componentName": "EventsBouquetLanding",
+  "componentFile": "apps/web/app/shop/[slug]/EventsBouquetLanding.tsx",
+  "sourceUrl": "https://fr.wix.com/website-template/view/html/1849?originUrl=https%3A%2F%2Ffr.wix.com%2Fwebsite%2Ftemplates%2Fhtml%2Fevents%2F4&tpClick=view_button&esi=01216ccf-bd49-4479-ab87-755574c408e7",
+  "sourceScreenshot": ".template-previews/events-1849-source.png",
+  "wixCategory": "events",
+  "designTokens": {
+    "bg": "#FAF8F4",
+    "fg": "#2B2A28",
+    "accent": "#BFDBC8",
+    "muted": "#7E7B74",
+    "fontDisplay": "Cormorant Garamond",
+    "fontBody": "Inter",
+    "radiusCard": 0,
+    "radiusPill": 9999
+  }
+}

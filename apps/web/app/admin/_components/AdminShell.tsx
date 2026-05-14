@@ -9,9 +9,6 @@ import {
   LineChart,
   Cog,
   LogOut,
-  X,
-  Minus,
-  Maximize2,
 } from 'lucide-react';
 import { FloatingDock } from '@/components/ui/floating-dock';
 
@@ -24,61 +21,102 @@ function callWindowControl(action: WindowAction) {
   void electron?.windowControl?.(action);
 }
 
+/**
+ * macOS-style traffic light controls: close (red) / minimize (yellow) /
+ * maximize (green). The colored dots are intentionally subtle — they only
+ * surface a centered glyph on hover, like a real macOS title bar.
+ */
+function TrafficLight({
+  color,
+  hoverColor,
+  glyphColor,
+  onClick,
+  label,
+  children,
+}: {
+  color: string;
+  hoverColor: string;
+  glyphColor: string;
+  onClick: () => void;
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className="group relative w-3 h-3 rounded-full flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-1 focus-visible:ring-offset-admin-chrome"
+      style={{ background: color }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = hoverColor)}
+      onMouseLeave={(e) => (e.currentTarget.style.background = color)}
+    >
+      <span
+        className="opacity-0 group-hover:opacity-100 transition-opacity"
+        style={{ color: glyphColor }}
+        aria-hidden
+      >
+        {children}
+      </span>
+    </button>
+  );
+}
+
 function TitleBar() {
   return (
     <div
-      className="relative shrink-0 h-10 flex items-center px-4 gap-2 select-none"
+      className="relative shrink-0 h-9 flex items-center px-3.5 gap-2 select-none bg-admin-chrome"
       style={{
-        background:
-          'linear-gradient(180deg, var(--shell-titlebar-from) 0%, var(--shell-titlebar-mid) 60%, var(--shell-titlebar-to) 100%)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.22), 0 1px 0 rgba(0,0,0,0.10)',
-        borderBottom: '1px solid var(--shell-border)',
+        boxShadow: 'var(--admin-shadow-chrome)',
         WebkitAppRegion: 'drag',
       } as React.CSSProperties}
     >
-      {/* Window controls */}
+      {/* macOS traffic lights */}
       <div
         className="flex items-center gap-2"
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
-        <button
-          type="button"
+        <TrafficLight
+          color="#ff5f57"
+          hoverColor="#ff5f57"
+          glyphColor="#4d0000"
           onClick={() => callWindowControl('close')}
-          aria-label="Fermer"
-          title="Fermer"
-          className="group w-3.5 h-3.5 rounded-full bg-white hover:bg-white/90 flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-1 focus-visible:ring-offset-indigo-700"
+          label="Fermer"
         >
-          <X size={7} strokeWidth={2.5} className="text-indigo-600" aria-hidden />
-        </button>
-        <button
-          type="button"
+          <svg width="6" height="6" viewBox="0 0 6 6" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round">
+            <path d="M1.5 1.5l3 3M4.5 1.5l-3 3" />
+          </svg>
+        </TrafficLight>
+        <TrafficLight
+          color="#febc2e"
+          hoverColor="#febc2e"
+          glyphColor="#7a4d00"
           onClick={() => callWindowControl('minimize')}
-          aria-label="Réduire"
-          title="Réduire"
-          className="group w-3.5 h-3.5 rounded-full bg-white hover:bg-white/90 flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-1 focus-visible:ring-offset-indigo-700"
+          label="Réduire"
         >
-          <Minus size={7} strokeWidth={2.5} className="text-indigo-600" aria-hidden />
-        </button>
-        <button
-          type="button"
+          <svg width="6" height="6" viewBox="0 0 6 6" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round">
+            <path d="M1 3h4" />
+          </svg>
+        </TrafficLight>
+        <TrafficLight
+          color="#28c840"
+          hoverColor="#28c840"
+          glyphColor="#003d00"
           onClick={() => callWindowControl('maximize')}
-          aria-label="Plein écran"
-          title="Plein écran"
-          className="group w-3.5 h-3.5 rounded-full bg-white hover:bg-white/90 flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-1 focus-visible:ring-offset-indigo-700"
+          label="Plein écran"
         >
-          <Maximize2 size={7} strokeWidth={2.5} className="text-indigo-600" aria-hidden />
-        </button>
+          <svg width="6" height="6" viewBox="0 0 6 6" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round">
+            <path d="M2 1h3v3M4 5H1V2" />
+          </svg>
+        </TrafficLight>
       </div>
 
-      {/* Centered logo */}
+      {/* Centered wordmark */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
-        <div className="flex items-center gap-2">
-          <span className="text-white font-bold tracking-tight text-sm leading-none">
-            <span className="text-white/60 font-light">H</span>
-            <span className="text-white"> · </span>
-            <span className="text-white">Drop</span>
-          </span>
-        </div>
+        <span className="text-[12px] font-medium tracking-[0.04em] text-white/85 leading-none">
+          H · Drop
+        </span>
       </div>
     </div>
   );
@@ -91,25 +129,25 @@ export function AdminShell({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f0e1a] flex flex-col h-screen overflow-hidden">
+    <div className="min-h-screen flex flex-col h-screen overflow-hidden bg-admin-bg">
       <TitleBar />
 
       <main className="flex-1 min-w-0 flex flex-col relative overflow-hidden">
         <div className="flex-1 overflow-y-auto flex flex-col">
-          <div className="w-full px-5 py-4 flex-1 flex flex-col">{children}</div>
+          <div className="w-full px-6 py-5 flex-1 flex flex-col">{children}</div>
         </div>
 
         <footer
-          className="shrink-0 px-5 py-3 relative border-t border-indigo-500/40"
+          className="shrink-0 px-5 py-2.5 relative bg-admin-chrome"
           style={{
-            background: 'linear-gradient(180deg, #5b52f0 0%, #4338ca 60%, #3730a3 100%)',
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18), 0 -1px 0 rgba(0,0,0,0.12)',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 -1px 0 rgba(0,0,0,0.40)',
           }}
         >
           <div className="w-full grid grid-cols-3 items-center">
-            <span className="text-xs text-indigo-200/80 tracking-wide">Dropship · Agent IA</span>
+            <span className="text-[11px] text-white/55 tracking-[0.06em]">
+              Dropship · Agent IA
+            </span>
 
-            {/* Dock centré dans le footer */}
             <div className="flex justify-center">
               <FloatingDock
                 items={[
@@ -124,15 +162,15 @@ export function AdminShell({ children }: { children: ReactNode }) {
             </div>
 
             <div className="flex items-center justify-end gap-3">
-              <span className="text-xs text-indigo-200 font-mono">v0.1.0</span>
+              <span className="text-[11px] text-white/40 font-mono tabular-nums">v0.1.0</span>
               <button
                 type="button"
                 onClick={logout}
                 title="Déconnexion"
                 aria-label="Déconnexion"
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-1 focus-visible:ring-offset-indigo-700"
+                className="w-7 h-7 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-white/70 hover:text-white flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-1 focus-visible:ring-offset-admin-chrome"
               >
-                <LogOut size={14} strokeWidth={1.75} aria-hidden />
+                <LogOut size={13} strokeWidth={1.75} aria-hidden />
               </button>
             </div>
           </div>

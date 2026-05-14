@@ -1,0 +1,26 @@
+{
+  "id": "wellness-dance",
+  "label": "Wellness dance",
+  "hint": "Studio danse playful, Jockey One display italic, plates cyan peach lavender et CTA purple S'abonner.",
+  "niches": ["wellness", "sport", "kids", "events"],
+  "register": "mass",
+  "mode": "editorial",
+  "moods": ["playful", "bold", "sans"],
+  "minProducts": 3,
+  "autoCandidate": false,
+  "componentName": "WellnessDanceLanding",
+  "componentFile": "apps/web/app/shop/[slug]/WellnessDanceLanding.tsx",
+  "sourceUrl": "https://fr.wix.com/website-template/view/html/3059?originUrl=https%3A%2F%2Ffr.wix.com%2Fwebsite%2Ftemplates%2Fhtml%2Fhealth-wellness%2F2&tpClick=view_button&esi=013b29ab-5bfd-4dbd-a80c-5658c06419f5",
+  "sourceScreenshot": ".template-previews/wellness-dance-source.png",
+  "wixCategory": "health-wellness",
+  "designTokens": {
+    "bg": "#FFFFFF",
+    "fg": "#101013",
+    "accent": "#8244BD",
+    "muted": "#7A7A82",
+    "fontDisplay": "Jockey One",
+    "fontBody": "Inter",
+    "radiusCard": 10,
+    "radiusPill": 9999
+  }
+}

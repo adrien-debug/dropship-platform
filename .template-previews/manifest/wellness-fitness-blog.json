@@ -1,0 +1,26 @@
+{
+  "id": "wellness-fitness-blog",
+  "label": "Wellness fitness blog",
+  "hint": "Manrope Extrabold, soulignage lime fluo skewé, bandes catégorielles FITNESS / NUTRITION / MOTIVATION, cards photo + tuile éditoriale, footer noir + wordmark inversé.",
+  "niches": ["wellness", "sport", "health", "editorial"],
+  "register": "mass",
+  "mode": "editorial",
+  "moods": ["bold", "sans", "playful"],
+  "minProducts": 3,
+  "autoCandidate": false,
+  "componentName": "WellnessFitnessBlogLanding",
+  "componentFile": "apps/web/app/shop/[slug]/WellnessFitnessBlogLanding.tsx",
+  "sourceUrl": "https://fr.wix.com/website-template/view/html/2503?originUrl=https%3A%2F%2Ffr.wix.com%2Fwebsite%2Ftemplates%2Fhtml%2Fhealth-wellness%2F4&tpClick=view_button&esi=dbcbe1e3-7ca5-4e7a-a44d-414d0a68498d",
+  "sourceScreenshot": ".template-previews/wellness-fitness-blog-source.png",
+  "wixCategory": "health-wellness",
+  "designTokens": {
+    "bg": "#FFFFFF",
+    "fg": "#111111",
+    "accent": "#E8F557",
+    "muted": "#6B6B6B",
+    "fontDisplay": "Manrope",
+    "fontBody": "Manrope",
+    "radiusCard": 14,
+    "radiusPill": 9999
+  }
+}

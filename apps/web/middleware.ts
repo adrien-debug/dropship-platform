@@ -201,6 +201,12 @@ export async function middleware(req: NextRequest) {
   if (PUBLIC_EXCEPTIONS.has(path)) {
     return NextResponse.next();
   }
+  // Auto-login en dev : `next dev` tourne en NODE_ENV=development, jamais en
+  // build Vercel. Évite le prompt Basic Auth à chaque refresh local sans
+  // jamais relâcher l'auth en prod.
+  if (process.env.NODE_ENV === 'development') {
+    return NextResponse.next();
+  }
   return hasValidBasicAuth(req) ? NextResponse.next() : challenge();
 }
 

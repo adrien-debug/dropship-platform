@@ -1,0 +1,26 @@
+{
+  "id": "adventure-travel-2787",
+  "label": "Adventure travel 2787",
+  "hint": "Tourisme aventure montagne, hero photo cinématique avec gros titre Montserrat bold blanc, panneau noir overlay avec liste de tours et CTA rouge, 4 atouts en icônes, journal 3 cartes sombres",
+  "niches": ["travel", "sport"],
+  "register": "mass",
+  "mode": "collection",
+  "moods": ["bold", "cinematic", "dark"],
+  "minProducts": 3,
+  "autoCandidate": false,
+  "componentName": "AdventureTravel2787Landing",
+  "componentFile": "apps/web/app/shop/[slug]/AdventureTravel2787Landing.tsx",
+  "sourceUrl": "https://fr.wix.com/website-template/view/html/2787",
+  "sourceScreenshot": ".template-previews/adventure-travel-2787-source.png",
+  "wixCategory": "travel-tourism",
+  "designTokens": {
+    "bg": "#FFFFFF",
+    "fg": "#1C1C1C",
+    "accent": "#FF2929",
+    "muted": "#3A3A3A",
+    "fontDisplay": "Montserrat",
+    "fontBody": "Inter",
+    "radiusCard": 0,
+    "radiusPill": 0
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "id": "events-converge",
+  "label": "Events Converge",
+  "hint": "Webinaire marketing, cartes modulaires sur fond noir avec jaune et bleu.",
+  "niches": ["events", "tech"],
+  "register": "premium",
+  "mode": "collection",
+  "moods": ["bold", "playful", "sans"],
+  "minProducts": 3,
+  "autoCandidate": false,
+  "componentName": "EventsConvergeLanding",
+  "componentFile": "apps/web/app/shop/[slug]/EventsConvergeLanding.tsx",
+  "sourceUrl": "https://fr.wix.com/website-template/view/html/wh-1239?originUrl=https%3A%2F%2Ffr.wix.com%2Fwebsite%2Ftemplates%2Fhtml%2Fevents%2F6&tpClick=view_button&esi=f3c0247e-3fbc-4ffe-b701-7814108b1535",
+  "sourceScreenshot": ".template-previews/events-wh-1239-source.png",
+  "wixCategory": "events",
+  "designTokens": {
+    "bg": "#0E0E10",
+    "fg": "#FFFFFF",
+    "accent": "#F4F162",
+    "muted": "#8E8E93",
+    "fontDisplay": "Manrope",
+    "fontBody": "Inter",
+    "radiusCard": 28,
+    "radiusPill": 9999
+  }
+}

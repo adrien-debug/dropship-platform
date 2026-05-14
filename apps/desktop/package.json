@@ -5,8 +5,8 @@
   "description": "macOS Electron wrapper for the Hearst Dropship Next.js platform",
   "main": "dist/main.js",
   "scripts": {
-    "dev": "tsc -p tsconfig.json --watch & wait-on dist/main.js && cross-env ELECTRON_RUN_AS_NODE= electron .",
-    "start": "cross-env ELECTRON_RUN_AS_NODE= electron .",
+    "dev": "tsc -p tsconfig.json --watch & wait-on dist/main.js && cross-env ELECTRON_IS_DEV=1 ELECTRON_RUN_AS_NODE= electron .",
+    "start": "cross-env ELECTRON_IS_DEV=1 ELECTRON_RUN_AS_NODE= electron .",
     "build": "tsc -p tsconfig.json",
     "package": "npm run build && cross-env ELECTRON_RUN_AS_NODE= electron-builder --mac --dir",
     "dist": "npm run build && cross-env ELECTRON_RUN_AS_NODE= electron-builder --mac",

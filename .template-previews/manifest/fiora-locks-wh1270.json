@@ -1,0 +1,26 @@
+{
+  "id": "fiora-locks-wh1270",
+  "label": "Fiora Locks",
+  "hint": "Maison beauté luxe, gros serif Cormorant light, fond crème, services en liste éditoriale numérotée, galerie portrait + 3 vignettes",
+  "niches": ["beauty", "wellness", "editorial"],
+  "register": "luxury",
+  "mode": "editorial",
+  "moods": ["serif", "minimal", "cinematic"],
+  "minProducts": 3,
+  "autoCandidate": false,
+  "componentName": "FioraLocksLanding",
+  "componentFile": "apps/web/app/shop/[slug]/FioraLocksLanding.tsx",
+  "sourceUrl": "https://fr.wix.com/website-template/view/html/wh-1270",
+  "sourceScreenshot": ".template-previews/fiora-locks-wh1270-source.png",
+  "wixCategory": "beauty-and-hair",
+  "designTokens": {
+    "bg": "#F4F1EB",
+    "fg": "#000000",
+    "accent": "#1E1D1C",
+    "muted": "#403F3D",
+    "fontDisplay": "Cormorant Garamond",
+    "fontBody": "EB Garamond",
+    "radiusCard": 0,
+    "radiusPill": 0
+  }
+}

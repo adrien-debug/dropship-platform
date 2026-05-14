@@ -1,0 +1,26 @@
+{
+  "id": "events-musicart",
+  "label": "Events Musicart",
+  "hint": "Scene de concert dark avec blocs corail et liste agenda majuscule.",
+  "niches": ["events", "editorial"],
+  "register": "premium",
+  "mode": "editorial",
+  "moods": ["bold", "cinematic", "dark"],
+  "minProducts": 3,
+  "autoCandidate": false,
+  "componentName": "EventsMusicartLanding",
+  "componentFile": "apps/web/app/shop/[slug]/EventsMusicartLanding.tsx",
+  "sourceUrl": "https://fr.wix.com/website-template/view/html/2174?originUrl=https%3A%2F%2Ffr.wix.com%2Fwebsite%2Ftemplates%2Fhtml%2Fevents&tpClick=view_button&esi=feb0566f-6ff5-4767-9af4-6878f9ebce10",
+  "sourceScreenshot": ".template-previews/events-2174-source.png",
+  "wixCategory": "events",
+  "designTokens": {
+    "bg": "#16181F",
+    "fg": "#FFFFFF",
+    "accent": "#F4A28C",
+    "muted": "#9BA0AB",
+    "fontDisplay": "Bebas Neue",
+    "fontBody": "Inter",
+    "radiusCard": 0,
+    "radiusPill": 0
+  }
+}
