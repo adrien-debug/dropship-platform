@@ -1,9 +1,9 @@
 'use client';
 
 import { cn } from '@/lib/utils/cn';
-import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
-import { useState, type ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
+import { type ReactNode } from 'react';
 
 export interface DockItem {
   title: string;
@@ -19,52 +19,54 @@ export function FloatingDock({
   className?: string;
 }) {
   return (
-    <div className={cn('mx-auto hidden md:flex h-12 gap-4 items-center', className)}>
+    <div className={cn('flex items-center gap-1', className)}>
       {items.map((item) => (
-        <IconContainer key={item.title} {...item} />
+        <DockTile key={item.title} {...item} />
       ))}
     </div>
   );
 }
 
-function IconContainer({ title, icon, href }: DockItem) {
-  const [hovered, setHovered] = useState(false);
+/**
+ * Square tile with icon on top + label below. Always visible (no hover
+ * tooltip), so the dock reads as a real navigation bar instead of a
+ * mystery row of icons. The active route gets a subtle highlight so the
+ * user always knows where they are.
+ */
+function DockTile({ title, icon, href }: DockItem) {
+  const pathname = usePathname();
+  const isActive =
+    href === '/admin' ? pathname === '/admin' : pathname?.startsWith(href);
 
   return (
     <Link
       href={href}
       aria-label={title}
-      className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-indigo-700"
+      aria-current={isActive ? 'page' : undefined}
+      className={cn(
+        'group relative flex flex-col items-center justify-center gap-1 px-3 py-1.5 rounded-md min-w-[64px] transition-all duration-150',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-1 focus-visible:ring-offset-black',
+        isActive
+          ? 'bg-white/[0.10] text-white'
+          : 'text-white/60 hover:text-white hover:bg-white/[0.06]',
+      )}
     >
-      <motion.div
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        onFocus={() => setHovered(true)}
-        onBlur={() => setHovered(false)}
-        className="flex flex-col items-center gap-1 relative"
+      <span className="flex items-center justify-center shrink-0">{icon}</span>
+      <span
+        className={cn(
+          'text-[10px] leading-none tracking-[0.02em] whitespace-nowrap transition-colors',
+          isActive ? 'font-semibold' : 'font-medium',
+        )}
       >
-        <motion.div
-          animate={{ y: hovered ? -7 : 0, scale: hovered ? 1.15 : 1, opacity: hovered ? 1 : 0.75 }}
-          transition={{ type: 'spring', stiffness: 350, damping: 22 }}
-          className="flex items-center justify-center text-white"
-          style={{ filter: hovered ? 'drop-shadow(0 0 6px rgba(255,255,255,0.55))' : 'none' }}
-        >
-          {icon}
-        </motion.div>
-        <AnimatePresence>
-          {hovered && (
-            <motion.span
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 4 }}
-              transition={{ duration: 0.15 }}
-              className="absolute -top-7 whitespace-nowrap text-[10px] font-medium text-white/90"
-            >
-              {title}
-            </motion.span>
-          )}
-        </AnimatePresence>
-      </motion.div>
+        {title}
+      </span>
+      {/* Active dot indicator under the tile */}
+      {isActive && (
+        <span
+          aria-hidden
+          className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-white"
+        />
+      )}
     </Link>
   );
 }

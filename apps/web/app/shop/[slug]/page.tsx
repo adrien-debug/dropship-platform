@@ -70,6 +70,12 @@ export default async function ShopPage({ params }: { params: Promise<{ slug: str
   const store = await getStoreBySlug(slug);
   if (!store) notFound();
 
+  const assetsReady = store.assetsStatus === 'ready' || store.heroImageUrl;
+  const isMonoWithoutAssets = store.mode === 'mono' && !assetsReady;
+  if (isMonoWithoutAssets) {
+    return <StorePreparing store={store} />;
+  }
+
   let products: Awaited<ReturnType<typeof listProducts>>['products'] = [];
   let error: string | null = null;
 
@@ -302,4 +308,23 @@ function resolveTemplate(template: StoreTemplate, productCount: number): StoreTe
   if (template !== 'auto') return template;
   if (productCount === 1) return 'mono';
   return 'collection-grid';
+}
+
+function StorePreparing({ store }: { store: import('@/lib/store-config').StoreConfig }) {
+  return (
+    <main className="min-h-screen flex flex-col items-center justify-center bg-zinc-950 text-white px-6">
+      <div className="max-w-md text-center space-y-6">
+        <div className="text-5xl">{store.logoEmoji || '🛍️'}</div>
+        <h1 className="text-3xl font-bold tracking-tight">{store.name}</h1>
+        <p className="text-zinc-400 text-lg">
+          Votre boutique est en cours de préparation.
+          Revenez dans quelques minutes.
+        </p>
+        <div className="inline-flex items-center gap-2 text-zinc-500 text-sm">
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+          Génération des visuels en cours…
+        </div>
+      </div>
+    </main>
+  );
 }

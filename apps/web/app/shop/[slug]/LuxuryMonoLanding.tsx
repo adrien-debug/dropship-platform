@@ -76,6 +76,7 @@ export function LuxuryMonoLanding({ store, products }: Props) {
   }
 
   const accent = store.accentColor || store.primaryColor || '#7a5c3a';
+  const lux = store.landingContent?.luxury_copy ?? undefined;
   const priceAmount = product.variants?.[0]?.calculated_price?.calculated_amount;
   const priceCurrency = product.variants?.[0]?.calculated_price?.currency_code || 'EUR';
   const formattedPrice = priceAmount
@@ -136,7 +137,7 @@ export function LuxuryMonoLanding({ store, products }: Props) {
             className="text-[10px] tracking-[0.36em] uppercase font-medium text-white/85 mb-6"
             style={{ color: accent }}
           >
-            Édition numérotée · Pièce signature
+            {lux?.hero_eyebrow ?? 'Édition numérotée · Pièce signature'}
           </p>
           <h1
             className="font-[var(--font-luxury-serif)] font-light tracking-[-0.02em] leading-[0.95] text-white"
@@ -144,9 +145,9 @@ export function LuxuryMonoLanding({ store, products }: Props) {
           >
             {product.title}
           </h1>
-          {store.tagline && (
+          {(lux?.hero_lede || store.tagline) && (
             <p className="mt-10 max-w-xl text-base md:text-lg leading-relaxed text-white/85 font-light">
-              {store.tagline}
+              {lux?.hero_lede || store.tagline}
             </p>
           )}
           <div className="mt-12 flex flex-wrap gap-3 text-[10px] uppercase tracking-[0.28em] text-white/70">
@@ -171,7 +172,7 @@ export function LuxuryMonoLanding({ store, products }: Props) {
               className="font-[var(--font-luxury-serif)] font-light tracking-[-0.02em] leading-[1.05] text-stone-900"
               style={{ fontSize: 'clamp(36px, 5vw, 64px)' }}
             >
-              Un objet pensé pour durer plus longtemps que la saison.
+              {lux?.story_headline ?? 'Un objet pensé pour durer plus longtemps que la saison.'}
             </h2>
           </div>
           <div className="md:col-span-6 md:col-start-7 flex flex-col gap-6 text-stone-700 leading-relaxed font-light">
@@ -210,20 +211,16 @@ export function LuxuryMonoLanding({ store, products }: Props) {
               className="font-[var(--font-luxury-serif)] font-light tracking-[-0.015em] leading-[1.1] text-stone-900"
               style={{ fontSize: 'clamp(28px, 3.5vw, 44px)' }}
             >
-              {`Derrière ${product.title}, une obsession pour la justesse du geste.`}
+              {lux?.story_headline ?? `Derrière ${product.title}, une obsession pour la justesse du geste.`}
             </h3>
             <div className="grid md:grid-cols-2 gap-12 text-stone-700 leading-relaxed font-light text-[16px]">
               <p>
-                Nous avons mis du temps à arriver à cette forme. Beaucoup de
-                prototypes écartés, plusieurs ateliers visités, des matières
-                refusées parce que trop bruyantes. Ce qui reste, c&apos;est ce que
-                vous tenez aujourd&apos;hui.
+                {lux?.story_body?.[0] ??
+                  `Nous avons mis du temps à arriver à cette forme. Beaucoup de prototypes écartés, plusieurs ateliers visités, des matières refusées parce que trop bruyantes. Ce qui reste, c'est ce que vous tenez aujourd'hui.`}
               </p>
               <p>
-                La pièce est pensée pour vieillir avec son propriétaire.
-                Patiner sans s&apos;effacer. S&apos;adoucir sans se déformer. C&apos;est
-                le contraire d&apos;un produit jetable, et c&apos;est précisément
-                pour ça qu&apos;elle coûte ce prix.
+                {lux?.story_body?.[1] ??
+                  `La pièce est pensée pour vieillir avec son propriétaire. Patiner sans s'effacer. S'adoucir sans se déformer. C'est le contraire d'un produit jetable, et c'est précisément pour ça qu'elle coûte ce prix.`}
               </p>
             </div>
           </div>
@@ -246,26 +243,29 @@ export function LuxuryMonoLanding({ store, products }: Props) {
           </div>
 
           <div className="grid md:grid-cols-3 gap-12 md:gap-16">
-            {[
-              {
-                n: 'i',
-                title: 'Matière',
-                body:
-                  'Une seule provenance, sélectionnée par notre directeur d&apos;atelier. Aucun mélange. La main reconnaît la matière noble.',
-              },
-              {
-                n: 'ii',
-                title: 'Geste',
-                body:
-                  'Chaque pièce passe entre les mains d&apos;un artisan unique, de la coupe à la finition. Pas de chaîne, pas de relais.',
-              },
-              {
-                n: 'iii',
-                title: 'Temps',
-                body:
-                  'Six à huit semaines pour qu&apos;une commande devienne un objet. C&apos;est le rythme du travail bien fait.',
-              },
-            ].map((c) => (
+            {(lux?.atelier_pillars?.length === 3
+              ? lux.atelier_pillars.map((p, i) => ({ n: ['i', 'ii', 'iii'][i]!, title: p.title, body: p.body }))
+              : [
+                  {
+                    n: 'i',
+                    title: 'Matière',
+                    body:
+                      "Une seule provenance, sélectionnée par notre directeur d'atelier. Aucun mélange. La main reconnaît la matière noble.",
+                  },
+                  {
+                    n: 'ii',
+                    title: 'Geste',
+                    body:
+                      "Chaque pièce passe entre les mains d'un artisan unique, de la coupe à la finition. Pas de chaîne, pas de relais.",
+                  },
+                  {
+                    n: 'iii',
+                    title: 'Temps',
+                    body:
+                      "Six à huit semaines pour qu'une commande devienne un objet. C'est le rythme du travail bien fait.",
+                  },
+                ]
+            ).map((c) => (
               <div key={c.n} className="flex flex-col gap-5 border-t border-stone-300 pt-8">
                 <span
                   className="font-[var(--font-luxury-serif)] italic text-2xl"
@@ -287,8 +287,8 @@ export function LuxuryMonoLanding({ store, products }: Props) {
           {formattedPrice && (
             <div className="mt-24 pt-12 border-t border-stone-300 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
               <p className="text-[15px] text-stone-600 max-w-md font-light leading-relaxed">
-                Pour cette pièce — matière noble, atelier européen, finition
-                main — le prix tient compte du temps réel passé.
+                {lux?.price_rationale ??
+                  "Pour cette pièce, matière noble, atelier européen, finition main, le prix tient compte du temps réel passé."}
               </p>
               <div className="text-right">
                 <p className="text-[10px] tracking-[0.32em] uppercase text-stone-500 mb-1">
@@ -351,12 +351,11 @@ export function LuxuryMonoLanding({ store, products }: Props) {
                 className="font-[var(--font-luxury-serif)] font-light tracking-[-0.015em] leading-[1.05]"
                 style={{ fontSize: 'clamp(32px, 4.5vw, 56px)' }}
               >
-                Le geste de l&apos;ouverture compte autant que la pièce.
+                {lux?.packaging_headline ?? "Le geste de l'ouverture compte autant que la pièce."}
               </h3>
               <p className="text-[15px] leading-relaxed text-stone-300 font-light max-w-md">
-                Chaque commande est expédiée dans son coffret signé,
-                accompagnée du certificat d&apos;authenticité, d&apos;un guide
-                d&apos;entretien et d&apos;une note manuscrite de l&apos;atelier.
+                {lux?.packaging_body ??
+                  "Chaque commande est expédiée dans son coffret signé, accompagnée du certificat d'authenticité, d'un guide d'entretien et d'une note manuscrite de l'atelier."}
               </p>
               <ul className="text-[12px] tracking-[0.16em] uppercase font-light text-stone-400 flex flex-col gap-2 mt-4">
                 <li>· Coffret signature numéroté</li>
@@ -444,8 +443,8 @@ export function LuxuryMonoLanding({ store, products }: Props) {
             </p>
           )}
           <p className="text-[14px] leading-relaxed text-stone-600 font-light max-w-md mx-auto mb-12">
-            Production à la commande. Délai estimé : 6 à 8 semaines.
-            Livraison offerte. Retours sous 30 jours.
+            {lux?.final_cta_note ??
+              'Production à la commande. Délai estimé six à huit semaines. Livraison offerte. Retours sous 30 jours.'}
           </p>
           <div className="flex justify-center">
             {product.variants?.[0]?.id ? (

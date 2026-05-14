@@ -84,6 +84,20 @@ export interface LandingContent {
     headline_html?: string;
     lede?: string;
   };
+  /** Filled by luxury-pipeline.ts when the operator promotes the store to
+   *  luxury-mono. Read by `LuxuryMonoLanding` to override the template's
+   *  hardcoded French placeholders. */
+  luxury_copy?: {
+    hero_eyebrow?: string;
+    hero_lede?: string;
+    story_headline?: string;
+    story_body?: [string, string];
+    atelier_pillars?: Array<{ title: string; body: string }>;
+    price_rationale?: string;
+    packaging_headline?: string;
+    packaging_body?: string;
+    final_cta_note?: string;
+  };
 }
 
 export type StoreTemplate = CatalogStoreTemplate;

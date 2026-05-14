@@ -5,6 +5,7 @@ import { falGenerateImage, falGenerateVideo, isFalConfigured } from './fal-clien
 import { extractJson } from './json';
 import { trackedMessage } from './anthropic';
 import { isR2Configured, uploadToR2 } from '@/lib/storage/r2';
+import { getDb } from '@/lib/db';
 
 /**
  * Auto-generates hero/cutout/lifestyle/promo-video assets for a mono-product
@@ -47,6 +48,8 @@ import { isR2Configured, uploadToR2 } from '@/lib/storage/r2';
  */
 
 export interface AssetGenInput {
+  /** Required so each generation step is traced into `dropship_asset_runs`. */
+  storeId: string;
   storeSlug: string;
   /** The product the agent already picked (highest-quality supplier image). */
   product: { title: string; description: string; imageUrl: string };
@@ -87,6 +90,8 @@ export interface AssetGenOutput {
   promoVideoUrl: string | null;
   /** Issues encountered during generation, surfaced in the SSE log. */
   warnings: string[];
+  /** Hard errors per asset step (subset of warnings, parsed for the activation gate). */
+  errors: string[];
 }
 
 interface PromptBundle {
@@ -394,6 +399,58 @@ async function _runVideoBuf(deploymentEnvKey: string, motionPrompt: string, sour
   return (await runVideo(deploymentEnvKey, motionPrompt, sourceImageUrl)).bytes;
 }
 
+type TracedAssetKind =
+  | 'hero'
+  | 'cutout'
+  | 'lifestyle-1'
+  | 'lifestyle-2'
+  | 'lifestyle-3'
+  | 'promo';
+
+async function tracedAssetStep(args: {
+  storeId: string;
+  assetKind: TracedAssetKind;
+  prompt: string;
+  referenceImageUrl: string;
+  deploymentEnvKey: string;
+  isVideo: boolean;
+  persist: (bytes: Buffer) => Promise<string>;
+}): Promise<{ url: string | null; error: string | null }> {
+  const db = getDb();
+  const ins = await db.query<{ id: string }>(
+    `INSERT INTO dropship_asset_runs
+       (store_id, asset_kind, prompt, reference_image_url, status)
+     VALUES ($1, $2, $3, $4, 'running')
+     RETURNING id`,
+    [args.storeId, args.assetKind, args.prompt, args.referenceImageUrl],
+  );
+  const runId = ins.rows[0]!.id;
+
+  try {
+    const bytes = args.isVideo
+      ? await _runVideoBuf(args.deploymentEnvKey, args.prompt, args.referenceImageUrl)
+      : await _runImageBuf(args.deploymentEnvKey, args.prompt, args.referenceImageUrl);
+    const url = await args.persist(bytes);
+    await db.query(
+      `UPDATE dropship_asset_runs
+          SET status = 'success', result_url = $1, completed_at = now()
+        WHERE id = $2`,
+      [url, runId],
+    );
+    return { url, error: null };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'erreur inconnue';
+    console.error(`[asset-generator] ${args.assetKind} failed for store ${args.storeId}: ${message}`);
+    await db.query(
+      `UPDATE dropship_asset_runs
+          SET status = 'error', error_message = $1, completed_at = now()
+        WHERE id = $2`,
+      [message, runId],
+    ).catch(() => {});
+    return { url: null, error: message };
+  }
+}
+
 /**
  * Main entrypoint. Always returns — never throws — so a failed asset run
  * doesn't break store creation. Warnings are surfaced to the caller for the
@@ -404,6 +461,7 @@ export async function generateMonoAssets(
   onProgress?: (msg: string) => void,
 ): Promise<AssetGenOutput> {
   const warn: string[] = [];
+  const errors: string[] = [];
   const log = (m: string) => {
     onProgress?.(m);
   };
@@ -417,6 +475,7 @@ export async function generateMonoAssets(
       lifestyleUrls: [],
       promoVideoUrl: null,
       warnings: warn,
+      errors: [],
     };
   }
   log(isComfyConfigured() ? 'Backend: ComfyUI Deploy' : 'Backend: fal.ai (fallback)');
@@ -471,51 +530,83 @@ export async function generateMonoAssets(
 
   // Sequential to keep the GPU queue happy on a single-instance Comfy backend.
   // Concurrency could be added later behind COMFY_PARALLEL.
-  try {
-    log('Génération du hero (1/6)...');
-    const heroBytes = await _runImageBuf('COMFY_DEPLOYMENT_HERO', prompts.hero, input.product.imageUrl);
-    heroUrl = await persist('hero.png', heroBytes);
-  } catch (e) {
-    warn.push(`Hero: ${e instanceof Error ? e.message : 'erreur'}`);
+  log('Génération du hero (1/6)...');
+  {
+    const r = await tracedAssetStep({
+      storeId: input.storeId,
+      assetKind: 'hero',
+      prompt: prompts.hero,
+      referenceImageUrl: input.product.imageUrl,
+      deploymentEnvKey: 'COMFY_DEPLOYMENT_HERO',
+      isVideo: false,
+      persist: (bytes) => persist('hero.png', bytes),
+    });
+    heroUrl = r.url;
+    if (r.error) {
+      warn.push(`Hero: ${r.error}`);
+      errors.push(`Hero: ${r.error}`);
+    }
   }
 
-  try {
-    log('Génération du cutout (2/6)...');
-    const cutoutBytes = await _runImageBuf('COMFY_DEPLOYMENT_CUTOUT', prompts.cutout, input.product.imageUrl);
-    cutoutUrl = await persist('cutout.png', cutoutBytes);
-  } catch (e) {
-    warn.push(`Cutout: ${e instanceof Error ? e.message : 'erreur'}`);
+  log('Génération du cutout (2/6)...');
+  {
+    const r = await tracedAssetStep({
+      storeId: input.storeId,
+      assetKind: 'cutout',
+      prompt: prompts.cutout,
+      referenceImageUrl: input.product.imageUrl,
+      deploymentEnvKey: 'COMFY_DEPLOYMENT_CUTOUT',
+      isVideo: false,
+      persist: (bytes) => persist('cutout.png', bytes),
+    });
+    cutoutUrl = r.url;
+    if (r.error) {
+      warn.push(`Cutout: ${r.error}`);
+      errors.push(`Cutout: ${r.error}`);
+    }
   }
 
   for (let i = 0; i < prompts.lifestyles.length; i++) {
-    try {
-      log(`Génération lifestyle ${i + 1}/3 (${i + 3}/6)...`);
-      const bytes = await _runImageBuf(
-        'COMFY_DEPLOYMENT_LIFESTYLE',
-        prompts.lifestyles[i]!,
-        input.product.imageUrl,
-      );
-      const filename = `lifestyle-${i + 1}.png`;
-      const url = await persist(filename, bytes);
-      lifestyleUrls.push(url);
-    } catch (e) {
-      warn.push(`Lifestyle ${i + 1}: ${e instanceof Error ? e.message : 'erreur'}`);
+    log(`Génération lifestyle ${i + 1}/3 (${i + 3}/6)...`);
+    const assetKind = `lifestyle-${i + 1}` as 'lifestyle-1' | 'lifestyle-2' | 'lifestyle-3';
+    const filename = `lifestyle-${i + 1}.png`;
+    const r = await tracedAssetStep({
+      storeId: input.storeId,
+      assetKind,
+      prompt: prompts.lifestyles[i]!,
+      referenceImageUrl: input.product.imageUrl,
+      deploymentEnvKey: 'COMFY_DEPLOYMENT_LIFESTYLE',
+      isVideo: false,
+      persist: (bytes) => persist(filename, bytes),
+    });
+    if (r.url) lifestyleUrls.push(r.url);
+    if (r.error) {
+      warn.push(`Lifestyle ${i + 1}: ${r.error}`);
+      errors.push(`Lifestyle ${i + 1}: ${r.error}`);
     }
   }
 
   if (!input.skipVideo && process.env.COMFY_DEPLOYMENT_VIDEO) {
-    try {
-      log('Génération de la vidéo promo 5s (6/6)...');
-      // Drive the video off the cutout if we got one (cleanest framing) else
-      // the supplier ref. In R2 mode `cutoutUrl` is already absolute; in
-      // filesystem mode we prepend the public base so ComfyUI can fetch it.
-      const videoSource = cutoutUrl
-        ? (useR2 ? cutoutUrl : `${process.env.NEXT_PUBLIC_BASE_URL || ''}${cutoutUrl}`)
-        : input.product.imageUrl;
-      const videoBytes = await _runVideoBuf('COMFY_DEPLOYMENT_VIDEO', prompts.promo, videoSource);
-      promoVideoUrl = await persist('promo.mp4', videoBytes);
-    } catch (e) {
-      warn.push(`Vidéo: ${e instanceof Error ? e.message : 'erreur'}`);
+    log('Génération de la vidéo promo 5s (6/6)...');
+    // Drive the video off the cutout if we got one (cleanest framing) else
+    // the supplier ref. In R2 mode `cutoutUrl` is already absolute; in
+    // filesystem mode we prepend the public base so ComfyUI can fetch it.
+    const videoSource = cutoutUrl
+      ? (useR2 ? cutoutUrl : `${process.env.NEXT_PUBLIC_BASE_URL || ''}${cutoutUrl}`)
+      : input.product.imageUrl;
+    const r = await tracedAssetStep({
+      storeId: input.storeId,
+      assetKind: 'promo',
+      prompt: prompts.promo,
+      referenceImageUrl: videoSource,
+      deploymentEnvKey: 'COMFY_DEPLOYMENT_VIDEO',
+      isVideo: true,
+      persist: (bytes) => persist('promo.mp4', bytes),
+    });
+    promoVideoUrl = r.url;
+    if (r.error) {
+      warn.push(`Vidéo: ${r.error}`);
+      errors.push(`Vidéo: ${r.error}`);
     }
   }
 
@@ -537,6 +628,7 @@ export async function generateMonoAssets(
     lifestyleUrls,
     promoVideoUrl,
     warnings: warn,
+    errors,
   };
 }
 

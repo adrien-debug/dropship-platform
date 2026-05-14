@@ -2,15 +2,17 @@ import { notFound } from 'next/navigation';
 import { getDbRead } from '@/lib/db';
 import { PageHeader } from '../../../../_components/AdminUI';
 import { StoreTemplateForm } from '../StoreTemplateForm';
+import { LuxuryUpgradeButton } from '../LuxuryUpgradeButton';
 import { StoreCustomDomainForm } from '../StoreCustomDomainForm';
 import { StoreAnalyticsForm } from '../StoreAnalyticsForm';
+import type { StoreTemplate } from '@/lib/template-catalog';
 
 export const dynamic = 'force-dynamic';
 
 interface SettingsRow {
   id: string;
   slug: string;
-  template: 'auto' | 'mono' | 'collection-grid' | 'collection-editorial';
+  template: StoreTemplate;
   custom_domain: string | null;
   ga4_measurement_id: string | null;
   ga4_api_secret: string | null;
@@ -51,6 +53,8 @@ export default async function StoreSettingsPage({ params }: { params: Promise<{ 
         storeSlug={store.slug}
         initial={store.template}
       />
+
+      <LuxuryUpgradeButton storeId={store.id} currentTemplate={store.template} />
 
       <StoreCustomDomainForm
         storeId={store.id}

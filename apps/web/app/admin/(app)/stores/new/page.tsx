@@ -226,127 +226,195 @@ function NewStoreForm() {
     });
   };
 
+  const isActive = running || !!result || !!error;
+
   return (
     <div className="flex flex-col flex-1 min-h-0 gap-2">
       {/* Breadcrumb compact */}
-      <div className="flex items-center justify-between text-xs shrink-0">
-        <div className="flex items-center gap-2">
-          <Link href="/admin/stores" className="text-zinc-400 hover:text-zinc-900 transition-colors">
-            ← Stores
-          </Link>
-          <span className="text-zinc-300">/</span>
-          <span className="font-medium text-zinc-900">Nouveau store</span>
-        </div>
-        {(running || result || error) && (
-          <RunBanner
-            running={running}
-            result={result}
-            error={error}
-            progress={progress}
-            elapsed={elapsed}
-            currentStep={currentStep}
-            slug={result?.slug}
-            onReset={reset}
-          />
-        )}
+      <div className="flex items-center gap-2 text-xs shrink-0">
+        <Link href="/admin/stores" className="text-admin-text-muted hover:text-admin-text transition-colors">
+          ← Stores
+        </Link>
+        <span className="text-admin-text-faint">/</span>
+        <span className="font-medium text-admin-text">Nouveau store</span>
       </div>
 
-      {/* Copilote plein écran — chat à gauche, sélecteurs à droite */}
-      <NicheResearchCopilot
-        onApplyShortlist={applyShortlist}
-        mode={mode}
-        onModeChange={setMode}
-        language={language}
-        onLanguageChange={setLanguage}
-        skipVideo={skipVideo}
-        onSkipVideoChange={setSkipVideo}
-        creationProgress={
-          running || result || error
-            ? {
-                running,
-                percent: progress,
-                elapsed,
-                currentStep,
-                storeName,
-                logs,
-                result,
-                error,
-              }
-            : null
-        }
-      />
+      {/* Quand la création tourne : plein écran dédié impossible à rater */}
+      {isActive ? (
+        <CreationScreen
+          running={running}
+          percent={progress}
+          elapsed={elapsed}
+          currentStep={currentStep}
+          storeName={storeName}
+          logs={logs}
+          result={result}
+          error={error}
+          onReset={reset}
+        />
+      ) : (
+        /* Copilote recherche de niche */
+        <NicheResearchCopilot
+          onApplyShortlist={applyShortlist}
+          mode={mode}
+          onModeChange={setMode}
+          language={language}
+          onLanguageChange={setLanguage}
+          skipVideo={skipVideo}
+          onSkipVideoChange={setSkipVideo}
+          creationProgress={null}
+        />
+      )}
     </div>
   );
 }
 
-function RunBanner({
+
+
+function CreationScreen({
   running,
-  result,
-  error,
-  progress,
+  percent,
   elapsed,
   currentStep,
-  slug,
+  storeName,
+  logs,
+  result,
+  error,
   onReset,
 }: {
   running: boolean;
-  result: { slug: string; storeName: string; productCount: number } | null;
-  error: string | null;
-  progress: number;
+  percent: number;
   elapsed: number;
   currentStep: string;
-  slug?: string;
+  storeName: string;
+  logs: LogLine[];
+  result: { slug: string; storeName: string; productCount: number } | null;
+  error: string | null;
   onReset: () => void;
 }) {
-  if (result && slug) {
-    return (
-      <div className="flex items-center gap-2 text-xs">
-        <span className="inline-flex items-center gap-1.5 text-indigo-600 font-medium">
-          <span className="w-1.5 h-1.5 rounded-full bg-indigo-600" /> {result.storeName} en ligne
-        </span>
-        <Link
-          href={`/shop/${slug}`}
-          target="_blank"
-          rel="noreferrer"
-          className="px-2.5 py-1 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition-colors"
-        >
-          Ouvrir
-        </Link>
-        <button
-          type="button"
-          onClick={onReset}
-          className="px-2.5 py-1 rounded-lg border border-zinc-200 text-zinc-500 hover:bg-zinc-50"
-        >
-          Créer un autre
-        </button>
-      </div>
-    );
-  }
-  if (running) {
-    return (
-      <div className="flex flex-col items-end gap-0.5 text-xs text-zinc-500 max-w-[60vw]">
-        <div className="flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse" />
-          <span className="tabular-nums">{progress}% · {elapsed}s</span>
-        </div>
-        {currentStep && (
-          <span className="text-zinc-400 italic truncate max-w-full" title={currentStep}>
-            {currentStep}
-          </span>
-        )}
-      </div>
-    );
-  }
-  if (error) {
-    return (
-      <span className="text-xs text-zinc-500 truncate max-w-[420px]" title={error}>
-        Erreur : {error}
-      </span>
-    );
-  }
-  return null;
-}
+  const logsEndRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [logs]);
 
+  if (result) {
+    return (
+      <div className="flex flex-col flex-1 min-h-0 items-center justify-center gap-6">
+        <div className="text-center space-y-2">
+          <div className="w-12 h-12 rounded-full bg-admin-accent/10 border border-admin-accent/20 flex items-center justify-center mx-auto">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-admin-accent">
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-semibold tracking-tight text-admin-text">{result.storeName}</h2>
+          <p className="text-sm text-admin-text-muted">{result.productCount} produit{result.productCount > 1 ? 's' : ''} importé{result.productCount > 1 ? 's' : ''} · prêt à vendre</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Link
+            href={`/shop/${result.slug}`}
+            target="_blank"
+            rel="noreferrer"
+            className="px-5 py-2.5 rounded-admin-md bg-admin-text text-admin-text-inverse text-sm font-medium hover:bg-admin-chrome-soft transition-colors"
+          >
+            Ouvrir le store →
+          </Link>
+          <Link
+            href="/admin/stores"
+            className="px-5 py-2.5 rounded-admin-md border border-admin-border text-admin-text text-sm font-medium hover:bg-admin-bg-subtle transition-colors"
+          >
+            Voir tous les stores
+          </Link>
+          <button
+            type="button"
+            onClick={onReset}
+            className="px-5 py-2.5 rounded-admin-md border border-admin-border text-admin-text-muted text-sm font-medium hover:bg-admin-bg-subtle transition-colors"
+          >
+            Créer un autre
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col flex-1 min-h-0 border border-admin-border rounded-admin-lg bg-admin-bg overflow-hidden">
+      {/* Header */}
+      <div className="shrink-0 px-5 py-3.5 border-b border-admin-border flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3 min-w-0">
+          {running ? (
+            <span className="w-2 h-2 rounded-full bg-admin-accent animate-pulse shrink-0" />
+          ) : (
+            <span className="w-2 h-2 rounded-full bg-admin-danger shrink-0" />
+          )}
+          <span className="text-sm font-semibold text-admin-text truncate">
+            {running ? `Construction de « ${storeName} »` : `Erreur — « ${storeName} »`}
+          </span>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          {running && (
+            <span className="text-xs tabular-nums text-admin-text-muted font-medium">
+              {percent}% · {elapsed}s
+            </span>
+          )}
+          {error && (
+            <button
+              type="button"
+              onClick={onReset}
+              className="text-xs px-3 py-1.5 rounded-admin-md border border-admin-border text-admin-text-muted hover:bg-admin-bg-subtle transition-colors"
+            >
+              Réessayer
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Barre de progression */}
+      <div className="shrink-0 h-0.5 bg-admin-bg-muted">
+        <div
+          className="h-full bg-admin-text transition-all duration-500"
+          style={{ width: `${Math.max(2, Math.min(100, percent))}%` }}
+        />
+      </div>
+
+      {/* Étape courante */}
+      {currentStep && (
+        <div className="shrink-0 px-5 py-2 border-b border-admin-border-soft bg-admin-bg-subtle">
+          <p className="text-xs text-admin-text-secondary italic truncate">{currentStep}</p>
+        </div>
+      )}
+
+      {/* Error banner */}
+      {error && (
+        <div className="shrink-0 px-5 py-3 bg-admin-danger-soft border-b border-red-100">
+          <p className="text-sm text-admin-danger font-medium">Erreur de création</p>
+          <p className="text-xs text-red-600/80 mt-0.5 whitespace-pre-wrap">{error}</p>
+        </div>
+      )}
+
+      {/* Logs en temps réel */}
+      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-1.5 font-mono text-[12px]">
+        {logs.map((l) => (
+          <div key={l.id} className="flex items-start gap-3">
+            <span className="text-admin-text-faint tabular-nums shrink-0 pt-px">{l.ts}</span>
+            <span className={
+              l.type === 'error' ? 'text-admin-danger' :
+              l.type === 'success' ? 'text-admin-success' :
+              l.type === 'step' ? 'text-admin-text font-medium' :
+              'text-admin-text-muted'
+            }>
+              {l.type === 'step' && <span className="text-admin-text-faint mr-1.5">›</span>}
+              {l.message}
+            </span>
+          </div>
+        ))}
+        {running && logs.length === 0 && (
+          <p className="text-admin-text-faint">Démarrage…</p>
+        )}
+        <div ref={logsEndRef} />
+      </div>
+    </div>
+  );
+}
 
 export default function NewStorePage() {
   return (

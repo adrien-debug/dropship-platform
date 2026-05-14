@@ -622,9 +622,12 @@ export async function* createStore(input: StoreCreationInput): AsyncGenerator<Ag
         branding.accentColor,
       );
 
+      // Mono stores can't go 'active' until hero asset generation succeeds;
+      // collection stores have no asset pipeline, so they activate here.
+      const activateNow = mode !== 'mono';
       await db.query(
         `UPDATE dropship_stores SET
-           status = 'active', tagline = $1, description = $2,
+           ${activateNow ? "status = 'active', " : ''}tagline = $1, description = $2,
            primary_color = $3, secondary_color = $4, accent_color = $5,
            logo_emoji = $6, medusa_sales_channel_id = $7,
            medusa_publishable_key = $8, product_count = $9,
@@ -665,10 +668,9 @@ export async function* createStore(input: StoreCreationInput): AsyncGenerator<Ag
         }
       }
 
-      // Mono mode: kick off the asset generation pipeline. We do this AFTER
-      // the store row is marked 'active' so the storefront is already
-      // browseable while images render. Failures here are non-fatal — the
-      // store still works with the supplier image.
+      // Mono mode: kick off the asset generation pipeline. The store stays
+      // 'creating' until hero generation succeeds — we never expose a live
+      // storefront with an empty hero. Retry up to 3× with exponential backoff.
       if (mode === 'mono' && enriched[0]) {
         const heroProduct = enriched[0];
         emit({ type: 'step', message: 'Génération des visuels (hero, lifestyles, vidéo)...' });
@@ -676,60 +678,83 @@ export async function* createStore(input: StoreCreationInput): AsyncGenerator<Ag
           `UPDATE dropship_stores SET assets_status = 'generating' WHERE id = $1`,
           [storeId],
         );
-        try {
-          const assets = await generateMonoAssets(
-            {
-              storeSlug: slug,
-              product: {
-                title: heroProduct.enrichedTitle,
-                description: heroProduct.enrichedDescription,
-                imageUrl: heroProduct.imageUrl,
-              },
-              niche: input.niche,
-              language,
-              skipVideo: input.skipVideo,
-              design: {
-                presetSlug: preset.slug,
-                imageryMood: preset.imageryMood,
-                primaryColor: palette.primary,
-                accentColor: palette.accent,
-              },
-            },
-            (msg) => emit({ type: 'progress', message: msg }),
-          );
 
-          const hasAnyAsset = Boolean(assets.heroUrl || assets.cutoutUrl || assets.lifestyleUrls.length);
-          await db.query(
-            `UPDATE dropship_stores SET
-               assets_run_id = $1,
-               hero_image_url = $2,
-               cutout_image_url = $3,
-               lifestyle_images = $4,
-               promo_video_url = $5,
-               assets_status = $6,
-               updated_at = now()
-             WHERE id = $7`,
-            [
-              assets.runId || null,
-              assets.heroUrl,
-              assets.cutoutUrl,
-              JSON.stringify(assets.lifestyleUrls),
-              assets.promoVideoUrl,
-              hasAnyAsset ? 'ready' : 'error',
-              storeId,
-            ],
-          );
+        const MAX_ASSET_RETRIES = 3;
+        let assets: Awaited<ReturnType<typeof generateMonoAssets>> | null = null;
+        let lastAssetError: string | null = null;
 
-          for (const w of assets.warnings) {
-            emit({ type: 'progress', message: `⚠ ${w}` });
+        for (let attempt = 1; attempt <= MAX_ASSET_RETRIES; attempt++) {
+          try {
+            if (attempt > 1) {
+              const delay = (attempt - 1) * 8000;
+              emit({ type: 'progress', message: `⏳ Retry génération assets (${attempt}/${MAX_ASSET_RETRIES})…` });
+              await new Promise((r) => setTimeout(r, delay));
+            }
+            assets = await generateMonoAssets(
+              {
+                storeId,
+                storeSlug: slug,
+                product: {
+                  title: heroProduct.enrichedTitle,
+                  description: heroProduct.enrichedDescription,
+                  imageUrl: heroProduct.imageUrl,
+                },
+                niche: input.niche,
+                language,
+                skipVideo: input.skipVideo,
+                design: {
+                  presetSlug: preset.slug,
+                  imageryMood: preset.imageryMood,
+                  primaryColor: palette.primary,
+                  accentColor: palette.accent,
+                },
+              },
+              (msg) => emit({ type: 'progress', message: msg }),
+            );
+            if (assets.heroUrl) break;
+            lastAssetError = 'heroUrl manquant après génération';
+            emit({ type: 'progress', message: `⚠ Asset generation tentative ${attempt}: ${lastAssetError}` });
+          } catch (e) {
+            lastAssetError = e instanceof Error ? e.message : 'erreur inconnue';
+            emit({ type: 'progress', message: `⚠ Asset generation tentative ${attempt}: ${lastAssetError}` });
           }
-        } catch (e) {
-          const msg = e instanceof Error ? e.message : 'erreur inconnue';
-          emit({ type: 'progress', message: `⚠ Asset generation: ${msg}` });
+        }
+
+        const hasHero = Boolean(assets?.heroUrl);
+
+        await db.query(
+          `UPDATE dropship_stores SET
+             assets_run_id = $1, hero_image_url = $2, cutout_image_url = $3,
+             lifestyle_images = $4, promo_video_url = $5,
+             assets_status = $6, updated_at = now()
+           WHERE id = $7`,
+          [
+            assets?.runId ?? null,
+            assets?.heroUrl ?? null,
+            assets?.cutoutUrl ?? null,
+            JSON.stringify(assets?.lifestyleUrls ?? []),
+            assets?.promoVideoUrl ?? null,
+            hasHero ? 'ready' : 'error',
+            storeId,
+          ],
+        );
+
+        for (const w of assets?.warnings ?? []) {
+          emit({ type: 'progress', message: `⚠ ${w}` });
+        }
+
+        if (hasHero) {
           await db.query(
-            `UPDATE dropship_stores SET assets_status = 'error' WHERE id = $1`,
+            `UPDATE dropship_stores SET status = 'active', updated_at = now() WHERE id = $1`,
             [storeId],
           );
+        } else {
+          const errMsg = assets?.errors[0] || lastAssetError || 'Génération des assets échouée';
+          await db.query(
+            `UPDATE dropship_stores SET error_message = $1, updated_at = now() WHERE id = $2`,
+            [errMsg, storeId],
+          );
+          emit({ type: 'progress', message: `⚠ Assets non générés après ${MAX_ASSET_RETRIES} tentatives: ${errMsg}` });
         }
       }
 

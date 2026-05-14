@@ -25,6 +25,7 @@ import {
   startAnomalyWatcher,
   stopAnomalyWatcher,
 } from './notifications';
+import { ensureNextRunning, stopNext } from './nextProcess';
 import { createTray, destroyTray, pushRecentStore } from './tray';
 import { closeAll, hasOpenWindows, openWindow } from './windows';
 
@@ -235,7 +236,7 @@ function wireIpc(): void {
   });
 }
 
-app.on('ready', () => {
+app.on('ready', async () => {
   app.setName('Hearst Dropship');
   installAuthHeader();
   Menu.setApplicationMenu(buildAppMenu());
@@ -243,7 +244,35 @@ app.on('ready', () => {
   wireIpc();
   createTray();
   startAnomalyWatcher();
+
+  // In dev, embed Next.js as a child process and wait for it to be ready
+  // before opening the dashboard. In prod, we hit Vercel directly so this
+  // step is skipped. ALL errors are surfaced in a dedicated splash window
+  // so the user never sees a blank / crashing main window.
+  const cfg = getConfig();
+  if (cfg.isDev && cfg.isLocal) {
+    try {
+      await ensureNextRunning({
+        timeoutMs: 90_000,
+        onProgress: (msg) => console.log('[startup]', msg),
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error('[startup] Next.js failed to start:', message);
+      const { dialog } = require('electron') as typeof import('electron');
+      // Show a native error dialog so the user sees exactly whats wrong
+      // instead of staring at a black/empty window.
+      dialog.showErrorBox(
+        'Next.js n a pas démarré',
+        `Le serveur de développement n a pas répondu sur le port 4302.\n\n${message}\n\nVérifie /tmp/hdrop-next.log ou lance manuellement :\n  cd apps/web && npm run dev`,
+      );
+      // Open the window anyway — Cmd+R will retry once the user fixes things.
+    }
+  }
+
   openWindow({ kind: 'dashboard' });
+  // Force foreground after window creation
+  app.focus({ steal: true });
 });
 
 // macOS convention: keep the app running even with no windows.
@@ -258,9 +287,17 @@ app.on('activate', () => {
   }
 });
 
-app.on('will-quit', () => {
+app.on('will-quit', async (event) => {
   globalShortcut.unregisterAll();
   stopAnomalyWatcher();
   destroyTray();
   closeAll();
+
+  // Kill the embedded Next.js dev server cleanly. We need to delay the
+  // actual quit until SIGTERM/SIGKILL completes so it doesnt linger.
+  if (getConfig().isDev) {
+    event.preventDefault();
+    await stopNext();
+    app.exit(0);
+  }
 });

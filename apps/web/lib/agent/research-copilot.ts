@@ -10,7 +10,7 @@
  *   - cj_search                            : EU-warehouse alternatives
  *   - shortlist_niche                      : final structured recommendation
  *
- * Conversations live in `dropship_research_sessions` / `_messages`. They are
+ * Conversations live in `dropship_copilot_sessions` / `_messages`. They are
  * NOT tied to a store — the whole point is to converge on a niche BEFORE
  * the operator creates the store.
  *
@@ -39,6 +39,7 @@ import * as aliexpress from '@/lib/suppliers/aliexpress';
 import * as cj from '@/lib/suppliers/cj';
 import { tavilySearch, isTavilyConfigured } from '@/lib/research/tavily';
 import { perplexityAnswer, isPerplexityConfigured } from '@/lib/research/perplexity';
+import { TEMPLATE_IDS, TEMPLATE_CATALOG } from '@/lib/template-catalog';
 import { rebuildMessages, stringifyToolOutput } from './copilot-shared';
 
 // Niche research is the most strategic step in the pipeline — the choice of
@@ -174,7 +175,7 @@ const ShortlistNicheInput = z.object({
   // to re-pick after the shortlist. Pre-fills the form below.
   suggested_mode: z.enum(['mono', 'collection']).optional(),
   suggested_template: z
-    .enum(['auto', 'mono', 'collection-grid', 'collection-editorial', 'luxury-minimal', 'gen-z-bold'])
+    .enum(TEMPLATE_IDS as unknown as [string, ...string[]])
     .optional(),
   // Full media plan — channel mix, geo, audience, dayparting, outcomes.
   // Required — operator validates this before clicking "Lancer".
@@ -352,9 +353,8 @@ const TOOLS: Anthropic.Messages.Tool[] = [
         },
         suggested_template: {
           type: 'string',
-          enum: ['auto', 'mono', 'collection-grid', 'collection-editorial', 'luxury-minimal', 'gen-z-bold'],
-          description:
-            'Storefront template. "mono" = long-form DTC landing. "collection-grid" = 4-col grid. "collection-editorial" = magazine layout. "luxury-minimal" = b&w typo-driven (premium serif feel). "gen-z-bold" = saturated brand color, oversized type, grain, marquee. Match to niche vibe.',
+          enum: [...TEMPLATE_IDS],
+          description: `Storefront template id (${TEMPLATE_CATALOG.length} options). Pick from the catalog that best matches niche vibe, register (mass/premium/luxury), and product count. Catalog:\n${TEMPLATE_CATALOG.map((t) => `  • ${t.id} (${t.register}/${t.mode}; ${t.niches.join(',') || 'any'}): ${t.hint}`).join('\n')}`,
         },
         media_plan: {
           type: 'object',
@@ -566,7 +566,7 @@ async function loadHistory(sessionId: string) {
     import('./copilot-shared').StoredMessage
   >(
     `SELECT id, role, content, tool_name, tool_input, tool_output, created_at
-       FROM dropship_research_messages
+       FROM dropship_copilot_messages
        WHERE session_id = $1
        ORDER BY created_at ASC, id ASC`,
     [sessionId],
@@ -586,7 +586,7 @@ async function insertMessage(
 ): Promise<void> {
   const db = getDb();
   await db.query(
-    `INSERT INTO dropship_research_messages
+    `INSERT INTO dropship_copilot_messages
        (session_id, role, content, tool_name, tool_input, tool_output)
      VALUES ($1,$2,$3,$4,$5,$6)`,
     [
@@ -599,7 +599,7 @@ async function insertMessage(
     ],
   );
   await db.query(
-    `UPDATE dropship_research_sessions SET updated_at = now() WHERE id = $1`,
+    `UPDATE dropship_copilot_sessions SET updated_at = now() WHERE id = $1`,
     [sessionId],
   );
 }
@@ -607,14 +607,14 @@ async function insertMessage(
 async function maybeBackfillTitle(sessionId: string, firstUserMessage: string): Promise<void> {
   const db = getDb();
   const { rows } = await db.query<{ title: string | null }>(
-    `SELECT title FROM dropship_research_sessions WHERE id = $1 LIMIT 1`,
+    `SELECT title FROM dropship_copilot_sessions WHERE id = $1 LIMIT 1`,
     [sessionId],
   );
   if (rows[0]?.title) return;
   const title = firstUserMessage.replace(/\s+/g, ' ').trim().slice(0, 80);
   if (!title) return;
   await db.query(
-    `UPDATE dropship_research_sessions SET title = $1 WHERE id = $2 AND title IS NULL`,
+    `UPDATE dropship_copilot_sessions SET title = $1 WHERE id = $2 AND title IS NULL`,
     [title, sessionId],
   );
 }
@@ -733,7 +733,7 @@ function buildSystemPrompt(): string {
     '4. **Ad cost benchmarks — NON OPTIONAL**. Call `search_ad_benchmarks` with the exact niche and country. This tool fetches real CPM/CPC/CPA data for Meta Ads, TikTok Ads, Google Ads and Pinterest Ads specific to this niche and market. NEVER invent ad costs — use the numbers that come back. If `search_ad_benchmarks` returns data, use it verbatim in your media_plan.',
     '5. **Unit economics check** — compute three pricing scenarios (aggressive / balanced / premium) with: retail TTC, shipping ~2€, cost, gross margin €. Then qualify each: CPA-cible (from the ad benchmarks data), ROAS attendu, viability "FB Ads débutant" vs "branding requis".',
     '6. **Bundle strategy** — if unit retail < 30€, propose a 2-unit and 3-unit bundle to lift AOV. State the expected AOV after bundles.',
-    '7. **Storefront shape** — decide `suggested_mode` ("mono" for one hero SKU long-form, "collection" for 3-6 curated pieces) AND `suggested_template` (one of: mono / collection-grid / collection-editorial / luxury-minimal / gen-z-bold) based on the niche vibe. The operator should NOT have to re-pick.',
+    `7. **Storefront shape** — decide \`suggested_mode\` ("mono" for one hero SKU long-form, "collection" for 3-6 curated pieces) AND \`suggested_template\` (id from the storefront catalog — ${TEMPLATE_CATALOG.length} options spanning mass/premium/luxury and fashion/beauty/wellness/events/travel/etc., see the tool schema for the full list with hints). Match the template's niches[] and register to the niche signal. The operator should NOT have to re-pick.`,
     '8. **Media plan — DO NOT SKIP**. Produce a full `media_plan` using the REAL ad cost data from `search_ad_benchmarks`. Channels with weight_pct summing ~100, expected CPM/CPC/CPA per channel (from benchmarks), geo (primary_countries + emphasis cities/régions), audience (demographics + interests + lookalike_seeds), schedule (best_hours_local + best_days + timezone Europe/Paris), expected_outcomes (daily_orders_low/high, target_cpa_eur, target_roas, breakeven_note), and 3 top_hooks. The operator validates this visually BEFORE creating the store.',
     '9. **Design proposals — DO NOT SKIP**. Provide EXACTLY 3 entries in `design_proposals`. Each is one of the 5 curated presets (`editorial-serif`, `tech-mono`, `brutalist-luxe`, `gen-z-bold`, `lifestyle-warm`) with the recommended `primary` + `accent` hex colors for THIS niche. Hard rules: (a) the 3 must be visually distinct from each other so the operator has a real choice; (b) the colors must respect the niche emotional tone (pet care → warm earthy; tech gadget → cold deep blue or near-black; luxury → near-black + ivory; gen-z fitness → saturated lime or magenta); (c) each accent must contrast its primary; (d) NEVER use the default placeholder #0f172a / #6366f1 — those are the legacy app neutrals and look generic. Once the operator picks one in the chat, those exact colors become the LAW for the whole storefront, the cookie banner, the ads creatives, every CTA. No component will ever invent a new color afterwards.',
     '',
@@ -1037,7 +1037,7 @@ async function executeTool(name: string, input: unknown): Promise<ResearchToolRe
 export async function createResearchSession(title?: string): Promise<string> {
   const db = getDb();
   const { rows } = await db.query<{ id: string }>(
-    `INSERT INTO dropship_research_sessions (title) VALUES ($1) RETURNING id`,
+    `INSERT INTO dropship_copilot_sessions (title, mode) VALUES ($1, 'research') RETURNING id`,
     [title?.slice(0, 80) ?? null],
   );
   return rows[0]!.id;
