@@ -116,7 +116,7 @@ export function ForwardButton({ orderId, alreadySent }: Props) {
         <div
           className={`text-[11px] rounded-md px-2.5 py-1.5 border max-w-[280px] ${
             sentResult.ok
-              ? 'bg-indigo-50 border-indigo-200 text-indigo-600'
+              ? 'bg-blue-50 border-blue-200 text-blue-600'
               : 'bg-zinc-50 border-zinc-200 text-zinc-500'
           }`}
         >
@@ -197,11 +197,11 @@ function ReviewModal({
 
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
           {sentResult?.ok && sentResult.status === 'sent' ? (
-            <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3">
-              <p className="text-sm font-medium text-indigo-700">
+            <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
+              <p className="text-sm font-medium text-blue-700">
                 Envoyée — AE #{sentResult.aeOrderId}
               </p>
-              <p className="mt-1 text-xs text-indigo-600">
+              <p className="mt-1 text-xs text-blue-600">
                 Connecte-toi sur aliexpress.com pour finaliser le paiement.
               </p>
             </div>
@@ -212,7 +212,7 @@ function ReviewModal({
             </div>
           ) : dryRunning ? (
             <div className="flex items-center gap-2 text-sm text-zinc-500 py-8 justify-center">
-              <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
               Préparation du payload AE…
             </div>
           ) : dryRunResult?.status === 'error' || !dryRunResult?.ok ? (

@@ -1,11 +1,13 @@
 import { cn } from '@/lib/utils/cn';
 
 /**
- * Premium "monogram" avatar for stores in admin lists. Replaces the
- * generic ShoppingBag fallback so a list of 7 stores no longer reads
- * as 7 identical shopping bags. Each store gets a deterministic
- * gradient + first initial based on its slug — same store always
- * renders the same swatch, but the set as a whole is varied.
+ * Premium monogram avatar for stores in admin lists. Locked to the
+ * platform palette: black + blue + white only. Each store still gets
+ * a deterministic, distinct look (8 variants) so a list of 30 stores
+ * never reads as a single repeated tile.
+ *
+ * The 8 variants mix: solid black, solid blue (3 shades), white-over-black,
+ * and 3 black↔blue gradients. Enough rhythm without leaving the palette.
  */
 
 interface Props {
@@ -15,20 +17,32 @@ interface Props {
   className?: string;
 }
 
-// Tuned for the indigo-leaning brand: every palette stays close to the
-// admin's accent so the dashboard reads as one family, but each store
-// gets its own distinct duo so the list has rhythm.
-const PALETTES: Array<[string, string]> = [
-  ['#6366f1', '#a78bfa'], // indigo → violet
-  ['#0ea5e9', '#6366f1'], // sky → indigo
-  ['#8b5cf6', '#ec4899'], // violet → pink
-  ['#10b981', '#0ea5e9'], // emerald → sky
-  ['#f59e0b', '#ef4444'], // amber → red
-  ['#ec4899', '#6366f1'], // pink → indigo
-  ['#06b6d4', '#10b981'], // cyan → emerald
-  ['#a855f7', '#3b82f6'], // purple → blue
-  ['#f97316', '#ec4899'], // orange → pink
-  ['#14b8a6', '#6366f1'], // teal → indigo
+interface Variant {
+  bg: string;
+  fg: string;
+  /** Optional ring/border to add contrast on light surfaces. */
+  ring?: string;
+}
+
+// All values are flat or gradient — only #000, white, and the blue scale
+// allowed. Order is irrelevant; the slug hash picks deterministically.
+const VARIANTS: Variant[] = [
+  // 1. Solid black
+  { bg: '#0a0a0a',                                                              fg: '#ffffff' },
+  // 2. Solid electric blue (primary accent)
+  { bg: '#2563eb',                                                              fg: '#ffffff' },
+  // 3. Deep navy
+  { bg: '#1e3a8a',                                                              fg: '#ffffff' },
+  // 4. Bright sky blue
+  { bg: '#3b82f6',                                                              fg: '#ffffff' },
+  // 5. White card with thin black border
+  { bg: '#ffffff',                                                              fg: '#0a0a0a', ring: '#0a0a0a' },
+  // 6. Gradient black → blue
+  { bg: 'linear-gradient(135deg, #0a0a0a 0%, #2563eb 100%)',                    fg: '#ffffff' },
+  // 7. Gradient blue → black
+  { bg: 'linear-gradient(135deg, #3b82f6 0%, #0a0a0a 100%)',                    fg: '#ffffff' },
+  // 8. Gradient navy → blue
+  { bg: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',                    fg: '#ffffff' },
 ];
 
 function hashSlug(slug: string): number {
@@ -50,21 +64,24 @@ function initials(name: string): string {
 }
 
 export function StoreAvatar({ slug, name, size = 32, className }: Props) {
-  const idx = hashSlug(slug) % PALETTES.length;
-  const [from, to] = PALETTES[idx]!;
+  const variant = VARIANTS[hashSlug(slug) % VARIANTS.length]!;
   const fontSize = Math.round(size * 0.42);
 
   return (
     <span
       aria-hidden
       className={cn(
-        'inline-flex items-center justify-center rounded-lg text-white font-semibold tracking-tight shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_1px_2px_rgba(0,0,0,0.08)] select-none',
+        'inline-flex items-center justify-center rounded-lg font-semibold tracking-tight shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_1px_2px_rgba(0,0,0,0.08)] select-none',
         className,
       )}
       style={{
         width: size,
         height: size,
-        background: `linear-gradient(135deg, ${from} 0%, ${to} 100%)`,
+        background: variant.bg,
+        color: variant.fg,
+        boxShadow: variant.ring
+          ? `inset 0 0 0 1px ${variant.ring}, 0 1px 2px rgba(0,0,0,0.06)`
+          : undefined,
         fontSize,
         lineHeight: 1,
       }}

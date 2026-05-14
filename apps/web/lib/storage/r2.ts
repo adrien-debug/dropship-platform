@@ -22,7 +22,12 @@
  * at build time (they're runtime-only on Vercel).
  */
 
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  ListObjectsV2Command,
+  DeleteObjectsCommand,
+} from '@aws-sdk/client-s3';
 
 let _client: S3Client | null = null;
 
@@ -115,4 +120,57 @@ export async function uploadToR2(args: UploadArgs): Promise<string> {
   );
   const base = process.env.R2_PUBLIC_BASE_URL!.replace(/\/+$/, '');
   return `${base}/${key}`;
+}
+
+/**
+ * Delete every object whose key starts with `prefix`. Used by store
+ * deletion to clean up all generated assets for a slug — every key
+ * under `{slug}/...` (hero, lifestyle, generated runs). Returns the
+ * count of objects deleted.
+ *
+ * Fails soft: if R2 isn't configured (local dev), returns 0 without
+ * throwing. Errors during list/delete are logged but don't bubble — we
+ * never want store deletion to be blocked by a storage hiccup.
+ */
+export async function deleteByPrefixFromR2(prefix: string): Promise<number> {
+  if (!isR2Configured()) return 0;
+  const cleanPrefix = prefix.replace(/^\/+/, '').replace(/\/?$/, '/');
+  const client = getClient();
+  const bucket = process.env.R2_BUCKET!;
+  let deleted = 0;
+  let continuationToken: string | undefined;
+
+  try {
+    do {
+      const list = await client.send(
+        new ListObjectsV2Command({
+          Bucket: bucket,
+          Prefix: cleanPrefix,
+          ContinuationToken: continuationToken,
+        }),
+      );
+      const objects = list.Contents ?? [];
+      if (objects.length > 0) {
+        // S3 DeleteObjects accepts up to 1000 keys per call. List returns max
+        // 1000 by default so we never need to chunk inside a single page.
+        await client.send(
+          new DeleteObjectsCommand({
+            Bucket: bucket,
+            Delete: {
+              Objects: objects
+                .filter((o): o is { Key: string } => typeof o.Key === 'string')
+                .map((o) => ({ Key: o.Key })),
+              Quiet: true,
+            },
+          }),
+        );
+        deleted += objects.length;
+      }
+      continuationToken = list.IsTruncated ? list.NextContinuationToken : undefined;
+    } while (continuationToken);
+  } catch (err) {
+    console.error('[r2] deleteByPrefixFromR2 failed for', cleanPrefix, err);
+  }
+
+  return deleted;
 }

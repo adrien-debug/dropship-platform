@@ -173,7 +173,7 @@ export function StoreAnalyticsForm({ storeId, initial }: Props) {
 
       <div className="px-5 py-4 border-t border-zinc-200 bg-zinc-100/60 flex items-center justify-between gap-4">
         {feedback ? (
-          <span className={`text-sm ${feedback.type === 'ok' ? 'text-indigo-600' : 'text-zinc-500'}`}>
+          <span className={`text-sm ${feedback.type === 'ok' ? 'text-blue-600' : 'text-zinc-500'}`}>
             {feedback.msg}
           </span>
         ) : dirty ? (
@@ -190,7 +190,7 @@ export function StoreAnalyticsForm({ storeId, initial }: Props) {
           type="button"
           onClick={submit}
           disabled={pending || !dirty}
-          className="bg-indigo-600 text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="bg-blue-600 text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {pending ? 'Enregistrement…' : 'Enregistrer'}
         </button>
@@ -213,7 +213,7 @@ function Group({
   return (
     <section>
       <div className="mb-4">
-        <h4 className={`text-xs uppercase tracking-label font-medium ${tone === 'warn' ? 'text-indigo-600' : 'text-zinc-400'}`}>
+        <h4 className={`text-xs uppercase tracking-label font-medium ${tone === 'warn' ? 'text-blue-600' : 'text-zinc-400'}`}>
           {title}
         </h4>
         {hint && <p className="text-xs text-zinc-400 mt-1">{hint}</p>}
@@ -251,7 +251,7 @@ function Field({
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+        className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
         autoComplete="off"
         spellCheck={false}
       />

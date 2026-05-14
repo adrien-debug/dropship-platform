@@ -114,7 +114,7 @@ export default async function StoreAssetsPage({ params }: { params: Promise<{ id
       />
 
       {!product?.image_url && (
-        <div className="border border-indigo-200 bg-indigo-50 rounded-xl px-5 py-4 text-sm text-indigo-700">
+        <div className="border border-blue-200 bg-blue-50 rounded-xl px-5 py-4 text-sm text-blue-700">
           <strong className="font-medium">Aucun produit de référence.</strong> Aucune image produit
           n’est associée à ce store — la régénération ne peut pas s’appuyer sur un visuel source.
           Importe un produit avec une image avant d’utiliser cette page.

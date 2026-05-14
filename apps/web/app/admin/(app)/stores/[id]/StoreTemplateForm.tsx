@@ -75,8 +75,8 @@ export function StoreTemplateForm({
                 disabled={pending}
                 className={`relative text-left p-4 rounded-lg border transition-colors ${
                   active
-                    ? 'border-indigo-600 bg-indigo-600 text-white'
-                    : 'border-zinc-200 hover:border-zinc-300 hover:bg-indigo-50 bg-white text-zinc-500'
+                    ? 'border-blue-600 bg-blue-600 text-white'
+                    : 'border-zinc-200 hover:border-zinc-300 hover:bg-blue-50 bg-white text-zinc-500'
                 }`}
               >
                 <div className="text-sm font-semibold mb-0.5">{opt.label}</div>
@@ -96,12 +96,12 @@ export function StoreTemplateForm({
             type="button"
             onClick={submit}
             disabled={!dirty || pending}
-            className="bg-indigo-600 text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="bg-blue-600 text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {pending ? 'Enregistrement…' : 'Enregistrer'}
           </button>
           {saved && !dirty && (
-            <span className="text-xs text-indigo-600">Enregistré.</span>
+            <span className="text-xs text-blue-600">Enregistré.</span>
           )}
           {error && <span className="text-xs text-zinc-500">{error}</span>}
         </div>

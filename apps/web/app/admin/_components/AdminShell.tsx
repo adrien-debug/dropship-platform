@@ -11,6 +11,7 @@ import {
   LogOut,
 } from 'lucide-react';
 import { FloatingDock } from '@/components/ui/floating-dock';
+import type { HeaderStats } from './getHeaderStats';
 
 type WindowAction = 'close' | 'minimize' | 'maximize';
 
@@ -22,21 +23,15 @@ function callWindowControl(action: WindowAction) {
 }
 
 /**
- * macOS-style traffic light controls: close (red) / minimize (yellow) /
- * maximize (green). The colored dots are intentionally subtle — they only
- * surface a centered glyph on hover, like a real macOS title bar.
+ * Window controls: black pill buttons with white glyphs always visible.
+ * No macOS color coding — we want a uniform chrome that matches the
+ * black titlebar + footer rather than borrowing macOS's traffic lights.
  */
-function TrafficLight({
-  color,
-  hoverColor,
-  glyphColor,
+function WindowButton({
   onClick,
   label,
   children,
 }: {
-  color: string;
-  hoverColor: string;
-  glyphColor: string;
   onClick: () => void;
   label: string;
   children: ReactNode;
@@ -47,18 +42,9 @@ function TrafficLight({
       onClick={onClick}
       aria-label={label}
       title={label}
-      className="group relative w-3 h-3 rounded-full flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-1 focus-visible:ring-offset-admin-chrome"
-      style={{ background: color }}
-      onMouseEnter={(e) => (e.currentTarget.style.background = hoverColor)}
-      onMouseLeave={(e) => (e.currentTarget.style.background = color)}
+      className="w-4 h-4 rounded-full flex items-center justify-center bg-white/[0.06] hover:bg-white/[0.14] text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-1 focus-visible:ring-offset-admin-chrome"
     >
-      <span
-        className="opacity-0 group-hover:opacity-100 transition-opacity"
-        style={{ color: glyphColor }}
-        aria-hidden
-      >
-        {children}
-      </span>
+      {children}
     </button>
   );
 }
@@ -72,57 +58,112 @@ function TitleBar() {
         WebkitAppRegion: 'drag',
       } as React.CSSProperties}
     >
-      {/* macOS traffic lights */}
       <div
-        className="flex items-center gap-2"
+        className="flex items-center gap-1.5"
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
-        <TrafficLight
-          color="#ff5f57"
-          hoverColor="#ff5f57"
-          glyphColor="#4d0000"
-          onClick={() => callWindowControl('close')}
-          label="Fermer"
-        >
-          <svg width="6" height="6" viewBox="0 0 6 6" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round">
-            <path d="M1.5 1.5l3 3M4.5 1.5l-3 3" />
+        <WindowButton onClick={() => callWindowControl('close')} label="Fermer">
+          <svg width="7" height="7" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden>
+            <path d="M2 2l4 4M6 2l-4 4" />
           </svg>
-        </TrafficLight>
-        <TrafficLight
-          color="#febc2e"
-          hoverColor="#febc2e"
-          glyphColor="#7a4d00"
-          onClick={() => callWindowControl('minimize')}
-          label="Réduire"
-        >
-          <svg width="6" height="6" viewBox="0 0 6 6" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round">
-            <path d="M1 3h4" />
+        </WindowButton>
+        <WindowButton onClick={() => callWindowControl('minimize')} label="Réduire">
+          <svg width="7" height="7" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden>
+            <path d="M1.5 4h5" />
           </svg>
-        </TrafficLight>
-        <TrafficLight
-          color="#28c840"
-          hoverColor="#28c840"
-          glyphColor="#003d00"
-          onClick={() => callWindowControl('maximize')}
-          label="Plein écran"
-        >
-          <svg width="6" height="6" viewBox="0 0 6 6" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round">
-            <path d="M2 1h3v3M4 5H1V2" />
+        </WindowButton>
+        <WindowButton onClick={() => callWindowControl('maximize')} label="Plein écran">
+          <svg width="7" height="7" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M2 5v1.5h1.5M6 3V1.5H4.5" />
           </svg>
-        </TrafficLight>
-      </div>
-
-      {/* Centered wordmark */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
-        <span className="text-[12px] font-medium tracking-[0.04em] text-white/85 leading-none">
-          H · Drop
-        </span>
+        </WindowButton>
       </div>
     </div>
   );
 }
 
-export function AdminShell({ children }: { children: ReactNode }) {
+/**
+ * Sub-header below the titlebar — pure brand bar. 3 KPIs left, ALHALO
+ * wordmark centered (the H is the dotted SVG mark), 3 KPIs right.
+ * Always black, always present, matches the footer's visual weight so
+ * the chrome reads as balanced top vs bottom.
+ */
+function eur0(cents: number): string {
+  return `${Math.round(cents / 100).toLocaleString('fr-FR')} €`;
+}
+
+function KpiBlock({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col items-center leading-tight">
+      <span className="text-[10px] tracking-[0.16em] uppercase text-white/45 font-medium">
+        {label}
+      </span>
+      <span className="text-[13px] font-semibold text-white/90 tabular-nums mt-0.5">
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function HaloWordmark() {
+  // H = dotted SVG used as a CSS mask so we can paint it pure white
+  // regardless of the source SVG fill. ALO = text in a thin geometric
+  // sans set with wide tracking to match the dotted H's spacing.
+  return (
+    <div className="flex items-center select-none pointer-events-none">
+      <span
+        role="img"
+        aria-label="HALO"
+        className="inline-block bg-white"
+        style={{
+          width: '20px',
+          height: '22px',
+          WebkitMaskImage: 'url(/halo-h.svg)',
+          maskImage: 'url(/halo-h.svg)',
+          WebkitMaskRepeat: 'no-repeat',
+          maskRepeat: 'no-repeat',
+          WebkitMaskSize: 'contain',
+          maskSize: 'contain',
+          WebkitMaskPosition: 'center',
+          maskPosition: 'center',
+        }}
+      />
+      <span className="text-white text-[18px] font-light tracking-[0.32em] leading-none pl-[0.34em]">
+        ALO
+      </span>
+    </div>
+  );
+}
+
+function SubHeader({ stats }: { stats: HeaderStats }) {
+  return (
+    <div
+      className="shrink-0 h-14 bg-admin-chrome border-b border-white/[0.05] flex items-center px-6"
+      style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)' }}
+    >
+      {/* Left KPIs */}
+      <div className="flex items-center gap-7 flex-1">
+        <KpiBlock label="Stores" value={stats.activeStores.toLocaleString('fr-FR')} />
+        <KpiBlock label="Produits" value={stats.productsTotal.toLocaleString('fr-FR')} />
+        <KpiBlock label="CA 7j" value={eur0(stats.revenue7dCents)} />
+      </div>
+
+      {/* Centered HALO wordmark */}
+      <div className="flex items-center justify-center shrink-0 px-8">
+        <HaloWordmark />
+      </div>
+
+      {/* Right KPIs */}
+      <div className="flex items-center gap-7 flex-1 justify-end">
+        <KpiBlock label="Commandes 30j" value={stats.orders30d.toLocaleString('fr-FR')} />
+        <KpiBlock label="Claude runs" value={stats.aiRuns30d.toLocaleString('fr-FR')} />
+        <KpiBlock label="Coût Claude" value={`${stats.aiCost30dEur.toFixed(2)} €`} />
+      </div>
+    </div>
+  );
+}
+
+export function AdminShell({ children, stats }: { children: ReactNode; stats: HeaderStats }) {
   const logout = () => {
     document.cookie = 'admin_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
     window.location.href = '/admin';
@@ -131,8 +172,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col h-screen overflow-hidden bg-admin-bg">
       <TitleBar />
+      <SubHeader stats={stats} />
 
-      <main className="flex-1 min-w-0 flex flex-col relative overflow-x-hidden">
+      <main className="flex-1 min-w-0 flex flex-col relative overflow-hidden">
         <div className="flex-1 overflow-y-auto flex flex-col">
           <div className="w-full px-6 py-5 flex-1 flex flex-col">{children}</div>
         </div>
@@ -151,12 +193,12 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <div className="flex justify-center">
               <FloatingDock
                 items={[
-                  { title: 'Dashboard',     href: '/admin',               icon: <LayoutGrid size={17} strokeWidth={1.5} /> },
-                  { title: 'Stores',        href: '/admin/stores',        icon: <Layers size={17} strokeWidth={1.5} /> },
-                  { title: 'Nouveau store', href: '/admin/stores/new',    icon: <Sparkles size={17} strokeWidth={1.5} /> },
-                  { title: 'Commandes',     href: '/admin/orders',        icon: <ShoppingBag size={17} strokeWidth={1.5} /> },
-                  { title: 'Marketing',     href: '/admin/observability', icon: <LineChart size={17} strokeWidth={1.5} /> },
-                  { title: 'Réglages',      href: '/admin/settings',      icon: <Cog size={17} strokeWidth={1.5} /> },
+                  { title: 'Dashboard',     href: '/admin',               icon: <LayoutGrid size={18} strokeWidth={1.75} /> },
+                  { title: 'Stores',        href: '/admin/stores',        icon: <Layers size={18} strokeWidth={1.75} /> },
+                  { title: 'Nouveau store', href: '/admin/stores/new',    icon: <Sparkles size={18} strokeWidth={1.75} /> },
+                  { title: 'Commandes',     href: '/admin/orders',        icon: <ShoppingBag size={18} strokeWidth={1.75} /> },
+                  { title: 'Marketing',     href: '/admin/observability', icon: <LineChart size={18} strokeWidth={1.75} /> },
+                  { title: 'Réglages',      href: '/admin/settings',      icon: <Cog size={18} strokeWidth={1.75} /> },
                 ]}
               />
             </div>

@@ -104,7 +104,7 @@ export function openWindow(opts: OpenWindowOptions): BrowserWindow {
     minHeight: 780,
     title: titleForKind(kind, storeId),
     frame: false,
-    backgroundColor: '#4f46e5',
+    backgroundColor: '#0a0a0a',
     show: false,
     webPreferences: {
       contextIsolation: true,

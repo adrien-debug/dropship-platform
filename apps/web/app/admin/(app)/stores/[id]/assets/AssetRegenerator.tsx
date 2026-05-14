@@ -211,7 +211,7 @@ export function AssetRegenerator({
           type="button"
           onClick={() => setPanelOpen((v) => !v)}
           disabled={running || !referenceImageUrl}
-          className="bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
+          className="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
         >
           {panelOpen ? 'Fermer' : 'Régénérer'}
         </button>
@@ -269,7 +269,7 @@ export function AssetRegenerator({
                   disabled={running}
                   rows={5}
                   placeholder="Laisse vide pour laisser Claude rédiger un nouveau prompt..."
-                  className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm font-mono text-zinc-900 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 disabled:bg-zinc-100"
+                  className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm font-mono text-zinc-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:bg-zinc-100"
                 />
                 <p className="mt-1 text-kicker text-zinc-400">
                   Vide = Claude réécrit le prompt à partir du produit et de la niche.
@@ -280,7 +280,7 @@ export function AssetRegenerator({
                   type="button"
                   onClick={launch}
                   disabled={running || !referenceImageUrl}
-                  className="bg-indigo-600 text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="bg-blue-600 text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   {running ? 'Génération en cours…' : 'Lancer'}
                 </button>
@@ -296,7 +296,7 @@ export function AssetRegenerator({
                         l.type === 'error'
                           ? 'text-zinc-500'
                           : l.type === 'success'
-                          ? 'text-indigo-600'
+                          ? 'text-blue-600'
                           : l.type === 'step'
                           ? 'text-zinc-100'
                           : 'text-zinc-400'
@@ -327,7 +327,7 @@ export function AssetRegenerator({
                   <div
                     key={r.id}
                     className={`border rounded-lg overflow-hidden bg-white transition-colors ${
-                      r.isCurrent ? 'border-indigo-600 ring-2 ring-indigo-500/15' : 'border-zinc-200'
+                      r.isCurrent ? 'border-blue-600 ring-2 ring-blue-500/15' : 'border-zinc-200'
                     }`}
                   >
                     <div className="aspect-square bg-zinc-100 relative">
@@ -354,7 +354,7 @@ export function AssetRegenerator({
                         </div>
                       )}
                       {r.isCurrent && (
-                        <span className="absolute top-1.5 left-1.5 bg-indigo-600 text-white text-kicker uppercase tracking-cta px-1.5 py-0.5 rounded">
+                        <span className="absolute top-1.5 left-1.5 bg-blue-600 text-white text-kicker uppercase tracking-cta px-1.5 py-0.5 rounded">
                           Courant
                         </span>
                       )}

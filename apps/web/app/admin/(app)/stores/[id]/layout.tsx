@@ -32,7 +32,7 @@ export default async function StoreLayout({
         <span className="text-zinc-500 inline-flex"><StoreLogo emoji={store.logo_emoji} size={16} /></span>
         <span className="font-medium text-zinc-900 truncate">{store.name}</span>
         {store.status !== 'active' && (
-          <span className="text-xs px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full font-medium">
+          <span className="text-xs px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full font-medium">
             {store.status}
           </span>
         )}

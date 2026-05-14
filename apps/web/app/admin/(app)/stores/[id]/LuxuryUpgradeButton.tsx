@@ -107,7 +107,7 @@ export function LuxuryUpgradeButton({
         )}
 
         {success && (
-          <p className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-3 py-2">
+          <p className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded px-3 py-2">
             {success}
           </p>
         )}

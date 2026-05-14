@@ -68,7 +68,7 @@ export default async function CatalogPage() {
               </thead>
               <tbody className="divide-y divide-zinc-100">
                 {products.map((p) => (
-                  <tr key={p.id} className="hover:bg-indigo-50/40 transition-colors">
+                  <tr key={p.id} className="hover:bg-blue-50/40 transition-colors">
                     <td className="px-5 py-3">
                       {p.thumbnail ? (
                         // eslint-disable-next-line @next/next/no-img-element

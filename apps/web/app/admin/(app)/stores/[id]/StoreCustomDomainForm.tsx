@@ -68,7 +68,7 @@ export function StoreCustomDomainForm({
             onChange={(e) => setValue(e.target.value)}
             placeholder="maison-chic.com"
             disabled={pending}
-            className="w-full sm:w-80 border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 disabled:opacity-50"
+            className="w-full sm:w-80 border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 disabled:opacity-50"
           />
         </div>
 
@@ -86,7 +86,7 @@ export function StoreCustomDomainForm({
             type="button"
             onClick={submit}
             disabled={!dirty || pending}
-            className="bg-indigo-600 text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="bg-blue-600 text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {pending ? 'Enregistrement…' : 'Enregistrer'}
           </button>
@@ -97,7 +97,7 @@ export function StoreCustomDomainForm({
             </span>
           )}
           {saved && !dirty && (
-            <span className="text-xs text-indigo-600">Enregistré.</span>
+            <span className="text-xs text-blue-600">Enregistré.</span>
           )}
           {error && <span className="text-xs text-zinc-500">{error}</span>}
         </div>

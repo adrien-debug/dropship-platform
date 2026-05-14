@@ -141,7 +141,7 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
                 <span className="font-medium text-zinc-900">Erreur :</span> {store.error_message}
                 <Link
                   href={`/admin/stores/new?niche=${encodeURIComponent(store.niche)}&name=${encodeURIComponent(store.name)}`}
-                  className="ml-3 text-xs text-indigo-600 hover:underline font-medium"
+                  className="ml-3 text-xs text-blue-600 hover:underline font-medium"
                 >
                   Recréer ce store
                 </Link>
@@ -163,7 +163,7 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
         </div>
         <Link
           href={`/admin/stores/${store.id}/catalog`}
-          className="text-sm font-medium px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+          className="text-sm font-medium px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
         >
           Voir le catalogue
         </Link>
@@ -176,10 +176,10 @@ function Stat({ label, value, highlight }: { label: string; value: string; highl
   return (
     <div className="border border-zinc-200 bg-white rounded-xl px-4 py-3 shadow-sm">
       <div className="flex items-center gap-2 text-kicker uppercase tracking-cta text-zinc-400 font-medium">
-        <span className="inline-block w-1.5 h-1.5 rounded-full bg-indigo-500" aria-hidden />
+        <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500" aria-hidden />
         {label}
       </div>
-      <div className={`mt-1.5 text-2xl font-bold tracking-[-0.03em] ${highlight ? 'text-indigo-600' : 'text-zinc-900'}`}>{value}</div>
+      <div className={`mt-1.5 text-2xl font-bold tracking-[-0.03em] ${highlight ? 'text-blue-600' : 'text-zinc-900'}`}>{value}</div>
     </div>
   );
 }

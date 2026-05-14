@@ -192,7 +192,7 @@ function ChannelBadge({ channel }: { channel: Channel }) {
 
 function StatusDot({ status }: { status: Campaign['status'] }) {
   const map = {
-    active: 'bg-indigo-500',
+    active: 'bg-blue-500',
     paused: 'bg-zinc-400',
     ended:  'bg-zinc-300',
   };
@@ -201,7 +201,7 @@ function StatusDot({ status }: { status: Campaign['status'] }) {
 
 function RoasBadge({ value }: { value: number }) {
   const r = value;
-  const cls = r >= 1.5 ? 'text-indigo-600' : 'text-zinc-400';
+  const cls = r >= 1.5 ? 'text-blue-600' : 'text-zinc-400';
   const Icon = r >= 1.5 ? TrendingUp : TrendingDown;
   return (
     <span className={`inline-flex items-center gap-1 text-xs font-semibold tabular-nums ${cls}`}>
@@ -217,7 +217,7 @@ function ConnectBanner({ channel }: { channel: string }) {
       <AlertCircle size={14} strokeWidth={1.75} />
       <span>
         <strong className="font-semibold text-zinc-700">{channel}</strong> — compte non connecté. Configure la clé API dans{' '}
-        <a href="/admin/settings" className="underline underline-offset-2 text-indigo-600">Réglages</a>.
+        <a href="/admin/settings" className="underline underline-offset-2 text-blue-600">Réglages</a>.
       </span>
     </div>
   );
@@ -298,8 +298,8 @@ export default function MarketingPage() {
                 <span className="text-sm font-semibold text-zinc-900">{s.label}</span>
               </div>
               {s.connected ? (
-                <span className="flex items-center gap-1 text-[10px] text-indigo-600 font-medium">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" /> Connecté
+                <span className="flex items-center gap-1 text-[10px] text-blue-600 font-medium">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> Connecté
                 </span>
               ) : (
                 <span className="flex items-center gap-1 text-[10px] text-zinc-400 font-medium">
@@ -339,7 +339,7 @@ export default function MarketingPage() {
             onClick={() => setChannelFilter(c)}
             className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
               channelFilter === c
-                ? 'bg-indigo-600 text-white'
+                ? 'bg-blue-600 text-white'
                 : 'bg-white border border-zinc-200 text-zinc-500 hover:border-zinc-300'
             }`}
           >
@@ -371,7 +371,7 @@ export default function MarketingPage() {
             </thead>
             <tbody className="divide-y divide-zinc-100">
               {filtered.map((c) => (
-                <tr key={c.id} className="hover:bg-indigo-50/30 transition-colors group">
+                <tr key={c.id} className="hover:bg-blue-50/30 transition-colors group">
                   <td className="px-4 py-2.5">
                     <div className="flex items-center gap-2">
                       <StatusDot status={c.status} />
@@ -382,7 +382,7 @@ export default function MarketingPage() {
                   <td className="px-3 py-2.5 text-zinc-500">{c.store}</td>
                   <td className="px-3 py-2.5 text-right tabular-nums text-zinc-500">{fmtEur(c.budget_eur)}/j</td>
                   <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-zinc-900">{fmtEur(c.spent_eur)}</td>
-                  <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-indigo-600">{fmtEur(c.revenue_eur)}</td>
+                  <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-blue-600">{fmtEur(c.revenue_eur)}</td>
                   <td className="px-3 py-2.5 text-right">
                     <RoasBadge value={c.spent_eur > 0 ? c.revenue_eur / c.spent_eur : 0} />
                   </td>
@@ -408,7 +408,7 @@ export default function MarketingPage() {
                 <td className="px-3 py-2.5 text-right tabular-nums text-zinc-900">
                   {fmtEur(filtered.reduce((s, c) => s + c.spent_eur, 0))}
                 </td>
-                <td className="px-3 py-2.5 text-right tabular-nums text-indigo-700">
+                <td className="px-3 py-2.5 text-right tabular-nums text-blue-700">
                   {fmtEur(filtered.reduce((s, c) => s + c.revenue_eur, 0))}
                 </td>
                 <td className="px-3 py-2.5 text-right">

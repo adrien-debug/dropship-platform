@@ -71,12 +71,13 @@
     --admin-text-faint:    #a1a1aa;   /* placeholders, disabled */
     --admin-text-inverse:  #ffffff;   /* text on chrome / primary buttons */
 
-    /* Accent — keep indigo because it carries the brand on CTAs only.
-       Used SPARINGLY: primary buttons, focus rings, KPI positive tone. */
-    --admin-accent:        #4f46e5;   /* indigo-600, primary action */
-    --admin-accent-hover:  #4338ca;   /* indigo-700 */
-    --admin-accent-soft:   #eef2ff;   /* indigo-50, hover bg / soft fill */
-    --admin-accent-ring:   rgba(99, 102, 241, 0.35);
+    /* Accent — strict palette: black + blue + white only. Used sparingly
+       for KPI positive tone, focus rings, and brand highlights. The
+       deep blue reads as electric / tech, not corporate. */
+    --admin-accent:        #2563eb;   /* blue-600, primary action */
+    --admin-accent-hover:  #1d4ed8;   /* blue-700 */
+    --admin-accent-soft:   #eff6ff;   /* blue-50, hover bg / soft fill */
+    --admin-accent-ring:   rgba(59, 130, 246, 0.35);
 
     /* Semantic */
     --admin-success:       #16a34a;

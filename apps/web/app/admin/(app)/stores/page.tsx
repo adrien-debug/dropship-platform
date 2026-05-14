@@ -192,7 +192,7 @@ function StoreGroup({
       <div className="flex items-baseline justify-between mb-4">
         <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">{kicker}</p>
       </div>
-      <div className={`flex flex-col gap-2 ${dim ? 'opacity-70' : ''}`}>
+      <div className={`flex flex-col gap-1.5 ${dim ? 'opacity-70' : ''}`}>
         {stores.map((store) => (
           <StoreCard key={store.id} store={store} />
         ))}
@@ -206,58 +206,42 @@ function StoreCard({ store }: { store: StoreRow }) {
   const cover = pickStoreCover(store);
 
   return (
-    <article className="group relative bg-white rounded-xl overflow-hidden flex items-center gap-4 border border-zinc-200 shadow-sm transition-all duration-200 hover:border-zinc-300 hover:shadow-[0_12px_28px_-12px_rgba(0,0,0,0.12)] p-3">
-      {/* ── Cover thumbnail à gauche */}
-      <div className="relative w-20 h-20 shrink-0 rounded-lg overflow-hidden">
+    <article className="group relative bg-admin-bg flex items-center gap-3 border border-admin-border rounded-admin-md shadow-admin-card transition-colors duration-150 hover:border-admin-border-strong hover:bg-admin-bg-subtle px-3 py-2">
+      {/* Avatar — compact 32px comme la liste du dashboard */}
+      <div className="relative w-8 h-8 shrink-0 rounded-md overflow-hidden">
         {cover ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={cover} alt="" className="absolute inset-0 w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-tr from-black/30 to-transparent" />
           </>
         ) : (
-          <StoreAvatar slug={store.slug} name={store.name} size={80} className="rounded-none w-full h-full text-2xl" />
+          <StoreAvatar slug={store.slug} name={store.name} size={32} className="rounded-none w-full h-full" />
         )}
       </div>
 
-      {/* ── Détails au centre */}
-      <div className="flex-1 min-w-0 grid grid-cols-12 gap-3 items-center">
-        {/* Nom + niche */}
-        <div className="col-span-4 min-w-0">
-          <h3 className="text-sm font-semibold tracking-tight text-zinc-900 truncate">{store.name}</h3>
-          <p className="text-xs text-zinc-400 uppercase tracking-wide mt-0.5 truncate">{store.niche}</p>
-        </div>
-
-        {/* Tagline */}
-        <div className="col-span-4 min-w-0">
-          {store.tagline ? (
-            <p className="text-xs text-zinc-500 leading-snug line-clamp-2">« {store.tagline} »</p>
-          ) : (
-            <p className="text-xs text-zinc-300 italic">Sans tagline</p>
-          )}
-        </div>
-
-        {/* Statut + produits */}
-        <div className="col-span-2 flex flex-col items-start gap-1">
-          <StatusPill tone={s.tone}>{s.label}</StatusPill>
-          <span className="text-xs text-zinc-400 tabular-nums">
-            {store.product_count} produit{store.product_count > 1 ? 's' : ''}
+      {/* Nom + slug — pile de 2 lignes compactes */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline gap-2 min-w-0">
+          <h3 className="text-[13px] font-medium text-admin-text truncate leading-tight">{store.name}</h3>
+          <span className="text-[10px] text-admin-text-faint uppercase tracking-wide truncate shrink-0">
+            {store.niche}
           </span>
         </div>
-
-        {/* Slug */}
-        <div className="col-span-2 min-w-0">
-          <p className="text-[10px] font-mono text-zinc-400 truncate">/shop/{store.slug}</p>
-          {store.error_message && store.status !== 'active' && store.status !== 'creating' && (
-            <p className="text-[10px] text-zinc-500 truncate mt-0.5" title={store.error_message}>
-              {store.error_message}
-            </p>
-          )}
-        </div>
+        <p className="text-[11px] text-admin-text-faint truncate tabular-nums leading-tight mt-0.5">
+          /shop/{store.slug}
+        </p>
       </div>
 
-      {/* ── Actions à droite */}
-      <div className="flex items-center gap-1.5 shrink-0">
+      {/* Statut + produits */}
+      <div className="hidden sm:flex flex-col items-end gap-0.5 shrink-0 min-w-[100px]">
+        <StatusPill tone={s.tone}>{s.label}</StatusPill>
+        <span className="text-[11px] text-admin-text-faint tabular-nums">
+          {store.product_count} produit{store.product_count > 1 ? 's' : ''}
+        </span>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-1 shrink-0">
         <ButtonLink href={`/admin/stores/${store.id}`} variant="primary" size="sm">
           Gérer
         </ButtonLink>
@@ -268,7 +252,7 @@ function StoreCard({ store }: { store: StoreRow }) {
             rel="noreferrer"
             aria-label="Ouvrir la boutique"
             title="Ouvrir la boutique"
-            className="inline-flex items-center justify-center w-7 h-7 rounded-lg border border-zinc-200 hover:bg-indigo-50 hover:border-zinc-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 focus-visible:ring-offset-1 transition-colors text-zinc-500"
+            className="inline-flex items-center justify-center w-7 h-7 rounded-admin-md border border-admin-border hover:bg-admin-bg-subtle hover:border-admin-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-admin-border-strong focus-visible:ring-offset-1 transition-colors text-admin-text-muted"
           >
             <ArrowUpRight size={13} strokeWidth={1.75} aria-hidden />
           </Link>

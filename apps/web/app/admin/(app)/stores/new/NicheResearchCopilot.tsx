@@ -567,7 +567,7 @@ export function NicheResearchCopilot({
               if (m.role === 'user') {
                 return (
                   <div key={m.id} className="flex justify-end">
-                    <div className="max-w-[78%] bg-indigo-600 text-white rounded-2xl rounded-tr-md px-4 py-2.5 text-sm whitespace-pre-wrap">
+                    <div className="max-w-[78%] bg-blue-600 text-white rounded-2xl rounded-tr-md px-4 py-2.5 text-sm whitespace-pre-wrap">
                       {m.content}
                     </div>
                   </div>
@@ -606,7 +606,7 @@ export function NicheResearchCopilot({
                 placeholder="Demande quelque chose… (Entrée pour envoyer · Shift+Entrée pour saut de ligne)"
                 rows={2}
                 disabled={streaming}
-                className="flex-1 resize-none text-sm bg-white text-zinc-900 placeholder:text-zinc-400 border border-zinc-200 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50 transition-colors"
+                className="flex-1 resize-none text-sm bg-white text-zinc-900 placeholder:text-zinc-400 border border-zinc-200 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50 transition-colors"
               />
               {streaming ? (
                 <button
@@ -621,7 +621,7 @@ export function NicheResearchCopilot({
               <button
                 type="submit"
                 disabled={!input.trim()}
-                className="text-sm px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed shrink-0 transition-colors"
+                className="text-sm px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed shrink-0 transition-colors"
               >
                 Envoyer
               </button>
@@ -643,8 +643,8 @@ export function NicheResearchCopilot({
                 onClick={() => onModeChange('mono')}
                 className={`px-2 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                   mode === 'mono'
-                    ? 'bg-indigo-600 text-white border-indigo-600'
-                    : 'bg-white text-zinc-500 border-zinc-200 hover:bg-indigo-50'
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-white text-zinc-500 border-zinc-200 hover:bg-blue-50'
                 }`}
               >
                 Mono
@@ -654,8 +654,8 @@ export function NicheResearchCopilot({
                 onClick={() => onModeChange('collection')}
                 className={`px-2 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                   mode === 'collection'
-                    ? 'bg-indigo-600 text-white border-indigo-600'
-                    : 'bg-white text-zinc-500 border-zinc-200 hover:bg-indigo-50'
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-white text-zinc-500 border-zinc-200 hover:bg-blue-50'
                 }`}
               >
                 Collection
@@ -673,8 +673,8 @@ export function NicheResearchCopilot({
                 onClick={() => onLanguageChange('fr')}
                 className={`px-2 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                   language === 'fr'
-                    ? 'bg-indigo-600 text-white border-indigo-600'
-                    : 'bg-white text-zinc-500 border-zinc-200 hover:bg-indigo-50'
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-white text-zinc-500 border-zinc-200 hover:bg-blue-50'
                 }`}
               >
                 FR
@@ -684,8 +684,8 @@ export function NicheResearchCopilot({
                 onClick={() => onLanguageChange('en')}
                 className={`px-2 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                   language === 'en'
-                    ? 'bg-indigo-600 text-white border-indigo-600'
-                    : 'bg-white text-zinc-500 border-zinc-200 hover:bg-indigo-50'
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-white text-zinc-500 border-zinc-200 hover:bg-blue-50'
                 }`}
               >
                 EN
@@ -703,7 +703,7 @@ export function NicheResearchCopilot({
                   type="checkbox"
                   checked={!skipVideo}
                   onChange={(e) => onSkipVideoChange(!e.target.checked)}
-                  className="accent-indigo-600 w-3.5 h-3.5"
+                  className="accent-blue-600 w-3.5 h-3.5"
                 />
               </label>
             </div>
@@ -773,9 +773,9 @@ function CreationProgressInline({ progress }: { progress: CreationProgress }) {
   if (result) {
     return (
       <div className="flex justify-start">
-        <div className="max-w-[88%] rounded-2xl rounded-tl-md px-4 py-3 text-sm border border-indigo-200 bg-indigo-50/60">
+        <div className="max-w-[88%] rounded-2xl rounded-tl-md px-4 py-3 text-sm border border-blue-200 bg-blue-50/60">
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="w-2 h-2 rounded-full bg-indigo-600" aria-hidden />
+            <span className="w-2 h-2 rounded-full bg-blue-600" aria-hidden />
             <span className="font-medium text-zinc-900">
               {result.storeName} est en ligne
             </span>
@@ -788,7 +788,7 @@ function CreationProgressInline({ progress }: { progress: CreationProgress }) {
             href={`/shop/${result.slug}`}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
           >
             Ouvrir le store →
           </a>
@@ -817,9 +817,9 @@ function CreationProgressInline({ progress }: { progress: CreationProgress }) {
 
   return (
     <div className="flex justify-start">
-      <div className="max-w-[88%] w-full rounded-2xl rounded-tl-md px-4 py-3 text-sm border border-indigo-200 bg-white shadow-sm">
+      <div className="max-w-[88%] w-full rounded-2xl rounded-tl-md px-4 py-3 text-sm border border-blue-200 bg-white shadow-sm">
         <div className="flex items-center gap-2 mb-2">
-          <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse" aria-hidden />
+          <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" aria-hidden />
           <span className="font-medium text-zinc-900 truncate">
             Création de {storeName || '…'}
           </span>
@@ -834,7 +834,7 @@ function CreationProgressInline({ progress }: { progress: CreationProgress }) {
         )}
         <div className="h-1 w-full rounded-full bg-zinc-100 overflow-hidden">
           <div
-            className="h-full bg-indigo-600 transition-all duration-300"
+            className="h-full bg-blue-600 transition-all duration-300"
             style={{ width: `${Math.max(2, Math.min(100, percent))}%` }}
             aria-hidden
           />
@@ -896,8 +896,8 @@ function ResearchToolCard({ message, onApplyShortlist }: ResearchToolCardProps) 
             isError
               ? 'bg-zinc-100'
               : message.tool_output
-              ? 'bg-indigo-100'
-              : 'bg-indigo-50'
+              ? 'bg-blue-100'
+              : 'bg-blue-50'
           }`}
         />
         <code className="font-mono text-xs text-zinc-700">{name}</code>
@@ -952,18 +952,18 @@ function ShortlistCard({
   const sat = payload.saturation;
   const verdictTone =
     sat == null
-      ? 'border-indigo-200 bg-indigo-100/40'
+      ? 'border-blue-200 bg-blue-100/40'
       : sat > 70
       ? 'border-zinc-200 bg-zinc-100/40'
       : sat >= 30
-      ? 'border-indigo-200 bg-indigo-50/40'
-      : 'border-indigo-200 bg-indigo-100/40';
+      ? 'border-blue-200 bg-blue-50/40'
+      : 'border-blue-200 bg-blue-100/40';
   const fp = payload.featured_product;
   const fpCost = fp ? (fp.cost_cents / 100).toFixed(2) : null;
   const fpPrice = fp ? (fp.suggested_price_cents / 100).toFixed(2) : null;
   const fpMargin = fp ? ((fp.suggested_price_cents - fp.cost_cents) / 100).toFixed(2) : null;
   const supplierTag = fp?.supplier === 'cj'
-    ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+    ? 'bg-blue-50 text-blue-700 border-blue-200'
     : 'bg-zinc-100 text-zinc-700 border-zinc-200';
 
   return (
@@ -1021,7 +1021,7 @@ function ShortlistCard({
               <span className="text-zinc-500">{fpCost} €</span>
               <span className="text-zinc-300">→</span>
               <span className="text-zinc-900 font-semibold">{fpPrice} €</span>
-              <span className="text-indigo-600 font-medium">+{fpMargin} €</span>
+              <span className="text-blue-600 font-medium">+{fpMargin} €</span>
               {fp.expected_aov_eur != null && (
                 <span className="text-zinc-400 ml-auto">AOV ~{fp.expected_aov_eur} €</span>
               )}
@@ -1200,9 +1200,9 @@ function DesignPickerBlock({
 }
 
 const CHANNEL_COLOR: Record<MediaChannel['name'], string> = {
-  meta: 'bg-indigo-600',
+  meta: 'bg-blue-600',
   tiktok: 'bg-zinc-900',
-  google: 'bg-indigo-300',
+  google: 'bg-blue-300',
   pinterest: 'bg-zinc-400',
 };
 
@@ -1433,8 +1433,8 @@ function MetaLibraryRenderer({ output }: { output: unknown }) {
     verdict === 'no-go'
       ? 'bg-zinc-100'
       : verdict === 'caution'
-      ? 'bg-indigo-50'
-      : 'bg-indigo-100';
+      ? 'bg-blue-50'
+      : 'bg-blue-100';
   return (
     <div className="space-y-3">
       <div>
@@ -1521,7 +1521,7 @@ function SupplierRenderer({
       </p>
     );
   }
-  const tag = supplier === 'aliexpress' ? 'bg-zinc-100 text-zinc-700' : 'bg-indigo-50 text-indigo-700';
+  const tag = supplier === 'aliexpress' ? 'bg-zinc-100 text-zinc-700' : 'bg-blue-50 text-blue-700';
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full text-xs">
@@ -1562,7 +1562,7 @@ function SupplierRenderer({
               <td className="py-1.5 px-2 text-right tabular-nums">
                 {(c.suggested_price_cents / 100).toFixed(2)} €
               </td>
-              <td className="py-1.5 px-2 text-right tabular-nums text-indigo-600">
+              <td className="py-1.5 px-2 text-right tabular-nums text-blue-600">
                 +{(c.margin_cents / 100).toFixed(2)} €
               </td>
               <td className="py-1.5 pl-2 text-right tabular-nums text-zinc-500">

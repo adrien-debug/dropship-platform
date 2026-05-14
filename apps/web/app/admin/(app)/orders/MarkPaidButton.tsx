@@ -43,7 +43,7 @@ export function MarkPaidButton({ orderId }: Props) {
       <button
         onClick={() => setConfirmOpen(true)}
         disabled={busy}
-        className="px-3 py-1.5 text-xs rounded-md border border-indigo-200 bg-white text-indigo-600 hover:border-indigo-200 hover:bg-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="px-3 py-1.5 text-xs rounded-md border border-blue-200 bg-white text-blue-600 hover:border-blue-200 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         {busy ? '…' : 'Marquer payée'}
       </button>

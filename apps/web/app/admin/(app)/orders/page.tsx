@@ -178,7 +178,7 @@ export default async function OrdersPage() {
                     ageHours < 1 ? '< 1 h' : ageHours < 48 ? `${ageHours} h` : `${Math.floor(ageHours / 24)} j`;
                   const stale = ageHours >= 24 * 15;
                   return (
-                    <tr key={row.medusa_order_id} className="hover:bg-indigo-50/40 transition-colors">
+                    <tr key={row.medusa_order_id} className="hover:bg-blue-50/40 transition-colors">
                       <td className="px-3 py-1.5">
                         <div className="font-medium text-zinc-900">
                           #{row.display_id ?? row.medusa_order_id.slice(0, 8)}
@@ -196,7 +196,7 @@ export default async function OrdersPage() {
                           href={aliExpressOrderUrl(row.ae_order_id)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-700 underline underline-offset-4 decoration-indigo-200 hover:decoration-indigo-500 font-mono text-[11px]"
+                          className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-700 underline underline-offset-4 decoration-blue-200 hover:decoration-blue-500 font-mono text-[11px]"
                         >
                           {row.ae_order_id}
                           <span aria-hidden="true">↗</span>
@@ -256,7 +256,7 @@ export default async function OrdersPage() {
                   const paymentOk =
                     order.payment_status === 'captured' || order.payment_status === 'authorized';
                   return (
-                    <tr key={order.id} className="hover:bg-indigo-50/40 transition-colors">
+                    <tr key={order.id} className="hover:bg-blue-50/40 transition-colors">
                       <td className="px-3 py-1.5">
                         <div className="font-medium text-zinc-900">#{order.display_id ?? order.id.slice(0, 8)}</div>
                         <div className="text-[10px] text-zinc-400 mt-0.5">
@@ -292,7 +292,7 @@ export default async function OrdersPage() {
                                 href={aliExpressOrderUrl(forward.ae_order_id)}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="font-mono text-[10px] text-zinc-400 hover:text-indigo-600 hover:underline underline-offset-2"
+                                className="font-mono text-[10px] text-zinc-400 hover:text-blue-600 hover:underline underline-offset-2"
                               >
                                 {forward.ae_order_id}
                               </a>

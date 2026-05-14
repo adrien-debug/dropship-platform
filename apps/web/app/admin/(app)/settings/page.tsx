@@ -149,7 +149,7 @@ function ProviderCard({
   return (
     <section className="flex flex-col border border-zinc-200 bg-white rounded-xl shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b border-zinc-200 flex items-center gap-3">
-        <span className="w-1 h-9 rounded-full bg-indigo-500" aria-hidden />
+        <span className="w-1 h-9 rounded-full bg-blue-500" aria-hidden />
         <div className="min-w-0 flex-1">
           <h3 className="text-base font-semibold text-zinc-900 truncate">{name}</h3>
           <p className="text-xs text-zinc-400 mt-0.5 truncate">{meta}</p>

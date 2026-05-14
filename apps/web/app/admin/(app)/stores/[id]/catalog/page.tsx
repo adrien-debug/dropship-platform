@@ -69,7 +69,7 @@ export default async function StoreCatalogPage({ params }: { params: Promise<{ i
         actions={
           <Link
             href={`/admin/stores/${id}/copilot`}
-            className="text-sm font-medium px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+            className="text-sm font-medium px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
           >
             Discuter avec le copilote
           </Link>
@@ -100,7 +100,7 @@ export default async function StoreCatalogPage({ params }: { params: Promise<{ i
           <div className="p-10 text-center">
             <p className="text-sm text-zinc-400">
               Aucun produit dans ce store. Utilise le{' '}
-              <Link href={`/admin/stores/${id}/copilot`} className="text-indigo-600 underline">
+              <Link href={`/admin/stores/${id}/copilot`} className="text-blue-600 underline">
                 copilote de curation
               </Link>{' '}
               pour en ajouter.
@@ -161,7 +161,7 @@ export default async function StoreCatalogPage({ params }: { params: Promise<{ i
                         {(p.price_cents / 100).toFixed(2)} €
                       </td>
                       <td className="px-3 py-3 align-middle text-right tabular-nums">
-                        <span className="text-indigo-600 font-medium">
+                        <span className="text-blue-600 font-medium">
                           +{margin.toFixed(2)} €
                         </span>
                         <span className="block text-xs text-zinc-400">{marginPct}%</span>

@@ -443,7 +443,7 @@ export function CopilotHub({
         <p className="mt-2 text-xs text-zinc-400">
           {MODE_LABELS[mode].tagline}
           {mode === 'dev' && (
-            <span className="ml-2 text-indigo-600 font-medium">
+            <span className="ml-2 text-blue-600 font-medium">
               Mode développeur — agent avec accès lecture/écriture sur le repo.
             </span>
           )}
@@ -471,7 +471,7 @@ export function CopilotHub({
               if (m.role === 'user') {
                 return (
                   <div key={m.id} className="flex justify-end">
-                    <div className="max-w-[78%] bg-indigo-600 text-white rounded-2xl rounded-tr-md px-4 py-2.5 text-sm whitespace-pre-wrap">
+                    <div className="max-w-[78%] bg-blue-600 text-white rounded-2xl rounded-tr-md px-4 py-2.5 text-sm whitespace-pre-wrap">
                       {m.content}
                     </div>
                   </div>
@@ -506,7 +506,7 @@ export function CopilotHub({
                 placeholder={`Demande quelque chose à ${MODE_LABELS[mode].label}… (Cmd+Enter pour envoyer)`}
                 rows={2}
                 disabled={streaming}
-                className="flex-1 resize-none text-sm border border-zinc-200 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50 transition-colors"
+                className="flex-1 resize-none text-sm border border-zinc-200 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50 transition-colors"
               />
               <button
                 type="submit"
@@ -740,7 +740,7 @@ function ToolCard({ message }: { message: ChatMessage }) {
       >
         <span className={cx(
           'inline-block w-1.5 h-1.5 rounded-full',
-          isError ? 'bg-zinc-100' : message.tool_output ? 'bg-indigo-100' : 'bg-indigo-50',
+          isError ? 'bg-zinc-100' : message.tool_output ? 'bg-blue-100' : 'bg-blue-50',
         )} />
         <code className="font-mono text-xs text-zinc-700">{name}</code>
         <span className="ml-auto text-xs text-zinc-500 line-clamp-1">{message.content}</span>
@@ -817,7 +817,7 @@ function SpecialisedRenderer({
         {stderr && (
           <pre className="bg-zinc-100/80 text-zinc-500 rounded p-3 overflow-x-auto font-mono text-xs whitespace-pre-wrap">{stderr}</pre>
         )}
-        <p className={cx('font-medium', exitCode === 0 ? 'text-indigo-600' : 'text-zinc-500')}>
+        <p className={cx('font-medium', exitCode === 0 ? 'text-blue-600' : 'text-zinc-500')}>
           exit {exitCode}
         </p>
       </div>
@@ -826,7 +826,7 @@ function SpecialisedRenderer({
   if (name === 'git_commit') {
     if (out.empty) return <p className="text-xs text-zinc-500">Rien à commiter.</p>;
     return (
-      <div className="inline-flex items-center gap-2 text-xs bg-indigo-100 text-indigo-600 px-2 py-1 rounded-full">
+      <div className="inline-flex items-center gap-2 text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">
         <Check size={12} strokeWidth={2.5} aria-hidden />
         <span>commit</span>
         <code className="font-mono">{String(out.short_sha ?? '')}</code>
@@ -837,14 +837,14 @@ function SpecialisedRenderer({
   if (name === 'git_push') {
     if (out.confirm_required) {
       return (
-        <p className="text-xs text-indigo-600 bg-indigo-50 px-2 py-1 rounded inline-flex items-center gap-1.5">
+        <p className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded inline-flex items-center gap-1.5">
           <Pause size={12} strokeWidth={2.5} aria-hidden />
           En attente de confirmation utilisateur.
         </p>
       );
     }
     return (
-      <div className="inline-flex items-center gap-2 text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-full">
+      <div className="inline-flex items-center gap-2 text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full">
         <Rocket size={12} strokeWidth={2} aria-hidden />
         pushed to {String(out.branch ?? 'origin')}
       </div>

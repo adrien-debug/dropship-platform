@@ -118,7 +118,7 @@ export default async function StoreAnalyticsPage({ params, searchParams }: Props
                 href={`?range=${key}`}
                 className={
                   'px-4 py-1.5 rounded-full text-xs uppercase tracking-cta font-medium transition-colors ' +
-                  (key === range ? 'bg-indigo-600 text-white' : 'text-zinc-500 hover:text-zinc-900')
+                  (key === range ? 'bg-blue-600 text-white' : 'text-zinc-500 hover:text-zinc-900')
                 }
               >
                 {c.label}
@@ -168,7 +168,7 @@ export default async function StoreAnalyticsPage({ params, searchParams }: Props
                   </div>
                   <div className="h-2 bg-zinc-100 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-indigo-600 rounded-full transition-all"
+                      className="h-full bg-blue-600 rounded-full transition-all"
                       style={{ width: `${Math.max(2, ratio)}%` }}
                     />
                   </div>
@@ -281,12 +281,12 @@ function Kpi({
 }) {
   const cls: Record<string, string> = {
     neutral: 'text-zinc-900',
-    emerald: 'text-indigo-600',
+    emerald: 'text-blue-600',
   };
   return (
     <div className="border border-zinc-200 bg-white rounded-xl px-4 py-3 shadow-sm">
       <div className="flex items-center gap-2 text-kicker uppercase tracking-cta text-zinc-400 font-medium">
-        <span className="inline-block w-1.5 h-1.5 rounded-full bg-indigo-500" aria-hidden />
+        <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500" aria-hidden />
         {label}
       </div>
       <div className={`mt-1.5 text-2xl font-bold tracking-[-0.03em] ${cls[tone]}`}>{value}</div>
@@ -298,7 +298,7 @@ function ConnState({ label, set }: { label: string; set: boolean }) {
   return (
     <div className="flex items-center gap-2">
       <span
-        className={`inline-block h-1.5 w-1.5 rounded-full ${set ? 'bg-indigo-500' : 'bg-zinc-300'}`}
+        className={`inline-block h-1.5 w-1.5 rounded-full ${set ? 'bg-blue-500' : 'bg-zinc-300'}`}
         aria-hidden="true"
       />
       <span className={set ? 'text-zinc-900 font-medium' : 'text-zinc-400'}>{label}</span>

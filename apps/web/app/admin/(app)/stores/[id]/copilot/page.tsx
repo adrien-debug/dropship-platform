@@ -107,7 +107,7 @@ export default async function CopilotHubPage({
         <Link
           href={`/shop/${store.slug}`}
           target="_blank"
-          className="text-sm px-4 py-1.5 rounded-lg border border-zinc-200 bg-white text-zinc-500 hover:bg-indigo-50 hover:text-zinc-900 transition-colors"
+          className="text-sm px-4 py-1.5 rounded-lg border border-zinc-200 bg-white text-zinc-500 hover:bg-blue-50 hover:text-zinc-900 transition-colors"
         >
           Voir le store
         </Link>

@@ -3,8 +3,40 @@ import { z } from 'zod';
 import { getDb } from '@/lib/db';
 import { medusa } from '@/lib/medusa';
 import { encryptSecret, secretsConfigured } from '@/lib/secrets';
+import { deleteByPrefixFromR2 } from '@/lib/storage/r2';
 import { TEMPLATE_IDS } from '@/lib/template-catalog';
 
+interface DeleteReport {
+  store_slug: string;
+  medusa_products: number;
+  medusa_sales_channel: 'deleted' | 'skipped' | 'failed';
+  medusa_publishable_key: 'deleted' | 'skipped' | 'failed';
+  r2_assets_deleted: number;
+  funnel_events_deleted: number;
+}
+
+/**
+ * Full cascading delete of a store and every artefact it created:
+ *
+ *   1. Medusa products (one DELETE per product)
+ *   2. Medusa sales channel
+ *   3. Medusa publishable API key
+ *   4. Cloudflare R2 assets under `{slug}/` (hero, lifestyle, generated runs)
+ *   5. dropship_funnel_events (no FK → manual DELETE WHERE store_slug)
+ *   6. dropship_stores row (CASCADE handles store_products, ad_variants,
+ *      ad_campaigns, asset_runs, copilot_sessions, curation_sessions)
+ *
+ * Order matters: external services (Medusa, R2) must be cleaned BEFORE the
+ * DB row goes — once the row is gone we lose the slug + IDs needed to
+ * address those external resources. Each external call is wrapped so a
+ * single failure (e.g. Medusa already lost the product) cannot leave a
+ * half-deleted store with no way to retry.
+ *
+ * Two things we intentionally KEEP (historical accounting):
+ *   - dropship_order_forwards (ON DELETE SET NULL) — past AE orders stay
+ *     auditable even after the store is gone.
+ *   - dropship_ai_runs (ON DELETE SET NULL) — Claude cost history.
+ */
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -13,30 +45,85 @@ export async function DELETE(
   const db = getDb();
 
   const { rows } = await db.query<{
+    slug: string;
     medusa_sales_channel_id: string | null;
     medusa_publishable_key: string | null;
   }>(
-    'SELECT medusa_sales_channel_id, medusa_publishable_key FROM dropship_stores WHERE id = $1',
+    'SELECT slug, medusa_sales_channel_id, medusa_publishable_key FROM dropship_stores WHERE id = $1',
     [id],
   );
 
-  if (!rows[0]) return NextResponse.json({ error: 'Store not found' }, { status: 404 });
+  if (!rows[0]) {
+    return NextResponse.json({ error: 'Store not found' }, { status: 404 });
+  }
+  const { slug, medusa_sales_channel_id, medusa_publishable_key } = rows[0];
 
-  // Get all Medusa products linked to this store and delete them
+  const report: DeleteReport = {
+    store_slug: slug,
+    medusa_products: 0,
+    medusa_sales_channel: 'skipped',
+    medusa_publishable_key: 'skipped',
+    r2_assets_deleted: 0,
+    funnel_events_deleted: 0,
+  };
+
+  // 1. Medusa products
   const { rows: products } = await db.query<{ medusa_product_id: string }>(
     'SELECT medusa_product_id FROM dropship_store_products WHERE store_id = $1 AND medusa_product_id IS NOT NULL',
     [id],
   );
-
   for (const { medusa_product_id } of products) {
-    await medusa.deleteProduct(medusa_product_id).catch(() => {});
+    try {
+      await medusa.deleteProduct(medusa_product_id);
+      report.medusa_products += 1;
+    } catch (err) {
+      console.error(`[delete-store] medusa.deleteProduct(${medusa_product_id}) failed:`, err);
+    }
   }
 
-  // Delete from DB
-  await db.query('DELETE FROM dropship_store_products WHERE store_id = $1', [id]);
+  // 2. Medusa sales channel
+  if (medusa_sales_channel_id) {
+    try {
+      await medusa.deleteSalesChannel(medusa_sales_channel_id);
+      report.medusa_sales_channel = 'deleted';
+    } catch (err) {
+      console.error(`[delete-store] medusa.deleteSalesChannel(${medusa_sales_channel_id}) failed:`, err);
+      report.medusa_sales_channel = 'failed';
+    }
+  }
+
+  // 3. Medusa publishable API key
+  if (medusa_publishable_key) {
+    try {
+      await medusa.deletePublishableApiKey(medusa_publishable_key);
+      report.medusa_publishable_key = 'deleted';
+    } catch (err) {
+      console.error(`[delete-store] medusa.deletePublishableKey(${medusa_publishable_key}) failed:`, err);
+      report.medusa_publishable_key = 'failed';
+    }
+  }
+
+  // 4. Cloudflare R2 assets (every object under `{slug}/`)
+  try {
+    report.r2_assets_deleted = await deleteByPrefixFromR2(slug);
+  } catch (err) {
+    console.error(`[delete-store] deleteByPrefixFromR2(${slug}) failed:`, err);
+  }
+
+  // 5. Funnel events (no FK to dropship_stores)
+  const funnelResult = await db.query(
+    'DELETE FROM dropship_funnel_events WHERE store_slug = $1',
+    [slug],
+  );
+  report.funnel_events_deleted = funnelResult.rowCount ?? 0;
+
+  // 6. The store row itself — CASCADE handles every referenced row
+  // (store_products, ad_variants, ad_campaigns, asset_runs,
+  // copilot_sessions, curation_sessions).
   await db.query('DELETE FROM dropship_stores WHERE id = $1', [id]);
 
-  return NextResponse.json({ success: true });
+  console.log('[delete-store] cleanup report', report);
+  return NextResponse.json({ success: true, report });
 }
 
 /**

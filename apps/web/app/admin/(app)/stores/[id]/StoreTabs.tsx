@@ -61,7 +61,7 @@ export function StoreTabs({ storeId, storeSlug }: { storeId: string; storeSlug: 
               {tab.Icon && <tab.Icon size={15} strokeWidth={1.75} aria-hidden />}
               {tab.label}
               {active && (
-                <span className="absolute left-3 right-3 -bottom-px h-0.5 bg-indigo-600" aria-hidden />
+                <span className="absolute left-3 right-3 -bottom-px h-0.5 bg-blue-600" aria-hidden />
               )}
             </Link>
           );
