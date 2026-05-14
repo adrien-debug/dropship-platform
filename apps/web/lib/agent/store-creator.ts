@@ -38,6 +38,11 @@ export interface StoreCreationInput {
     | 'lifestyle-warm';
   primaryColor?: string;
   accentColor?: string;
+  /** Storefront template id chosen by the operator (or suggested by the
+   *  research-copilot). When the template is in the `luxury` register, the
+   *  asset generator + landing writer switch to luxury voice instead of the
+   *  standard DTC defaults. Defaults to `'auto'` if absent. */
+  template?: string;
 }
 
 export interface AgentEvent {
@@ -394,9 +399,12 @@ export async function* createStore(input: StoreCreationInput): AsyncGenerator<Ag
     try {
       emit({ type: 'step', message: `Démarrage de l'agent pour "${input.storeName}" (niche: ${input.niche})` });
 
+      // Insert with the chosen template right away — landing-writer + asset
+      // generator both read `template` from the row to decide whether to use
+      // the luxury voice / luxury prompts. Defaults to 'auto' (legacy mode).
       const insertRes = await db.query<{ id: string }>(
-        `INSERT INTO dropship_stores (slug, name, niche, mode, status) VALUES ($1, $2, $3, $4, 'creating') RETURNING id`,
-        [slug, input.storeName, input.niche, mode],
+        `INSERT INTO dropship_stores (slug, name, niche, mode, status, template) VALUES ($1, $2, $3, $4, 'creating', $5) RETURNING id`,
+        [slug, input.storeName, input.niche, mode, input.template ?? 'auto'],
       );
       const storeId = insertRes.rows[0]!.id;
 
@@ -657,6 +665,9 @@ export async function* createStore(input: StoreCreationInput): AsyncGenerator<Ag
             productTitle: heroProduct.enrichedTitle,
             productDescription: heroProduct.enrichedDescription,
             mode,
+            template: input.template,
+            accentColor: palette.accent,
+            supplierCostCents: heroProduct.costCents,
           });
           await db.query(
             `UPDATE dropship_stores SET landing_content = $1 WHERE id = $2`,
@@ -700,6 +711,9 @@ export async function* createStore(input: StoreCreationInput): AsyncGenerator<Ag
                   imageUrl: heroProduct.imageUrl,
                 },
                 niche: input.niche,
+                template: input.template,
+                accentColor: palette.accent,
+                storeName: input.storeName,
                 language,
                 skipVideo: input.skipVideo,
                 design: {

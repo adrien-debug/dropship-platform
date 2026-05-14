@@ -12,6 +12,12 @@
 
 import { trackedMessage } from './anthropic';
 import { extractJson } from './json';
+import { isLuxuryTemplate } from '@/lib/template-catalog';
+import {
+  luxuryCopySystemPrompt,
+  luxuryCopyUserPrompt,
+  type LuxuryCopyOutput,
+} from './luxury-prompts';
 
 export interface LandingContent {
   hero?: {
@@ -37,6 +43,10 @@ export interface LandingContent {
     headline_html?: string;
     lede?: string;
   };
+  /** Maison voice copy emitted by the luxury writer. Templates with
+   *  `register: 'luxury'` (luxury-mono, fiora-locks-wh1270, etc.) read from
+   *  this slot to override their hardcoded French placeholders. */
+  luxury_copy?: LuxuryCopyOutput;
 }
 
 export interface LandingWriterInput {
@@ -48,6 +58,18 @@ export interface LandingWriterInput {
   productDescription: string;
   /** Mode: mono (one hero SKU) or collection (3-6 pieces). */
   mode: 'mono' | 'collection';
+  /** Storefront template id. When the template's register is `luxury`, the
+   *  writer switches to the literary maison voice (Hermès / Aesop / Le Labo)
+   *  and writes the copy into `landing_content.luxury_copy` for templates
+   *  like `luxury-mono` to consume. */
+  template?: string;
+  /** Hex accent color of the brand. Threaded into luxury prompts to hint at
+   *  the backdrop tint when relevant. */
+  accentColor?: string;
+  /** Supplier cost in cents — when present, the luxury writer uses it to
+   *  frame the price as fair compensation for craft and time (×17 default).
+   */
+  supplierCostCents?: number;
 }
 
 const FALLBACK: LandingContent = {
@@ -77,6 +99,14 @@ export async function writeLandingContent(
 ): Promise<LandingContent> {
   if (!process.env.ANTHROPIC_API_KEY) return FALLBACK;
 
+  // Luxury path: when the template is in the luxury register, we run a
+  // SECOND Claude call with the maison voice prompt and stash the output
+  // under `landing_content.luxury_copy`. Templates like `luxury-mono` read
+  // from there to override their placeholders. The standard DTC copy still
+  // runs so other templates have something to render if the operator flips.
+  const wantsLuxury = isLuxuryTemplate(input.template);
+
+  let standard: LandingContent;
   try {
     const res = await trackedMessage(
       { step: 'landing-content' },
@@ -93,11 +123,55 @@ export async function writeLandingContent(
     );
     const text = res.content[0]?.type === 'text' ? res.content[0].text : '';
     const parsed = extractJson<LandingContent>(text);
-    if (!parsed) return FALLBACK;
-    return { ...FALLBACK, ...parsed };
+    standard = parsed ? { ...FALLBACK, ...parsed } : FALLBACK;
   } catch (err) {
     console.warn('[landing-writer] generation failed, using fallback', err);
-    return FALLBACK;
+    standard = FALLBACK;
+  }
+
+  if (!wantsLuxury) return standard;
+
+  try {
+    const priceEuros = input.supplierCostCents
+      ? Math.round((input.supplierCostCents / 100) * 17)
+      : undefined;
+    const res = await trackedMessage(
+      { step: 'landing-content-luxury' },
+      {
+        model: 'claude-opus-4-7',
+        max_tokens: 1500,
+        system: luxuryCopySystemPrompt(),
+        messages: [
+          {
+            role: 'user',
+            content: luxuryCopyUserPrompt({
+              storeName: input.storeName,
+              productName: input.productTitle,
+              niche: input.niche,
+              accentColor: input.accentColor ?? '#7a5c3a',
+              positioning: input.tagline,
+              supplierDescription: input.productDescription,
+              priceEuros,
+            }),
+          },
+        ],
+      },
+    );
+    const text = res.content[0]?.type === 'text' ? res.content[0].text : '';
+    const luxe = extractJson<LuxuryCopyOutput>(text);
+    if (!luxe) return standard;
+    return {
+      ...standard,
+      luxury_copy: luxe,
+      // Mirror atelier_pillars into selling_points so templates that read
+      // the generic `selling_points` slot also benefit from the luxury voice.
+      selling_points: luxe.atelier_pillars?.length
+        ? luxe.atelier_pillars.map((p) => ({ title: p.title, body: p.body }))
+        : standard.selling_points,
+    };
+  } catch (err) {
+    console.warn('[landing-writer] luxury copy failed, falling back to standard', err);
+    return standard;
   }
 }
 

@@ -2,6 +2,7 @@
 
 import { apiFetch } from '@/lib/client-fetch';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import type { StoreTemplate } from '@/lib/template-catalog';
 
 /**
  * Pre-creation niche research copilot.
@@ -124,13 +125,7 @@ interface ShortlistPayload {
   target_audience?: string;
   featured_product?: FeaturedProduct;
   suggested_mode?: 'mono' | 'collection';
-  suggested_template?:
-    | 'auto'
-    | 'mono'
-    | 'collection-grid'
-    | 'collection-editorial'
-    | 'luxury-minimal'
-    | 'gen-z-bold';
+  suggested_template?: StoreTemplate;
   media_plan?: MediaPlan;
   design_proposals?: DesignProposal[];
 }

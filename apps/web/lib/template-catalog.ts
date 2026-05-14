@@ -355,6 +355,18 @@ export function getTemplateEntry(id: string): TemplateCatalogEntry | undefined {
   return TEMPLATE_CATALOG.find((t) => t.id === id);
 }
 
+/**
+ * True when the template's register is 'luxury' — used by the asset
+ * generator and landing-writer to switch to luxury prompts / voice instead
+ * of the default DTC defaults. Unknown ids return false so the system
+ * stays in the standard mode by default.
+ */
+export function isLuxuryTemplate(id: string | null | undefined): boolean {
+  if (!id) return false;
+  const entry = TEMPLATE_CATALOG.find((t) => t.id === id);
+  return entry?.register === 'luxury';
+}
+
 export interface ScoringContext {
   niche?: string;
   niches?: TemplateNiche[];

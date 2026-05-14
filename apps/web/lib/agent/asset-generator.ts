@@ -6,6 +6,13 @@ import { extractJson } from './json';
 import { trackedMessage } from './anthropic';
 import { isR2Configured, uploadToR2 } from '@/lib/storage/r2';
 import { getDb } from '@/lib/db';
+import { isLuxuryTemplate } from '@/lib/template-catalog';
+import {
+  luxuryHeroPrompt,
+  luxuryCutoutPrompt,
+  luxuryLifestylePrompts,
+  luxuryVideoPrompt,
+} from './luxury-prompts';
 
 /**
  * Auto-generates hero/cutout/lifestyle/promo-video assets for a mono-product
@@ -55,6 +62,16 @@ export interface AssetGenInput {
   product: { title: string; description: string; imageUrl: string };
   /** Tone words: "cinematic", "minimal", "editorial". Drives prompt phrasing. */
   niche: string;
+  /** Storefront template id. When the template's register is `luxury`, the
+   *  prompt builder bypasses the Claude-generated DTC prompts and uses the
+   *  luxury prompts from `luxury-prompts.ts` instead — editorial studio
+   *  lighting, neutral backdrops, packaging shot, no flash. */
+  template?: string;
+  /** Locked accent color for the brand. Used by the luxury prompts to thread
+   *  a subtle backdrop tint via `tintFromAccent()`. */
+  accentColor?: string;
+  /** Store name — passed into luxury prompts that build a maison voice. */
+  storeName?: string;
   /** "fr" | "en" — only affects prompt language for Claude. Generation is en-only. */
   language?: 'fr' | 'en';
   /** Skip video generation (faster, cheaper). Default false. */
@@ -113,6 +130,31 @@ export const FALLBACK_PROMPTS: PromptBundle = {
 };
 
 async function buildPromptsWithClaude(input: AssetGenInput): Promise<PromptBundle> {
+  // Luxury short-circuit: when the operator picked a luxury-register template
+  // we DO NOT let Claude invent a "premium DTC" prompt — it tends to drift
+  // toward Apple/Dyson cleanliness which is wrong for a maison play. Instead
+  // we pull from `luxury-prompts.ts`, which is calibrated for Hermès / Aesop
+  // / Le Labo framing (marbre, plâtre brut, particules dans la lumière,
+  // packaging coffret signé).
+  if (isLuxuryTemplate(input.template)) {
+    const ctx = {
+      storeName: input.storeName ?? 'Maison',
+      productName: input.product.title,
+      niche: input.niche,
+      accentColor: input.accentColor ?? '#7a5c3a',
+      referenceImageUrl: input.product.imageUrl,
+    };
+    const [ls1, ls2, ls3] = luxuryLifestylePrompts(ctx);
+    return {
+      hero: luxuryHeroPrompt(ctx),
+      cutout: luxuryCutoutPrompt(ctx),
+      lifestyles: [ls1!, ls2!, ls3!],
+      // Use the packaging shot for the 3rd lifestyle slot when we have it —
+      // a coffret-signature image earns its place in a luxe storefront. For
+      // promo video motion we still use the luxury slow-dolly description.
+      promo: luxuryVideoPrompt(ctx),
+    };
+  }
   if (!process.env.ANTHROPIC_API_KEY) return FALLBACK_PROMPTS;
 
   try {

@@ -9,6 +9,7 @@ import {
   LineChart,
   Cog,
   LogOut,
+  Palette,
 } from 'lucide-react';
 import { FloatingDock } from '@/components/ui/floating-dock';
 import type { HeaderStats } from './getHeaderStats';
@@ -196,6 +197,7 @@ export function AdminShell({ children, stats }: { children: ReactNode; stats: He
                   { title: 'Dashboard',     href: '/admin',               icon: <LayoutGrid size={18} strokeWidth={1.75} /> },
                   { title: 'Stores',        href: '/admin/stores',        icon: <Layers size={18} strokeWidth={1.75} /> },
                   { title: 'Nouveau store', href: '/admin/stores/new',    icon: <Sparkles size={18} strokeWidth={1.75} /> },
+                  { title: 'Templates',     href: '/admin/templates',     icon: <Palette size={18} strokeWidth={1.75} /> },
                   { title: 'Commandes',     href: '/admin/orders',        icon: <ShoppingBag size={18} strokeWidth={1.75} /> },
                   { title: 'Marketing',     href: '/admin/observability', icon: <LineChart size={18} strokeWidth={1.75} /> },
                   { title: 'Réglages',      href: '/admin/settings',      icon: <Cog size={18} strokeWidth={1.75} /> },
