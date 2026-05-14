@@ -43,7 +43,13 @@ export function PageHeader({
             {kicker}
           </p>
         )}
-        <h1 className="mt-1 text-2xl sm:text-3xl xl:text-[34px] font-semibold tracking-[-0.025em] text-admin-text leading-[1.05]">
+        {/* Typo scale standard:
+            H1 page title = 28px (always biggest)
+            KPI value     = 22px (sub-step)
+            H2 section    = 15px
+            H3 / row      = 13px
+            kicker        = 10px uppercase */}
+        <h1 className="mt-1 text-[28px] font-semibold tracking-[-0.025em] text-admin-text leading-[1.1]">
           {title}
         </h1>
         {lede && (
@@ -76,7 +82,7 @@ export function StatCard({
       </div>
       <div
         className={cn(
-          'mt-2 text-[26px] font-semibold tracking-[-0.03em] tabular-nums leading-none',
+          'mt-1.5 text-[22px] font-semibold tracking-[-0.025em] tabular-nums leading-none',
           valueTone[tone],
         )}
       >

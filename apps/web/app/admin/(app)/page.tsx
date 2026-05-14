@@ -316,7 +316,7 @@ export default async function PortfolioDashboard() {
         >
           <div className="space-y-4">
             <div>
-              <div className="text-[32px] font-semibold tracking-[-0.03em] text-admin-text tabular-nums leading-none">
+              <div className="text-[22px] font-semibold tracking-[-0.025em] text-admin-text tabular-nums leading-none">
                 {totalCost.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
               </div>
               <div className="mt-1.5 text-[11px] text-admin-text-muted">

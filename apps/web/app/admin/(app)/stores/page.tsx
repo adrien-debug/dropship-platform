@@ -165,8 +165,8 @@ function EmptyState() {
   return (
     <div className="border border-dashed border-zinc-200 rounded-xl px-6 py-20 text-center bg-white">
       <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">Premier pas</p>
-      <h3 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-900">
-        Lance ton <em className="italic text-zinc-500">premier store</em>.
+      <h3 className="mt-2 text-[20px] font-semibold tracking-[-0.02em] text-admin-text">
+        Lance ton <em className="not-italic text-admin-text-muted font-light">premier store</em>.
       </h3>
       <p className="mt-3 text-sm text-zinc-500 max-w-md mx-auto leading-relaxed">
         L’agent IA recherche les produits, génère les visuels, écrit les fiches et publie le store. Une niche suffit.

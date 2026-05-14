@@ -1,8 +1,9 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getDbRead } from '@/lib/db';
-import { StoreLogo } from '@/components/ui';
+import { StoreAvatar, ButtonLink } from '@/components/ui';
 import { StoreActions } from '../StoreActions';
+import { cn } from '@/lib/utils/cn';
 
 export const dynamic = 'force-dynamic';
 
@@ -90,96 +91,118 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
     return acc;
   }, {});
 
+  const statusActive = store.status === 'active';
+
   return (
     <div className="flex flex-col flex-1 space-y-4">
-      {/* Store header — branding + destructive actions only.
-          Navigation lives in the StoreTabs rendered by the layout. */}
-      <div className="border border-zinc-200 rounded-xl overflow-hidden shadow-sm bg-white">
-        <div className="h-14 flex items-center px-5 gap-3" style={{ backgroundColor: store.primary_color || '#111827' }}>
-          <span className="text-white inline-flex"><StoreLogo emoji={store.logo_emoji} size={24} strokeWidth={1.5} /></span>
-          <div className="text-white min-w-0">
-            <h2 className="text-base font-semibold truncate">{store.name}</h2>
-            {store.tagline && <p className="text-xs opacity-75 truncate">{store.tagline}</p>}
+      {/* Store header — branding clean, palette strict, avatar locked to monogram */}
+      <div className="border border-admin-border rounded-admin-lg shadow-admin-card bg-admin-bg overflow-hidden">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-admin-border-soft">
+          <StoreAvatar slug={store.slug} name={store.name} size={40} />
+          <div className="min-w-0 flex-1">
+            {/* H1 — page title, 24px tracked, real hierarchy */}
+            <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-admin-text leading-tight truncate">
+              {store.name}
+            </h1>
+            {store.tagline && (
+              <p className="text-[12px] text-admin-text-muted truncate mt-0.5">{store.tagline}</p>
+            )}
           </div>
-          <div className="ml-auto flex items-center gap-2 shrink-0">
+          <div className="shrink-0">
             <StoreActions storeId={store.id} storeName={store.name} />
           </div>
         </div>
 
-        <div className="p-4 bg-white">
+        <div className="p-4">
+          {/* KPI grid — values capped at text-xl (20px), never bigger than H1 */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
             <Stat label="Produits" value={products.length.toString()} />
             <Stat label="Prix moyen" value={`${avgPrice.toFixed(2)} €`} />
             <Stat label="Marge moy." value={`${margin.toFixed(2)} €`} />
-            <Stat label="Statut" value={store.status} highlight={store.status === 'active'} />
+            <Stat label="Statut" value={statusActive ? 'En ligne' : store.status} highlight={statusActive} />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-zinc-500">
-            <div>
-              <span className="font-medium text-zinc-900">Niche :</span> {store.niche}
-            </div>
-            <div>
-              <span className="font-medium text-zinc-900">Fournisseurs :</span>{' '}
+          {/* Meta info — H3 inline labels, body 13px */}
+          <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-[13px]">
+            <Row label="Niche">{store.niche || '—'}</Row>
+            <Row label="Fournisseurs">
               {Object.entries(supplierCounts).map(([s, count]) => `${s} (${count})`).join(', ') || '—'}
-            </div>
+            </Row>
             {store.medusa_publishable_key && (
-              <div className="col-span-2">
-                <span className="font-medium text-zinc-900">Clé API :</span>{' '}
-                <code className="text-xs bg-zinc-100 px-2 py-0.5 rounded">{store.medusa_publishable_key.slice(0, 24)}…</code>
-              </div>
+              <Row label="Clé API" full>
+                <code className="text-[11px] bg-admin-bg-muted text-admin-text-secondary px-2 py-0.5 rounded font-mono">
+                  {store.medusa_publishable_key.slice(0, 24)}…
+                </code>
+              </Row>
             )}
             {store.description && (
-              <div className="col-span-2">
-                <span className="font-medium text-zinc-900">Description :</span> {store.description}
-              </div>
+              <Row label="Description" full>{store.description}</Row>
             )}
-            <div>
-              <span className="font-medium text-zinc-900">Domaine :</span> {store.custom_domain || '—'}
-            </div>
-            {store.error_message && store.status !== 'active' && (
-              <div className="col-span-2 text-zinc-500">
-                <span className="font-medium text-zinc-900">Erreur :</span> {store.error_message}
+            <Row label="Domaine">{store.custom_domain || '—'}</Row>
+            {store.error_message && !statusActive && (
+              <Row label="Erreur" full>
+                <span className="text-admin-text-secondary">{store.error_message}</span>
                 <Link
                   href={`/admin/stores/new?niche=${encodeURIComponent(store.niche)}&name=${encodeURIComponent(store.name)}`}
-                  className="ml-3 text-xs text-blue-600 hover:underline font-medium"
+                  className="ml-3 text-[12px] text-admin-accent hover:underline font-medium"
                 >
                   Recréer ce store
                 </Link>
-              </div>
+              </Row>
             )}
-          </div>
+          </dl>
         </div>
       </div>
 
-      {/* Per-store product list lives on its own tab (`Catalogue`).
-          Keep the overview clean: just a teaser linking there. */}
-      <div className="rounded-xl border border-zinc-200 bg-white shadow-sm p-4 flex items-center justify-between">
+      {/* Catalogue teaser */}
+      <div className="rounded-admin-lg border border-admin-border bg-admin-bg shadow-admin-card p-4 flex items-center justify-between gap-3">
         <div>
-          <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">Catalogue</p>
-          <p className="mt-1 text-sm text-zinc-500">
-            <span className="font-medium text-zinc-900">{products.length}</span>{' '}
+          <p className="text-[10px] uppercase tracking-[0.18em] text-admin-text-muted font-medium">Catalogue</p>
+          <p className="mt-1 text-[13px] text-admin-text-secondary">
+            <span className="font-semibold text-admin-text tabular-nums">{products.length}</span>{' '}
             produit{products.length > 1 ? 's' : ''} importé{products.length > 1 ? 's' : ''}.
           </p>
         </div>
-        <Link
-          href={`/admin/stores/${store.id}/catalog`}
-          className="text-sm font-medium px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-        >
+        <ButtonLink href={`/admin/stores/${store.id}/catalog`} variant="primary" size="md">
           Voir le catalogue
-        </Link>
+        </ButtonLink>
       </div>
     </div>
   );
 }
 
+/**
+ * Standard KPI tile — value is text-xl (20px), capped below the H1 so
+ * the hierarchy reads page-title → kpi-value → body. Highlight tone
+ * uses the brand accent (blue) for positive states.
+ */
 function Stat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
-    <div className="border border-zinc-200 bg-white rounded-xl px-4 py-3 shadow-sm">
-      <div className="flex items-center gap-2 text-kicker uppercase tracking-cta text-zinc-400 font-medium">
-        <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500" aria-hidden />
+    <div className="border border-admin-border bg-admin-bg rounded-admin-md px-3.5 py-3 shadow-admin-card">
+      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-admin-text-muted font-medium">
+        <span
+          className={cn('inline-block w-1.5 h-1.5 rounded-full', highlight ? 'bg-admin-accent' : 'bg-admin-text-faint')}
+          aria-hidden
+        />
         {label}
       </div>
-      <div className={`mt-1.5 text-2xl font-bold tracking-[-0.03em] ${highlight ? 'text-blue-600' : 'text-zinc-900'}`}>{value}</div>
+      <div
+        className={cn(
+          'mt-1.5 text-[20px] font-semibold tracking-[-0.02em] tabular-nums leading-none',
+          highlight ? 'text-admin-accent' : 'text-admin-text',
+        )}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function Row({ label, full, children }: { label: string; full?: boolean; children: React.ReactNode }) {
+  return (
+    <div className={cn('flex items-baseline gap-2 min-w-0', full && 'md:col-span-2')}>
+      <dt className="text-admin-text-secondary font-medium shrink-0">{label} :</dt>
+      <dd className="text-admin-text-muted min-w-0 truncate">{children}</dd>
     </div>
   );
 }

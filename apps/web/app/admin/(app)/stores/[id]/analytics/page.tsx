@@ -289,7 +289,7 @@ function Kpi({
         <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500" aria-hidden />
         {label}
       </div>
-      <div className={`mt-1.5 text-2xl font-bold tracking-[-0.03em] ${cls[tone]}`}>{value}</div>
+      <div className={`mt-1.5 text-[20px] font-semibold tabular-nums tracking-[-0.02em] ${cls[tone]}`}>{value}</div>
     </div>
   );
 }

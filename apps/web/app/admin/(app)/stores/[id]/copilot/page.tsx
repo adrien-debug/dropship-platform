@@ -96,8 +96,8 @@ export default async function CopilotHubPage({
       <header className="flex items-end justify-between gap-4 shrink-0">
         <div>
           <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">Copilote hub</p>
-          <h1 className="mt-0.5 text-2xl sm:text-3xl xl:text-4xl font-extrabold tracking-[-0.035em] text-zinc-900 leading-[1.02] inline-flex items-center gap-3">
-            <StoreLogo emoji={store.logo_emoji} size={28} strokeWidth={1.5} />
+          <h1 className="mt-1 text-[28px] font-semibold tracking-[-0.025em] text-admin-text leading-[1.1] inline-flex items-center gap-3">
+            <StoreLogo emoji={store.logo_emoji} size={24} strokeWidth={1.5} />
             {store.name}
           </h1>
           <p className="mt-1 text-xs text-zinc-500">
