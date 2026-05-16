@@ -112,6 +112,7 @@ export async function storeFetch<T>(path: string, init: StoreFetchInit = {}): Pr
   const url = `${baseUrl}${path}`;
   const res = await fetch(url, {
     ...fetchInit,
+    signal: AbortSignal.timeout(20_000),
     headers: {
       'x-publishable-api-key': key,
       'Content-Type': 'application/json',

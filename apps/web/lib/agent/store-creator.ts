@@ -763,12 +763,17 @@ export async function* createStore(input: StoreCreationInput): AsyncGenerator<Ag
             [storeId],
           );
         } else {
+          // Assets failed (fal/Comfy/Anthropic down). Activate the store
+          // anyway — the storefront falls back to the supplier images and
+          // the operator can re-trigger asset generation later via the admin
+          // regenerator. Persisting `creating` would make the storefront 404
+          // permanently which is a worse outcome than imperfect visuals.
           const errMsg = assets?.errors[0] || lastAssetError || 'Génération des assets échouée';
           await db.query(
-            `UPDATE dropship_stores SET error_message = $1, updated_at = now() WHERE id = $2`,
+            `UPDATE dropship_stores SET status = 'active', error_message = $1, updated_at = now() WHERE id = $2`,
             [errMsg, storeId],
           );
-          emit({ type: 'progress', message: `⚠ Assets non générés après ${MAX_ASSET_RETRIES} tentatives: ${errMsg}` });
+          emit({ type: 'progress', message: `⚠ Assets non générés après ${MAX_ASSET_RETRIES} tentatives: ${errMsg}. Boutique activée avec photos supplier.` });
         }
       }
 

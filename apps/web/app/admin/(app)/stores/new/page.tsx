@@ -99,6 +99,7 @@ function NewStoreForm() {
       | 'lifestyle-warm';
     primaryColor?: string;
     accentColor?: string;
+    template?: string;
   }) => {
     const eff = {
       niche: overrides?.niche ?? niche,
@@ -110,6 +111,7 @@ function NewStoreForm() {
       ...(overrides?.designPreset && { designPreset: overrides.designPreset }),
       ...(overrides?.primaryColor && { primaryColor: overrides.primaryColor }),
       ...(overrides?.accentColor && { accentColor: overrides.accentColor }),
+      ...(overrides?.template && { template: overrides.template }),
     };
     if (!eff.niche.trim() || !eff.storeName.trim()) return;
     setRunning(true);
@@ -220,6 +222,7 @@ function NewStoreForm() {
         primaryColor: chosen.primary,
         accentColor: chosen.accent,
       }),
+      ...(payload.suggested_template && { template: payload.suggested_template }),
     }).catch((e) => {
       console.error('[applyShortlist] launch failed', e);
       setError(e instanceof Error ? e.message : 'Erreur de lancement');

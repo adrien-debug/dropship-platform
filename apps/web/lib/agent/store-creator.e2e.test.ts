@@ -50,12 +50,16 @@ function dbQuery<T = unknown>(
         {
           key: 'aliexpress_access_token',
           value: 'test-ae-access-token',
+          value_enc: null,
+          value_nonce: null,
           updated_at: new Date(),
         },
         {
           key: 'aliexpress_token_expires',
           // '0' means "no expiry check" inside aliexpress.ts (special case).
           value: '0',
+          value_enc: null,
+          value_nonce: null,
           updated_at: new Date(),
         },
       ] as unknown as T[],

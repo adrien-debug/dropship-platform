@@ -91,6 +91,7 @@ export async function sendMetaConversion(
     const url = `${META_CAPI_URL}/${store.metaPixelId}/events?access_token=${encodeURIComponent(store.metaCapiToken)}`;
     const res = await fetch(url, {
       method: 'POST',
+      signal: AbortSignal.timeout(10_000),
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });

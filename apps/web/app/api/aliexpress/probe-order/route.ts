@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createHash } from 'crypto';
 import { getDb } from '@/lib/db';
+import { tryDecryptSecret } from '@/lib/secrets';
 
 /**
  * Probe whether the AliExpress DS Order permission group is activated for our app.
@@ -51,10 +52,10 @@ async function callRaw(method: string, accessToken: string, extra: Record<string
 }
 
 export async function GET() {
-  const { rows } = await getDb().query<{ value: string }>(
-    `SELECT value FROM platform_settings WHERE key = 'aliexpress_access_token'`,
+  const { rows } = await getDb().query<{ value: string; value_enc: Buffer | null; value_nonce: Buffer | null }>(
+    `SELECT value, value_enc, value_nonce FROM platform_settings WHERE key = 'aliexpress_access_token'`,
   );
-  const token = rows[0]?.value;
+  const token = tryDecryptSecret(rows[0]?.value_enc, rows[0]?.value_nonce) ?? rows[0]?.value ?? null;
   if (!token) {
     return NextResponse.json(
       { error: 'No access_token in DB. Run /api/aliexpress/oauth/start first.' },

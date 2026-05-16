@@ -1,9 +1,12 @@
+import { validateEnv } from './lib/env';
+
 /**
  * Next.js instrumentation hook. Loaded once per server worker, before any
  * request is handled. Routes the Sentry init to the right config file
  * based on the active runtime.
  */
 export async function register() {
+  validateEnv();
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     await import('./sentry.server.config');
   }

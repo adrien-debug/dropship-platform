@@ -155,7 +155,10 @@ class MedusaAPI {
   ): Promise<Response> {
     return retry(
       async () => {
-        const res = await fetch(input, init);
+        const res = await fetch(input, {
+          ...init,
+          signal: init?.signal ?? AbortSignal.timeout(30_000),
+        });
         if (!res.ok) {
           // Clone so the caller can still read the body after we inspect status
           throw res.clone();

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createHmac } from 'crypto';
 import { getDb } from '@/lib/db';
+import { encryptSecret } from '@/lib/secrets';
 
 const APP_KEY = (process.env.ALIEXPRESS_APP_KEY || '').trim();
 const APP_SECRET = (process.env.ALIEXPRESS_APP_SECRET || '').trim();
@@ -19,9 +20,20 @@ function signSystem(apiPath: string, params: Record<string, string>): string {
 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get('code');
+  const state = req.nextUrl.searchParams.get('state');
+  const cookieState = req.cookies.get('ae_oauth_state')?.value;
+
   if (!code) {
     return NextResponse.json({ error: 'Missing code parameter' }, { status: 400 });
   }
+  if (!state || !cookieState || state !== cookieState) {
+    return NextResponse.json({ error: 'Invalid or missing state parameter — possible CSRF attack.' }, { status: 403 });
+  }
+
+  // Consume the state cookie immediately (one-time use).
+  const clearStateCookie = (res: NextResponse) => {
+    res.cookies.set('ae_oauth_state', '', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 0, path: '/' });
+  };
 
   const apiPath = '/auth/token/create';
   const params: Record<string, string> = {
@@ -34,7 +46,7 @@ export async function GET(req: NextRequest) {
 
   const qs = new URLSearchParams(params).toString();
   const tokenUrl = `https://api-sg.aliexpress.com/rest/auth/token/create?${qs}`;
-  const res = await fetch(tokenUrl, { method: 'POST' });
+  const res = await fetch(tokenUrl, { method: 'POST', signal: AbortSignal.timeout(15_000) });
   const rawBody = await res.text();
 
   let data: {
@@ -49,7 +61,7 @@ export async function GET(req: NextRequest) {
 
   if (data.error_response || !data.access_token) {
     const escape = (s: string) => s.replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]!));
-    return new NextResponse(
+    const errorRes = new NextResponse(
       `<html><body style="font-family:ui-monospace,monospace;padding:2rem;max-width:900px;margin:0 auto">
         <h2>❌ AliExpress OAuth Error</h2>
         <p>HTTP <strong>${res.status}</strong></p>
@@ -61,25 +73,31 @@ export async function GET(req: NextRequest) {
       </body></html>`,
       { headers: { 'Content-Type': 'text/html' }, status: 500 },
     );
+    clearStateCookie(errorRes);
+    return errorRes;
   }
 
   const db = getDb();
+  const encAccess = encryptSecret(data.access_token);
+  const encRefresh = data.refresh_token ? encryptSecret(data.refresh_token) : null;
   await db.query(
-    `INSERT INTO platform_settings (key, value, updated_at)
-     VALUES ('aliexpress_access_token', $1, now()),
-            ('aliexpress_refresh_token', $2, now()),
-            ('aliexpress_token_expires', $3, now()),
-            ('aliexpress_user_nick', $4, now())
-     ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`,
+    `INSERT INTO platform_settings (key, value, value_enc, value_nonce, updated_at)
+     VALUES ('aliexpress_access_token', NULL, $1, $2, now()),
+            ('aliexpress_refresh_token', NULL, $3, $4, now()),
+            ('aliexpress_token_expires', $5, NULL, NULL, now()),
+            ('aliexpress_user_nick', $6, NULL, NULL, now())
+     ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, value_enc = EXCLUDED.value_enc, value_nonce = EXCLUDED.value_nonce, updated_at = now()`,
     [
-      data.access_token,
-      data.refresh_token || '',
+      encAccess.encrypted,
+      encAccess.nonce,
+      encRefresh ? encRefresh.encrypted : null,
+      encRefresh ? encRefresh.nonce : null,
       data.expire_time?.toString() || '',
       data.user_nick || '',
     ],
   );
 
-  return new NextResponse(
+  const successRes = new NextResponse(
     `<html><body style="font-family:sans-serif;padding:2rem;max-width:600px;margin:0 auto">
       <h2>✅ AliExpress connecté !</h2>
       <p><strong>Compte :</strong> ${data.user_nick || 'inconnu'}</p>
@@ -88,4 +106,6 @@ export async function GET(req: NextRequest) {
     </body></html>`,
     { headers: { 'Content-Type': 'text/html' } },
   );
+  clearStateCookie(successRes);
+  return successRes;
 }

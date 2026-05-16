@@ -201,6 +201,7 @@ async function deployRun(deploymentId: string, inputs: WorkflowInputs): Promise<
 
   const queueRes = await fetch(`${DEPLOY_BASE}/v2/run/deployment/queue`, {
     method: 'POST',
+    signal: AbortSignal.timeout(60_000),
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${apiKey}`,
@@ -220,6 +221,7 @@ async function deployRun(deploymentId: string, inputs: WorkflowInputs): Promise<
   while (Date.now() - start < TIMEOUT_MS) {
     await new Promise((r) => setTimeout(r, POLL_MS));
     const statusRes = await fetch(`${DEPLOY_BASE}/v2/run/${runId}`, {
+      signal: AbortSignal.timeout(15_000),
       headers: { Authorization: `Bearer ${apiKey}` },
     });
     if (!statusRes.ok) continue;
@@ -271,6 +273,7 @@ async function localRun(graph: object): Promise<WorkflowResult> {
 
   const queueRes = await fetch(`${base}/prompt`, {
     method: 'POST',
+    signal: AbortSignal.timeout(60_000),
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ prompt: graph }),
   });
@@ -285,7 +288,7 @@ async function localRun(graph: object): Promise<WorkflowResult> {
 
   while (Date.now() - start < TIMEOUT_MS) {
     await new Promise((r) => setTimeout(r, POLL_MS));
-    const histRes = await fetch(`${base}/history/${promptId}`);
+    const histRes = await fetch(`${base}/history/${promptId}`, { signal: AbortSignal.timeout(15_000) });
     if (!histRes.ok) continue;
     const hist = (await histRes.json()) as Record<string, {
       outputs?: Record<string, { images?: Array<{ filename: string; subfolder: string; type: string }>; gifs?: Array<{ filename: string; subfolder: string; type: string }> }>;
@@ -319,7 +322,7 @@ async function localRun(graph: object): Promise<WorkflowResult> {
 
 async function fetchBinary(url: string): Promise<Buffer | null> {
   try {
-    const r = await fetch(url);
+    const r = await fetch(url, { signal: AbortSignal.timeout(30_000) });
     if (!r.ok) return null;
     return Buffer.from(await r.arrayBuffer());
   } catch {

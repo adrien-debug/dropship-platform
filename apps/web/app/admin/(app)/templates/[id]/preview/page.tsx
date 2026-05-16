@@ -67,7 +67,7 @@ export default async function TemplatePreviewPage({
   const store = buildMockStore(id as StoreTemplate);
   const products = buildMockProducts();
 
-  let Comp = REGISTRY[id];
+  const Comp = REGISTRY[id];
 
   // Fallback for templates without a dedicated Landing component
   // (mono → MonoProductLanding takes a single `product`, collection-grid

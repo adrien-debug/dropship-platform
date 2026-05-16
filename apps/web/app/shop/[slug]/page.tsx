@@ -70,8 +70,17 @@ export default async function ShopPage({ params }: { params: Promise<{ slug: str
   const store = await getStoreBySlug(slug);
   if (!store) notFound();
 
+  // Only show the "preparing" splash while asset generation is genuinely in
+  // flight (`pending` / `generating`). If asset generation failed (`error`)
+  // or was never triggered, we still render the storefront — templates fall
+  // back to the supplier image and the operator can re-trigger generation
+  // later from the admin asset regenerator. Holding the splash on `error`
+  // would make the storefront unreachable forever for stores that don't
+  // have a working asset backend (fal locked / Comfy not configured).
   const assetsReady = store.assetsStatus === 'ready' || store.heroImageUrl;
-  const isMonoWithoutAssets = store.mode === 'mono' && !assetsReady;
+  const assetsInFlight =
+    store.assetsStatus === 'pending' || store.assetsStatus === 'generating';
+  const isMonoWithoutAssets = store.mode === 'mono' && !assetsReady && assetsInFlight;
   if (isMonoWithoutAssets) {
     return <StorePreparing store={store} />;
   }

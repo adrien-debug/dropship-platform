@@ -50,6 +50,21 @@ export async function POST(
 
   const { id: storeId } = await params;
 
+  // Per-store rate limit: prevent runaway loops or accidental spam.
+  const storeRl = await checkRateLimit(`copilot-store:${storeId}`, { max: 30, windowSec: 60 });
+  if (!storeRl.ok) {
+    return new Response(
+      JSON.stringify({ error: `Store rate limit reached. Retry in ${storeRl.retryAfterSec}s.` }),
+      {
+        status: 429,
+        headers: {
+          'Content-Type': 'application/json',
+          'Retry-After': String(storeRl.retryAfterSec),
+        },
+      },
+    );
+  }
+
   let input;
   try {
     input = schema.parse(await req.json());

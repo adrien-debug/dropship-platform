@@ -10,7 +10,7 @@
  *   - cj_search                            : EU-warehouse alternatives
  *   - shortlist_niche                      : final structured recommendation
  *
- * Conversations live in `dropship_copilot_sessions` / `_messages`. They are
+ * Conversations live in `dropship_research_sessions` / `_messages`. They are
  * NOT tied to a store — the whole point is to converge on a niche BEFORE
  * the operator creates the store.
  *
@@ -455,7 +455,7 @@ const TOOLS: Anthropic.Messages.Tool[] = [
         design_proposals: {
           type: 'array',
           description:
-            'EXACTLY 3 design candidates the operator picks from in the chat. Each is one of the 5 curated presets (editorial-serif, tech-mono, brutalist-luxe, gen-z-bold, lifestyle-warm) plus the primary+accent hex colors you recommend for THIS niche. Choose the 3 presets that best fit the audience (e.g. for "pet care" propose lifestyle-warm + editorial-serif + gen-z-bold). Each accent must visually contrast its primary. Once the operator picks one in the chat, those exact colors are LOCKED — no other component is allowed to invent new ones.',
+            'EXACTLY 3 design candidates the operator picks from in the chat. Each is one of the 5 curated **design presets** (editorial-serif, tech-mono, brutalist-luxe, gen-z-bold, lifestyle-warm) plus the primary+accent hex colors you recommend for THIS niche. ⚠️ The `preset` field here is a DESIGN SYSTEM (typo + structure rules) — NOT a storefront template id. NEVER put template ids like `luxury-mono`, `wellness-soft`, `fiora-locks-wh1270` here — those belong to `suggested_template`. For luxury niches, use `brutalist-luxe` or `editorial-serif` as the preset. Choose the 3 presets that best fit the audience (e.g. for "pet care" propose lifestyle-warm + editorial-serif + gen-z-bold). Each accent must visually contrast its primary. Once the operator picks one in the chat, those exact colors are LOCKED — no other component is allowed to invent new ones.',
           items: {
             type: 'object',
             properties: {
@@ -566,7 +566,7 @@ async function loadHistory(sessionId: string) {
     import('./copilot-shared').StoredMessage
   >(
     `SELECT id, role, content, tool_name, tool_input, tool_output, created_at
-       FROM dropship_copilot_messages
+       FROM dropship_research_messages
        WHERE session_id = $1
        ORDER BY created_at ASC, id ASC`,
     [sessionId],
@@ -586,7 +586,7 @@ async function insertMessage(
 ): Promise<void> {
   const db = getDb();
   await db.query(
-    `INSERT INTO dropship_copilot_messages
+    `INSERT INTO dropship_research_messages
        (session_id, role, content, tool_name, tool_input, tool_output)
      VALUES ($1,$2,$3,$4,$5,$6)`,
     [
@@ -599,7 +599,7 @@ async function insertMessage(
     ],
   );
   await db.query(
-    `UPDATE dropship_copilot_sessions SET updated_at = now() WHERE id = $1`,
+    `UPDATE dropship_research_sessions SET updated_at = now() WHERE id = $1`,
     [sessionId],
   );
 }
@@ -607,14 +607,14 @@ async function insertMessage(
 async function maybeBackfillTitle(sessionId: string, firstUserMessage: string): Promise<void> {
   const db = getDb();
   const { rows } = await db.query<{ title: string | null }>(
-    `SELECT title FROM dropship_copilot_sessions WHERE id = $1 LIMIT 1`,
+    `SELECT title FROM dropship_research_sessions WHERE id = $1 LIMIT 1`,
     [sessionId],
   );
   if (rows[0]?.title) return;
   const title = firstUserMessage.replace(/\s+/g, ' ').trim().slice(0, 80);
   if (!title) return;
   await db.query(
-    `UPDATE dropship_copilot_sessions SET title = $1 WHERE id = $2 AND title IS NULL`,
+    `UPDATE dropship_research_sessions SET title = $1 WHERE id = $2 AND title IS NULL`,
     [title, sessionId],
   );
 }
@@ -735,7 +735,7 @@ function buildSystemPrompt(): string {
     '6. **Bundle strategy** — if unit retail < 30€, propose a 2-unit and 3-unit bundle to lift AOV. State the expected AOV after bundles.',
     `7. **Storefront shape** — decide \`suggested_mode\` ("mono" for one hero SKU long-form, "collection" for 3-6 curated pieces) AND \`suggested_template\` (id from the storefront catalog — ${TEMPLATE_CATALOG.length} options spanning mass/premium/luxury and fashion/beauty/wellness/events/travel/etc., see the tool schema for the full list with hints). Match the template's niches[] and register to the niche signal. The operator should NOT have to re-pick.`,
     '8. **Media plan — DO NOT SKIP**. Produce a full `media_plan` using the REAL ad cost data from `search_ad_benchmarks`. Channels with weight_pct summing ~100, expected CPM/CPC/CPA per channel (from benchmarks), geo (primary_countries + emphasis cities/régions), audience (demographics + interests + lookalike_seeds), schedule (best_hours_local + best_days + timezone Europe/Paris), expected_outcomes (daily_orders_low/high, target_cpa_eur, target_roas, breakeven_note), and 3 top_hooks. The operator validates this visually BEFORE creating the store.',
-    '9. **Design proposals — DO NOT SKIP**. Provide EXACTLY 3 entries in `design_proposals`. Each is one of the 5 curated presets (`editorial-serif`, `tech-mono`, `brutalist-luxe`, `gen-z-bold`, `lifestyle-warm`) with the recommended `primary` + `accent` hex colors for THIS niche. Hard rules: (a) the 3 must be visually distinct from each other so the operator has a real choice; (b) the colors must respect the niche emotional tone (pet care → warm earthy; tech gadget → cold deep blue or near-black; luxury → near-black + ivory; gen-z fitness → saturated lime or magenta); (c) each accent must contrast its primary; (d) NEVER use the default placeholder #0f172a / #6366f1 — those are the legacy app neutrals and look generic. Once the operator picks one in the chat, those exact colors become the LAW for the whole storefront, the cookie banner, the ads creatives, every CTA. No component will ever invent a new color afterwards.',
+    '9. **Design proposals — DO NOT SKIP**. Provide EXACTLY 3 entries in `design_proposals`. ⚠️ CRITICAL: `design_proposals[].preset` is a DESIGN SYSTEM enum with EXACTLY 5 allowed values: `editorial-serif`, `tech-mono`, `brutalist-luxe`, `gen-z-bold`, `lifestyle-warm`. NEVER put a storefront template id here (no `luxury-mono`, no `wellness-soft`, no `fiora-locks-wh1270`). Those belong to `suggested_template` only. For a luxury niche, the right presets are `brutalist-luxe` (charcoal + tan, masculine) and `editorial-serif` (espresso + ivory, slow-living). Hard rules: (a) the 3 must be visually distinct from each other so the operator has a real choice; (b) the colors must respect the niche emotional tone (pet care → warm earthy; tech gadget → cold deep blue or near-black; luxury → near-black + ivory; gen-z fitness → saturated lime or magenta); (c) each accent must contrast its primary; (d) NEVER use the default placeholder #0f172a / #6366f1 — those are the legacy app neutrals and look generic. Once the operator picks one in the chat, those exact colors become the LAW for the whole storefront, the cookie banner, the ads creatives, every CTA. No component will ever invent a new color afterwards.',
     '',
     '- The operator paid Opus 4.7 to do the pricing work — never propose a retail price without having benchmarked it against the market. Never lazily round `cost × 2.2`.',
     '- A healthy gross margin floor is ~12€ on the chosen retail (otherwise FB Ads débutant burns cash). Reject any combo that gives < 10€ margin.',
@@ -746,7 +746,7 @@ function buildSystemPrompt(): string {
     '  a) **Existing DTC premium anchor is mandatory.** Use ask_perplexity + web_search to confirm a recognized DTC brand sells the same category at 80€+ (examples: Aspinal of London / Bellroy for petite maroquinerie ; Mejuri / Missoma for jewelry ; Aesop / Cire Trudon / Le Labo for home rituals ; Mount Lai / Wildling for beauty tools ; Smythson / Moleskine for stationery ; Yamazaki / Hasami for kitchen objects). If no premium DTC anchor exists, ABORT the luxury play — propose a different niche.',
     '  b) **Photogenic materiality is mandatory.** Favor cuir, métal brossé, laiton, céramique, pierre, verre soufflé, bois noueux. Reject plastic, silicone, electronic gadgets, anything with foreign-language printing on it. The product must survive a studio lighting close-up without screaming "AliExpress".',
     '  c) **Compute the retail/cost ratio.** Take the DTC premium anchor price (lowest competitor SKU) and divide by the AliExpress supplier cost. Target ratio ≥ 10×. State this ratio explicitly in `pricing_rationale` (e.g. "Aspinal porte-cartes 95€, supplier 8€, ratio 11.9×, marge brute 82€ après shipping").',
-    '  d) **Suggested template MUST be from the luxury register.** Pick `luxury-mono` (mono-product editorial, made-to-order framing — best fit for the 15→300 play), `luxury-minimal` (b&w typographique sobre), `fiora-locks-wh1270` (Cormorant Garamond géant, fond crème), `editorial-fashion`, or `wellness-massage-quiet`. NEVER pick `mono`, `collection-grid`, `gen-z-bold`, or anything with `register: \'mass\'` in luxury play mode.',
+    '  d) **`suggested_template` MUST be from the luxury register.** Pick `luxury-mono` (mono-product editorial, made-to-order framing — best fit for the 15→300 play), `luxury-minimal` (b&w typographique sobre), `fiora-locks-wh1270` (Cormorant Garamond géant, fond crème), `editorial-fashion`, or `wellness-massage-quiet`. NEVER pick `mono`, `collection-grid`, `gen-z-bold`, or anything with `register: \'mass\'` in luxury play mode. ⚠️ This is `suggested_template` ONLY, NOT `design_proposals[].preset` (which stays in the 5-preset enum — use `brutalist-luxe` or `editorial-serif` there).',
     '  e) **Retail pricing**: set `suggested_price_cents` to 60-80% of the DTC anchor price (not 200% of cost). The customer is comparing to Aspinal/Aesop, not to AliExpress. Undercut the anchor slightly to feel like a discovery, not a cheaper alternative.',
     '  f) **Mode**: always `mono` in luxury play. Long-form editorial landing on one hero SKU, not a 6-product grid.',
     '  g) **Media plan**: lean toward Meta + Pinterest (story-driven, image-led). TikTok works only if the niche has a beauty/ritual angle. Audience targeting on "luxury craft", "slow living", "handmade", lookalikes from Aesop / Cire Trudon / Aspinal followers when possible.',
@@ -1051,7 +1051,7 @@ async function executeTool(name: string, input: unknown): Promise<ResearchToolRe
 export async function createResearchSession(title?: string): Promise<string> {
   const db = getDb();
   const { rows } = await db.query<{ id: string }>(
-    `INSERT INTO dropship_copilot_sessions (title, mode) VALUES ($1, 'research') RETURNING id`,
+    `INSERT INTO dropship_research_sessions (title) VALUES ($1) RETURNING id`,
     [title?.slice(0, 80) ?? null],
   );
   return rows[0]!.id;

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createHash } from 'crypto';
 import { getDb } from '@/lib/db';
+import { tryDecryptSecret } from '@/lib/secrets';
 
 const APP_KEY = (process.env.ALIEXPRESS_APP_KEY || '').trim();
 const APP_SECRET = (process.env.ALIEXPRESS_APP_SECRET || '').trim();
@@ -39,10 +40,10 @@ export async function GET(req: NextRequest) {
   const keywords = req.nextUrl.searchParams.get('keywords') || 'wireless headphones';
 
   const db = getDb();
-  const { rows } = await db.query<{ value: string }>(
-    `SELECT value FROM platform_settings WHERE key = 'aliexpress_access_token'`,
+  const { rows } = await db.query<{ value: string; value_enc: Buffer | null; value_nonce: Buffer | null }>(
+    `SELECT value, value_enc, value_nonce FROM platform_settings WHERE key = 'aliexpress_access_token'`,
   );
-  const token = rows[0]?.value;
+  const token = tryDecryptSecret(rows[0]?.value_enc, rows[0]?.value_nonce) ?? rows[0]?.value ?? null;
   if (!token) {
     return NextResponse.json({ error: 'No access_token in DB. Run /api/aliexpress/oauth/start first.' }, { status: 401 });
   }

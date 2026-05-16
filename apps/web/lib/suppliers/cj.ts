@@ -49,6 +49,7 @@ async function authenticate(): Promise<string> {
 
   const response = await fetch(`${API_BASE}/authentication/getAccessToken`, {
     method: 'POST',
+    signal: AbortSignal.timeout(15_000),
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       email: CJ_EMAIL,
@@ -96,6 +97,7 @@ export async function searchProducts(params: {
 
     const response = await fetch(`${API_BASE}/product/list`, {
       method: 'POST',
+      signal: AbortSignal.timeout(15_000),
       headers: {
         'Content-Type': 'application/json',
         'CJ-Access-Token': token,

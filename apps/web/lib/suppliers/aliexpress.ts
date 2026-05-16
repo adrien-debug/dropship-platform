@@ -8,6 +8,7 @@
 
 import { createHash, createHmac } from 'crypto';
 import { getDb } from '@/lib/db';
+import { encryptSecret, tryDecryptSecret } from '@/lib/secrets';
 
 const APP_KEY = (process.env.ALIEXPRESS_APP_KEY || '').trim();
 const APP_SECRET = (process.env.ALIEXPRESS_APP_SECRET || '').trim();
@@ -61,24 +62,33 @@ function signSystem(apiPath: string, params: Record<string, string>): string {
 async function getAccessToken(): Promise<string | null> {
   try {
     const db = getDb();
-    const { rows } = await db.query<{ key: string; value: string; updated_at: Date }>(
-      `SELECT key, value, updated_at FROM platform_settings WHERE key IN ('aliexpress_access_token','aliexpress_refresh_token','aliexpress_token_expires') ORDER BY key`,
+    const { rows } = await db.query<{
+      key: string;
+      value: string;
+      value_enc: Buffer | null;
+      value_nonce: Buffer | null;
+      updated_at: Date;
+    }>(
+      `SELECT key, value, value_enc, value_nonce, updated_at FROM platform_settings WHERE key IN ('aliexpress_access_token','aliexpress_refresh_token','aliexpress_token_expires') ORDER BY key`,
     );
 
-    const settings = Object.fromEntries(rows.map(r => [r.key, r]));
+    const settings = Object.fromEntries(rows.map((r) => [r.key, r]));
     const tokenRow = settings['aliexpress_access_token'];
-    if (!tokenRow?.value) return null;
+    if (!tokenRow) return null;
+    const token = tryDecryptSecret(tokenRow.value_enc, tokenRow.value_nonce) ?? tokenRow.value ?? null;
+    if (!token) return null;
 
     const expiresStr = settings['aliexpress_token_expires']?.value;
     const expires = expiresStr ? parseInt(expiresStr) : 0;
 
     // Token still valid (with 5-min buffer)
     if (expires === 0 || Date.now() < expires - 300_000) {
-      return tokenRow.value;
+      return token;
     }
 
     // Try to refresh
-    const refreshToken = settings['aliexpress_refresh_token']?.value;
+    const refreshRow = settings['aliexpress_refresh_token'];
+    const refreshToken = tryDecryptSecret(refreshRow?.value_enc, refreshRow?.value_nonce) ?? refreshRow?.value ?? null;
     if (!refreshToken) return null;
 
     const refreshed = await refreshAccessToken(refreshToken);
@@ -123,7 +133,10 @@ export async function refreshAccessTokenDetailed(refreshToken: string): Promise<
     };
     params.sign = signSystem(apiPath, params);
 
-    const res = await fetch(`${REST_BASE}${apiPath}?${new URLSearchParams(params)}`, { method: 'POST' });
+    const res = await fetch(`${REST_BASE}${apiPath}?${new URLSearchParams(params)}`, {
+      method: 'POST',
+      signal: AbortSignal.timeout(15_000),
+    });
     const rawBody = await res.text();
     let data: {
       access_token?: string;
@@ -140,19 +153,21 @@ export async function refreshAccessTokenDetailed(refreshToken: string): Promise<
     }
 
     const db = getDb();
+    const encAccess = encryptSecret(data.access_token);
     await db.query(
-      `INSERT INTO platform_settings (key, value, updated_at)
-       VALUES ('aliexpress_access_token', $1, now()),
-              ('aliexpress_token_expires', $2, now())
-       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`,
-      [data.access_token, data.expire_time?.toString() || ''],
+      `INSERT INTO platform_settings (key, value, value_enc, value_nonce, updated_at)
+       VALUES ('aliexpress_access_token', NULL, $1, $2, now()),
+              ('aliexpress_token_expires', $3, NULL, NULL, now())
+       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, value_enc = EXCLUDED.value_enc, value_nonce = EXCLUDED.value_nonce, updated_at = now()`,
+      [encAccess.encrypted, encAccess.nonce, data.expire_time?.toString() || ''],
     );
     const rotated = Boolean(data.refresh_token);
-    if (rotated) {
+    if (rotated && data.refresh_token) {
+      const encRefresh = encryptSecret(data.refresh_token);
       await db.query(
-        `INSERT INTO platform_settings (key, value, updated_at) VALUES ('aliexpress_refresh_token', $1, now())
-         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`,
-        [data.refresh_token],
+        `INSERT INTO platform_settings (key, value, value_enc, value_nonce, updated_at) VALUES ('aliexpress_refresh_token', NULL, $1, $2, now())
+         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, value_enc = EXCLUDED.value_enc, value_nonce = EXCLUDED.value_nonce, updated_at = now()`,
+        [encRefresh.encrypted, encRefresh.nonce],
       );
     }
 
@@ -166,6 +181,17 @@ export async function refreshAccessTokenDetailed(refreshToken: string): Promise<
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Unknown refresh error' };
   }
+}
+
+const AE_TIMEOUT_MS = 15_000;
+const AE_MAX_RETRIES = 2;
+
+function isAERetryable(e: unknown): boolean {
+  if (e instanceof Error) {
+    if (/HTTP (429|5\d\d)/.test(e.message)) return true;
+    if (/timeout|abort|fetch|network/i.test(e.message)) return true;
+  }
+  return false;
 }
 
 async function callApi<T>(method: string, extraParams: Record<string, string>, accessToken?: string): Promise<T> {
@@ -183,11 +209,21 @@ async function callApi<T>(method: string, extraParams: Record<string, string>, a
   };
   params.sign = generateSignature(params);
 
-  const res = await fetch(`${API_BASE}?${new URLSearchParams(params)}`, {
-    headers: { 'User-Agent': 'hearstai-dropship/1.0' },
-  });
-  if (!res.ok) throw new Error(`AliExpress HTTP ${res.status}`);
-  return res.json() as Promise<T>;
+  const url = `${API_BASE}?${new URLSearchParams(params)}`;
+  for (let attempt = 0; attempt < AE_MAX_RETRIES; attempt++) {
+    try {
+      const res = await fetch(url, {
+        headers: { 'User-Agent': 'hearstai-dropship/1.0' },
+        signal: AbortSignal.timeout(AE_TIMEOUT_MS),
+      });
+      if (!res.ok) throw new Error(`AliExpress HTTP ${res.status}`);
+      return res.json() as Promise<T>;
+    } catch (e) {
+      if (!isAERetryable(e) || attempt === AE_MAX_RETRIES - 1) throw e;
+      await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt));
+    }
+  }
+  throw new Error('AliExpress call failed after retries');
 }
 
 /**

@@ -80,6 +80,7 @@ export async function sendTiktokConversion(
   try {
     const res = await fetch(TIKTOK_EVENTS_URL, {
       method: 'POST',
+      signal: AbortSignal.timeout(10_000),
       headers: {
         'Content-Type': 'application/json',
         'Access-Token': store.tiktokEventsToken,

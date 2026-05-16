@@ -20,9 +20,7 @@ export async function POST(request: NextRequest) {
     // completeCart + capturePayments flow before captured_at is written.
     // 1 request per 10 s per cart is plenty for the user; replays beyond
     // that get a 429 instead of a possibly-double-charged order.
-    const cartLock = await checkRateLimit(`checkout-complete-cart:${cartId}`, { max: 1, windowSec: 10 }).catch(
-      () => ({ ok: true } as { ok: boolean }),
-    );
+    const cartLock = await checkRateLimit(`checkout-complete-cart:${cartId}`, { max: 1, windowSec: 10 });
     if (!cartLock.ok) {
       return NextResponse.json(
         { success: false, error: 'Commande déjà en cours de validation, patientez un instant.' },
@@ -64,9 +62,7 @@ export async function POST(request: NextRequest) {
       // Per-order capture lock: prevents two concurrent completeCart calls
       // (Medusa returns the same order for both) from both racing past the
       // captured_at=null check inside capturePayments and double-charging.
-      const captureLock = await checkRateLimit(`capture:${result.order.id}`, { max: 1, windowSec: 30 }).catch(
-        () => ({ ok: true } as { ok: boolean }),
-      );
+      const captureLock = await checkRateLimit(`capture:${result.order.id}`, { max: 1, windowSec: 30 });
       if (captureLock.ok) {
         try {
           await medusa.capturePayments(result.order.id);

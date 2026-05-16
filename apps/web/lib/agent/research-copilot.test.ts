@@ -149,7 +149,7 @@ describe('research-copilot', () => {
     const { runResearchTurn } = await import('./research-copilot');
     const events = await drain(runResearchTurn(SESSION_ID, 'salut'));
 
-    const msgs = inserted.filter((i) => i.table === 'dropship_copilot_messages');
+    const msgs = inserted.filter((i) => i.table === 'dropship_research_messages');
     expect(msgs.length).toBe(2);
     expect(msgs[0]!.params[1]).toBe('user');
     expect(msgs[0]!.params[2]).toBe('salut');
@@ -548,7 +548,7 @@ describe('research-copilot', () => {
     const { createResearchSession } = await import('./research-copilot');
     const id = await createResearchSession('AOV cat trees');
     expect(id).toBeTruthy();
-    const inserts = inserted.filter((i) => i.table === 'dropship_copilot_sessions');
+    const inserts = inserted.filter((i) => i.table === 'dropship_research_sessions');
     expect(inserts.length).toBe(1);
     expect(inserts[0]!.params[0]).toBe('AOV cat trees');
   });

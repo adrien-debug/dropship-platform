@@ -96,6 +96,41 @@ async function insertRun(args: InsertArgs): Promise<void> {
   }
 }
 
+// ── Retry + timeout layer ───────────────────────────────────────────────
+
+const MAX_RETRIES = 3;
+const TIMEOUT_MS = 60_000;
+
+function isRetryableError(e: unknown): boolean {
+  if (e instanceof Anthropic.APIError) {
+    const status = e.status;
+    if (status === 429) return true;
+    if (status != null && status >= 500) return true;
+    return false;
+  }
+  if (e instanceof Error && /network|timeout|abort|fetch/i.test(e.message)) return true;
+  return false;
+}
+
+async function callWithRetry(
+  params: Anthropic.Messages.MessageCreateParamsNonStreaming,
+): Promise<Anthropic.Messages.Message> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      return await getAnthropicClient().messages.create(params, {
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      });
+    } catch (e) {
+      lastError = e;
+      if (!isRetryableError(e) || attempt === MAX_RETRIES - 1) throw e;
+      const delay = 1000 * 2 ** attempt;
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+  throw lastError;
+}
+
 /**
  * Wrap `anthropic.messages.create()` and log usage on completion. The
  * wrapped call returns the same shape as the SDK. Errors are re-thrown
@@ -110,7 +145,7 @@ export async function trackedMessage(
   let response: Anthropic.Messages.Message | null = null;
   let errorJson: string | null = null;
   try {
-    response = await getAnthropicClient().messages.create(params);
+    response = await callWithRetry(params);
     return response;
   } catch (e) {
     errorJson = JSON.stringify({
