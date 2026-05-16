@@ -4,9 +4,10 @@
  * Tool surface: add/remove/reprice/rewrite products in a store's catalog.
  * Tools validate their inputs with Zod so Claude's arguments are always typed.
  *
- * History is stored in `dropship_curation_messages` (legacy table shared with
- * the old standalone curation routes). The turn loop and session persistence
- * now live in copilot-router.ts, which writes to `dropship_copilot_messages`.
+ * Curation messages are persisted via the unified `dropship_copilot_messages`
+ * table (mode='curation'). The legacy `dropship_curation_messages` table is
+ * no longer written to but rows from before the unification may still exist
+ * for read-only history.
  */
 
 import type Anthropic from '@anthropic-ai/sdk';
