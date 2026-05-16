@@ -11,10 +11,52 @@ interface SuperAgentMessage {
   toolOutput?: unknown;
   isError?: boolean;
   confirmRequired?: boolean;
+  /** Backend-emitted key the UI must echo back to clear the gate. */
+  confirmKey?: string;
+  /** Tool that triggered the confirm, shown on the button label. */
+  confirmTool?: string;
 }
+
+interface SessionListItem {
+  id: string;
+  store_id: string | null;
+  store_name: string | null;
+  title: string | null;
+  created_at: string;
+  updated_at: string;
+  message_count: number;
+  preview: string | null;
+  preview_role: 'user' | 'assistant' | 'tool' | null;
+}
+
+const SESSION_STORAGE_KEY = 'super-agent:session-id';
 
 function generateId() {
   return Math.random().toString(36).slice(2, 9);
+}
+
+/** Map a stored DB message into the in-panel shape. */
+function dbMessageToUI(row: {
+  id: string;
+  role: 'user' | 'assistant' | 'tool';
+  content: string;
+  tool_name: string | null;
+  tool_input: unknown;
+  tool_output: unknown;
+}): SuperAgentMessage {
+  if (row.role === 'tool') {
+    return {
+      id: row.id,
+      role: 'tool',
+      toolName: row.tool_name ?? 'tool',
+      toolInput: row.tool_input,
+      toolOutput: row.tool_output,
+      // Treat output rows containing an `error` key as errors so the bubble
+      // gets the red border on reload, matching the live stream behavior.
+      isError: !!(row.tool_output && typeof row.tool_output === 'object' && 'error' in (row.tool_output as Record<string, unknown>)),
+    };
+  }
+  return { id: row.id, role: row.role, text: row.content };
 }
 
 /**
@@ -41,6 +83,11 @@ export default function SuperAgentOverlay() {
   const [messages, setMessages] = useState<SuperAgentMessage[]>([]);
   const [streaming, setStreaming] = useState(false);
   const [pendingConfirmations, setPendingConfirmations] = useState<Record<string, boolean>>({});
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyItems, setHistoryItems] = useState<SessionListItem[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [hydrating, setHydrating] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -65,6 +112,103 @@ export default function SuperAgentOverlay() {
     }
   }, [messages]);
 
+  // On first open, try to resume the last session id from localStorage. If
+  // the GET 404s (session was deleted server-side), clear the stale id so the
+  // next message starts fresh instead of failing silently.
+  const hydrateFromSession = useCallback(async (id: string) => {
+    setHydrating(true);
+    try {
+      const res = await fetch(`/api/agent/super/sessions/${id}`);
+      if (res.status === 404) {
+        localStorage.removeItem(SESSION_STORAGE_KEY);
+        setSessionId(null);
+        setMessages([]);
+        return;
+      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = (await res.json()) as {
+        messages: Array<{
+          id: string;
+          role: 'user' | 'assistant' | 'tool';
+          content: string;
+          tool_name: string | null;
+          tool_input: unknown;
+          tool_output: unknown;
+        }>;
+      };
+      setMessages(data.messages.map(dbMessageToUI));
+    } catch (err) {
+      console.warn('[super-agent] hydrate session failed', err);
+    } finally {
+      setHydrating(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    if (sessionId) return;
+    const stored = localStorage.getItem(SESSION_STORAGE_KEY);
+    if (stored) {
+      setSessionId(stored);
+      hydrateFromSession(stored);
+    }
+  }, [open, sessionId, hydrateFromSession]);
+
+  const startNewSession = useCallback(() => {
+    abortRef.current?.abort();
+    localStorage.removeItem(SESSION_STORAGE_KEY);
+    setSessionId(null);
+    setMessages([]);
+    setPendingConfirmations({});
+    setInput('');
+    setStreaming(false);
+    setHistoryOpen(false);
+  }, []);
+
+  const openHistory = useCallback(async () => {
+    setHistoryOpen((v) => !v);
+    if (historyOpen) return;
+    setHistoryLoading(true);
+    try {
+      const res = await fetch('/api/agent/super/sessions?limit=30');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = (await res.json()) as { sessions: SessionListItem[] };
+      setHistoryItems(data.sessions);
+    } catch (err) {
+      console.warn('[super-agent] history load failed', err);
+      setHistoryItems([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [historyOpen]);
+
+  const resumeSession = useCallback(
+    async (id: string) => {
+      abortRef.current?.abort();
+      setHistoryOpen(false);
+      setPendingConfirmations({});
+      localStorage.setItem(SESSION_STORAGE_KEY, id);
+      setSessionId(id);
+      setMessages([]);
+      setStreaming(false);
+      await hydrateFromSession(id);
+    },
+    [hydrateFromSession],
+  );
+
+  const deleteSession = useCallback(
+    async (id: string) => {
+      try {
+        await fetch(`/api/agent/super/sessions/${id}`, { method: 'DELETE' });
+      } catch {
+        /* ignore — refresh below will show the actual state */
+      }
+      setHistoryItems((prev) => prev.filter((s) => s.id !== id));
+      if (sessionId === id) startNewSession();
+    },
+    [sessionId, startNewSession],
+  );
+
   const sendMessage = useCallback(
     async (text: string, confirmations?: Record<string, boolean>) => {
       if (!text.trim()) return;
@@ -85,6 +229,7 @@ export default function SuperAgentOverlay() {
           body: JSON.stringify({
             message: text.trim(),
             page: window.location.pathname,
+            sessionId: sessionId ?? undefined,
             confirmations: confirmations ?? pendingConfirmations,
           }),
           signal: abortRef.current.signal,
@@ -121,7 +266,14 @@ export default function SuperAgentOverlay() {
               tool?: string;
               reason?: string;
               message?: string;
+              confirmKey?: string;
+              sessionId?: string;
             };
+
+            if (event.type === 'session' && event.sessionId) {
+              setSessionId(event.sessionId);
+              try { localStorage.setItem(SESSION_STORAGE_KEY, event.sessionId); } catch { /* ignore */ }
+            }
 
             if (event.type === 'thinking' && event.text) {
               setMessages((prev) => {
@@ -166,6 +318,8 @@ export default function SuperAgentOverlay() {
                   role: 'system',
                   text: `Confirmation requise : ${event.reason}`,
                   confirmRequired: true,
+                  confirmKey: event.confirmKey,
+                  confirmTool: event.tool,
                 },
               ]);
             }
@@ -192,7 +346,7 @@ export default function SuperAgentOverlay() {
         setStreaming(false);
       }
     },
-    [pendingConfirmations],
+    [pendingConfirmations, sessionId],
   );
 
   if (!open) {
@@ -242,7 +396,26 @@ export default function SuperAgentOverlay() {
           </div>
         </div>
         <div className="flex items-center gap-0.5">
-          <kbd className="mr-1 hidden rounded-md bg-white/8 px-1.5 py-0.5 text-[10px] font-medium text-white/55 ring-1 ring-white/10 sm:inline-block">
+          <button
+            onClick={startNewSession}
+            disabled={streaming}
+            className="flex h-7 w-7 items-center justify-center rounded-md text-white/55 transition hover:bg-white/10 hover:text-white disabled:opacity-30"
+            title="Nouvelle session"
+          >
+            <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none">
+              <path d="M6 2v8M2 6h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
+          <button
+            onClick={openHistory}
+            className="flex h-7 w-7 items-center justify-center rounded-md text-white/55 transition hover:bg-white/10 hover:text-white"
+            title="Historique"
+          >
+            <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none">
+              <path d="M2 3.5h8M2 6h8M2 8.5h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
+          <kbd className="mx-1 hidden rounded-md bg-white/8 px-1.5 py-0.5 text-[10px] font-medium text-white/55 ring-1 ring-white/10 sm:inline-block">
             ⌘⇧K
           </kbd>
           <button
@@ -276,14 +449,87 @@ export default function SuperAgentOverlay() {
         </div>
       </div>
 
-      {!minimized && (
+      {!minimized && historyOpen && (
+        <div className="flex-1 min-h-0 overflow-y-auto bg-[var(--admin-bg-subtle)] px-3 py-3">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--admin-text-muted)]">
+              Sessions récentes
+            </span>
+            <button
+              onClick={() => setHistoryOpen(false)}
+              className="text-[11px] text-[var(--admin-text-muted)] underline-offset-2 hover:text-[var(--admin-text)] hover:underline"
+            >
+              Fermer
+            </button>
+          </div>
+          {historyLoading ? (
+            <div className="py-8 text-center text-[11.5px] text-[var(--admin-text-muted)]">Chargement…</div>
+          ) : historyItems.length === 0 ? (
+            <div className="py-8 text-center text-[11.5px] text-[var(--admin-text-muted)]">
+              Aucune session enregistrée.
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {historyItems.map((s) => (
+                <div
+                  key={s.id}
+                  className={`group flex items-start gap-2 rounded-[var(--admin-radius-md)] border border-[var(--admin-border)] bg-white px-2.5 py-2 transition hover:border-[var(--admin-accent)] ${
+                    s.id === sessionId ? 'ring-1 ring-[var(--admin-accent)]' : ''
+                  }`}
+                >
+                  <button
+                    onClick={() => resumeSession(s.id)}
+                    className="flex-1 min-w-0 text-left"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span className="truncate text-[12.5px] font-medium text-[var(--admin-text)]">
+                        {s.title || s.preview?.slice(0, 60) || 'Sans titre'}
+                      </span>
+                      {s.store_name && (
+                        <span className="shrink-0 rounded-full bg-[var(--admin-accent-soft)] px-1.5 py-0.5 text-[9.5px] font-medium uppercase tracking-wide text-[var(--admin-accent)]">
+                          {s.store_name.slice(0, 18)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-0.5 flex items-center gap-1.5 text-[10.5px] text-[var(--admin-text-muted)]">
+                      <span>{new Date(s.updated_at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                      <span>·</span>
+                      <span>{s.message_count} msg</span>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => deleteSession(s.id)}
+                    title="Supprimer"
+                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[var(--admin-text-faint)] opacity-0 transition hover:bg-[var(--admin-danger-soft)] hover:text-[var(--admin-danger)] group-hover:opacity-100"
+                  >
+                    <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none">
+                      <path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {!minimized && !historyOpen && (
         <>
           {/* Messages */}
           <div
             ref={scrollRef}
             className="flex-1 min-h-0 overflow-y-auto bg-[var(--admin-bg-subtle)] px-3 py-3"
           >
-            {messages.length === 0 ? (
+            {hydrating ? (
+              <div className="flex h-full flex-col items-center justify-center text-center">
+                <div className="flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--admin-text-muted)]" style={{ animationDelay: '0ms' }} />
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--admin-text-muted)]" style={{ animationDelay: '150ms' }} />
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--admin-text-muted)]" style={{ animationDelay: '300ms' }} />
+                </div>
+                <p className="mt-2 text-[11.5px] text-[var(--admin-text-muted)]">Restauration de la session…</p>
+              </div>
+            ) : messages.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center text-center">
                 <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-[var(--admin-accent-soft)] ring-1 ring-[var(--admin-accent)]/15">
                   <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5 text-[var(--admin-accent)]">
@@ -303,11 +549,14 @@ export default function SuperAgentOverlay() {
                     key={msg.id}
                     msg={msg}
                     onConfirm={() => {
-                      const newConfirm = { ...pendingConfirmations, ['*']: true };
+                      // Echo back the precise confirmKey if the backend gave us one;
+                      // fall back to the wildcard for legacy confirm payloads.
+                      const key = msg.confirmKey ?? '*';
+                      const newConfirm = { ...pendingConfirmations, [key]: true };
                       setPendingConfirmations(newConfirm);
                       const lastUser = messages.filter((m) => m.role === 'user').pop();
                       if (lastUser?.text) {
-                        sendMessage(`Confirme : ${lastUser.text}`, newConfirm);
+                        sendMessage(lastUser.text, newConfirm);
                       }
                     }}
                   />
@@ -387,7 +636,7 @@ function MessageBubble({
               onClick={onConfirm}
               className="mt-2 rounded-[var(--admin-radius-sm)] bg-[var(--admin-warning)] px-2.5 py-1 text-[11px] font-medium text-white transition hover:opacity-90"
             >
-              Confirmer l&apos;action
+              {msg.confirmTool ? `Confirmer ${msg.confirmTool}` : 'Confirmer l’action'}
             </button>
           )}
         </div>

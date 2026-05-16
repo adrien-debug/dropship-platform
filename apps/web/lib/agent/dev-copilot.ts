@@ -91,6 +91,14 @@ let cachedRepoRoot: string | null = null;
  */
 async function resolveRepoRoot(start: string = process.cwd()): Promise<string> {
   if (cachedRepoRoot) return cachedRepoRoot;
+  // Serverless (Vercel Lambda) has no .git and a read-only filesystem at
+  // /var/task. The dev tools cannot work there. Surface this clearly instead
+  // of bubbling up the generic ".git introuvable" error.
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    throw new Error(
+      'Outils de développement (read_file, list_files, search_code, write_file, apply_patch, run_bash, git_*) indisponibles en serverless Vercel : pas de filesystem repo, pas de .git. Utilise plutôt run_sql, update_store, medusa_admin ou regenerate_asset. Pour modifier le code, passe par le dev local.',
+    );
+  }
   let dir = path.resolve(start);
   // Guard against `/` runaway.
   for (let depth = 0; depth < 12; depth++) {
