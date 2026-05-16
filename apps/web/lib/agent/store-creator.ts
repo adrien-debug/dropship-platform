@@ -6,7 +6,7 @@ import { filterByImageQuality, type ImageQualityVerdict } from './image-quality'
 import { generateMonoAssets } from './asset-generator';
 import { writeLandingContent } from './landing-writer';
 import { extractJson } from './json';
-import { trackedMessage } from './anthropic';
+import { trackedKimiMessage } from './kimi';
 import { runContext } from './run-context';
 import { rankAndKeepTop } from './product-scorer';
 import { buildMedusaHandle, slugifyTitle } from './handle';
@@ -168,13 +168,10 @@ async function generateProductsWithClaude(
     ? 'Write ALL content in French (titles, descriptions).'
     : 'Write ALL content in English.';
 
-  const response = await trackedMessage({ step: 'generate-products' }, {
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 4096,
-    messages: [
-      {
-        role: 'user',
-        content: `You are a dropshipping expert. Create a complete product catalog for a dropshipping store.
+  const { text } = await trackedKimiMessage({ step: 'generate-products' }, [
+    {
+      role: 'user',
+      content: `You are a dropshipping expert. Create a complete product catalog for a dropshipping store.
 
 Store name: "${storeName}"
 Niche: "${niche}"
@@ -208,11 +205,9 @@ Return ONLY valid JSON:
 }
 
 Hard color rule: the three colors must form a coherent palette. If you cannot guarantee that, default to a monochromatic palette built from one hue (e.g. primary=#1F3D2C dark, secondary=#EAF2EC light, accent=#2E7D5C mid). Random complementary stunts ruin the storefront.`,
-      },
-    ],
-  });
+    },
+  ]);
 
-  const text = response.content[0].type === 'text' ? response.content[0].text : '';
   const parsed = extractJson<{
     products: Array<{
       id: string;
@@ -280,13 +275,10 @@ async function enrichSupplierProductsWithClaude(
     2,
   );
 
-  const response = await trackedMessage({ step: 'enrich-products' }, {
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 4096,
-    messages: [
-      {
-        role: 'user',
-        content: `You are an expert dropshipping product specialist and copywriter.
+  const { text } = await trackedKimiMessage({ step: 'enrich-products' }, [
+    {
+      role: 'user',
+      content: `You are an expert dropshipping product specialist and copywriter.
 
 Store name: "${storeName}"
 Niche: "${niche}"
@@ -321,11 +313,9 @@ Return ONLY valid JSON:
     "logoEmoji": "emoji"
   }
 }`,
-      },
-    ],
-  });
+    },
+  ]);
 
-  const text = response.content[0].type === 'text' ? response.content[0].text : '';
   const parsed = extractJson<{
     products: Array<{
       index: number;

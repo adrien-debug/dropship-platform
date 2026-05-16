@@ -86,6 +86,49 @@ vi.mock('@/lib/db', () => ({
   }),
 }));
 
+vi.mock('@/lib/agent/kimi', () => ({
+  trackedKimiMessage: vi.fn(({ step }: { step: string }) => {
+    const branding = {
+      tagline: 'Test Tagline',
+      description: 'Test store description',
+      primaryColor: '#1F3D2C',
+      secondaryColor: '#EAF2EC',
+      accentColor: '#2E7D5C',
+      logoEmoji: '🧘',
+    };
+    if (step === 'generate-products') {
+      return Promise.resolve({
+        text: JSON.stringify({
+          products: [
+            { id: 'ai-001', originalTitle: 'Yoga Mat Pro', enrichedTitle: 'Tapis Yoga Pro', enrichedDescription: 'Tapis premium antidérapant.', costCents: 800, retailPriceCents: 2199, imageUrl: '', supplierUrl: '' },
+            { id: 'ai-002', originalTitle: 'Yoga Block', enrichedTitle: 'Bloc Yoga', enrichedDescription: 'Bloc en mousse dense.', costCents: 500, retailPriceCents: 1499, imageUrl: '', supplierUrl: '' },
+            { id: 'ai-003', originalTitle: 'Yoga Strap', enrichedTitle: 'Sangle Yoga', enrichedDescription: 'Sangle de stretching.', costCents: 300, retailPriceCents: 999, imageUrl: '', supplierUrl: '' },
+          ],
+          branding,
+        }),
+        usage: { prompt_tokens: 100, completion_tokens: 200, total_tokens: 300 },
+      });
+    }
+    if (step === 'enrich-products') {
+      return Promise.resolve({
+        text: JSON.stringify({
+          products: [
+            { index: 0, enrichedTitle: 'Tapis Yoga Pro', enrichedDescription: 'Tapis premium antidérapant.', retailPriceCents: 2199, costCents: 800 },
+            { index: 1, enrichedTitle: 'Bloc Yoga', enrichedDescription: 'Bloc en mousse dense.', retailPriceCents: 1499, costCents: 500 },
+            { index: 2, enrichedTitle: 'Sangle Yoga', enrichedDescription: 'Sangle de stretching.', retailPriceCents: 999, costCents: 300 },
+          ],
+          branding,
+        }),
+        usage: { prompt_tokens: 100, completion_tokens: 200, total_tokens: 300 },
+      });
+    }
+    return Promise.resolve({
+      text: '',
+      usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+    });
+  }),
+}));
+
 /** Drain an AsyncGenerator into an array. */
 async function collectEvents(
   gen: AsyncGenerator<AgentEvent>,
