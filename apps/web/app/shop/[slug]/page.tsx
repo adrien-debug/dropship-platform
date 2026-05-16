@@ -100,6 +100,17 @@ export default async function ShopPage({ params }: { params: Promise<{ slug: str
     breadcrumbList([{ name: store.name, url: storeUrl(slug) }]),
   );
 
+  // Storefront error tone — read from the locked palette when available, fall
+  // back to a neutral zinc on legacy rows so we never impose a brand color
+  // (or worse, a hard red) that contradicts the store's design system.
+  const paletteDanger =
+    (store.palette && typeof store.palette === 'object' && 'danger' in store.palette
+      ? (store.palette as { danger?: string }).danger
+      : undefined) ?? null;
+  const errorTone = paletteDanger
+    ? { bg: 'transparent', text: paletteDanger, border: paletteDanger }
+    : { bg: '#fafafa', text: '#3f3f46', border: '#e4e4e7' };
+
   // P1.4 — resolve the storefront template. `auto` (default) keeps the
   // legacy logic (1 product → mono, else grid). Operators can flip a
   // store to mono / collection-grid / collection-editorial from the
@@ -255,7 +266,16 @@ export default async function ShopPage({ params }: { params: Promise<{ slug: str
         <h2 className="text-2xl font-bold mb-8 text-zinc-900">Nos produits</h2>
 
         {error && (
-          <div className="border border-red-200 bg-red-50 text-red-800 p-4 rounded mb-6">{error}</div>
+          <div
+            className="border p-4 rounded mb-6"
+            style={{
+              backgroundColor: errorTone.bg,
+              color: errorTone.text,
+              borderColor: errorTone.border,
+            }}
+          >
+            {error}
+          </div>
         )}
 
         {!error && products.length === 0 && (
@@ -320,6 +340,13 @@ function resolveTemplate(template: StoreTemplate, productCount: number): StoreTe
 }
 
 function StorePreparing({ store }: { store: import('@/lib/store-config').StoreConfig }) {
+  // A waiting spinner should never impose a brand color that fights the
+  // store's locked palette. Use palette.accent when present, otherwise a
+  // neutral zinc tone — never the legacy amber default.
+  const accent =
+    store.palette && typeof store.palette === 'object' && 'accent' in store.palette
+      ? (store.palette as { accent?: string }).accent ?? null
+      : null;
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-zinc-950 text-white px-6">
       <div className="max-w-md text-center space-y-6">
@@ -330,7 +357,10 @@ function StorePreparing({ store }: { store: import('@/lib/store-config').StoreCo
           Revenez dans quelques minutes.
         </p>
         <div className="inline-flex items-center gap-2 text-zinc-500 text-sm">
-          <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+          <span
+            className={`h-1.5 w-1.5 rounded-full animate-pulse${accent ? '' : ' bg-zinc-400'}`}
+            style={accent ? { backgroundColor: accent } : undefined}
+          />
           Génération des visuels en cours…
         </div>
       </div>
