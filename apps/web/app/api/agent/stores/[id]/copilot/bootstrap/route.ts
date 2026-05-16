@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDbRead } from '@/lib/db';
+import { resolveStoreId } from '@/lib/resolve-store';
 import type { CopilotMode } from '@/lib/agent/copilot-router';
 
 export const dynamic = 'force-dynamic';
@@ -19,6 +20,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+  const storeId = await resolveStoreId(id);
+  if (!storeId) return NextResponse.json({ error: 'Store not found' }, { status: 404 });
   const db = getDbRead();
 
   const storeRes = await db.query<{
@@ -33,7 +36,7 @@ export async function GET(
   }>(
     `SELECT id, slug, name, niche, logo_emoji, primary_color, status, mode
        FROM dropship_stores WHERE id = $1 LIMIT 1`,
-    [id],
+    [storeId],
   );
   const store = storeRes.rows[0];
   if (!store) {
@@ -62,7 +65,7 @@ export async function GET(
        WHERE s.store_id = $1
        ORDER BY s.updated_at DESC
        LIMIT 100`,
-    [id],
+    [storeId],
   );
 
   const productsRes = await db.query<{
@@ -75,7 +78,7 @@ export async function GET(
        FROM dropship_store_products
        WHERE store_id = $1
        ORDER BY created_at ASC`,
-    [id],
+    [storeId],
   );
 
   return NextResponse.json({

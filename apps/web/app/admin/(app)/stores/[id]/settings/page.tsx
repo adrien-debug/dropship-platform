@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { getDbRead } from '@/lib/db';
+import { resolveStoreId } from '@/lib/resolve-store';
 import { PageHeader } from '../../../../_components/AdminUI';
 import { StoreTemplateForm } from '../StoreTemplateForm';
 import { LuxuryUpgradeButton } from '../LuxuryUpgradeButton';
@@ -27,6 +28,8 @@ interface SettingsRow {
 
 export default async function StoreSettingsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const storeId = await resolveStoreId(id);
+  if (!storeId) notFound();
   const db = getDbRead();
   const { rows } = await db.query<SettingsRow>(
     `SELECT id, slug, template, custom_domain,
@@ -35,7 +38,7 @@ export default async function StoreSettingsPage({ params }: { params: Promise<{ 
             tiktok_pixel_id, tiktok_events_token, clarity_id,
             google_ads_conversion_action, google_merchant_id
        FROM dropship_stores WHERE id = $1 LIMIT 1`,
-    [id],
+    [storeId],
   );
   const store = rows[0];
   if (!store) notFound();

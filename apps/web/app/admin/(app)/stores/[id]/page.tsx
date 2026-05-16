@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getDbRead } from '@/lib/db';
+import { resolveStoreId } from '@/lib/resolve-store';
 import { StoreAvatar, ButtonLink } from '@/components/ui';
 import { StoreActions } from '../StoreActions';
 import { cn } from '@/lib/utils/cn';
@@ -52,6 +53,8 @@ interface ProductRow {
 
 export default async function StoreDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const storeId = await resolveStoreId(id);
+  if (!storeId) notFound();
   const db = getDbRead();
 
   const storeRes = await db.query<StoreDetailRow>(
@@ -64,7 +67,7 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
             google_ads_conversion_action, google_merchant_id,
             template, custom_domain
      FROM dropship_stores WHERE id = $1 LIMIT 1`,
-    [id],
+    [storeId],
   );
 
   const store = storeRes.rows[0];
@@ -74,7 +77,7 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
     `SELECT id, supplier, enriched_title, enriched_description, price_cents, cost_cents,
             image_url, supplier_url, medusa_product_id, created_at
      FROM dropship_store_products WHERE store_id = $1 ORDER BY created_at ASC`,
-    [id],
+    [storeId],
   );
   const products = productsRes.rows;
 

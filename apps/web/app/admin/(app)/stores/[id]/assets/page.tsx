@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { getDbRead } from '@/lib/db';
+import { resolveStoreId } from '@/lib/resolve-store';
 import { ASSET_KINDS, type AssetKind } from '@/lib/agent/asset-regenerator';
 import { PageHeader } from '../../../../_components/AdminUI';
 import { AssetRegenerator } from './AssetRegenerator';
@@ -37,12 +38,14 @@ interface ProductRow {
 
 export default async function StoreAssetsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const storeId = await resolveStoreId(id);
+  if (!storeId) notFound();
   const db = getDbRead();
 
   const storeRes = await db.query<StoreRow>(
     `SELECT id, slug, name, niche, hero_image_url, cutout_image_url, lifestyle_images, promo_video_url
        FROM dropship_stores WHERE id = $1 LIMIT 1`,
-    [id],
+    [storeId],
   );
   const store = storeRes.rows[0];
   if (!store) notFound();
@@ -53,7 +56,7 @@ export default async function StoreAssetsPage({ params }: { params: Promise<{ id
       WHERE store_id = $1 AND image_url IS NOT NULL
       ORDER BY created_at ASC
       LIMIT 1`,
-    [id],
+    [storeId],
   );
   const product = productRes.rows[0] ?? null;
 
@@ -63,7 +66,7 @@ export default async function StoreAssetsPage({ params }: { params: Promise<{ id
        FROM dropship_asset_runs
       WHERE store_id = $1
       ORDER BY created_at DESC`,
-    [id],
+    [storeId],
   );
 
   // Group runs by asset_kind, cap at 10 per slot for the history strip.

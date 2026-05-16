@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDbRead } from '@/lib/db';
+import { resolveStoreId } from '@/lib/resolve-store';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +13,9 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string; sessionId: string }> },
 ) {
-  const { id: storeId, sessionId } = await params;
+  const { id, sessionId } = await params;
+  const storeId = await resolveStoreId(id);
+  if (!storeId) return NextResponse.json({ error: 'Store not found' }, { status: 404 });
   const db = getDbRead();
   const sess = await db.query<{ id: string; mode: string; title: string | null }>(
     `SELECT id, mode, title FROM dropship_copilot_sessions

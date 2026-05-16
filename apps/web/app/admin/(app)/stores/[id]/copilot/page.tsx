@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getDbRead } from '@/lib/db';
+import { resolveStoreId } from '@/lib/resolve-store';
 import { StoreLogo } from '@/components/ui';
 import { CopilotHub } from './CopilotHub';
 import type { CopilotMode } from '@/lib/agent/copilot-router';
@@ -41,6 +42,8 @@ export default async function CopilotHubPage({
 }) {
   const { id } = await params;
   const { mode: modeParam, session: sessionParam } = await searchParams;
+  const storeId = await resolveStoreId(id);
+  if (!storeId) notFound();
   const db = getDbRead();
 
   const storeRes = await db.query<{
@@ -55,7 +58,7 @@ export default async function CopilotHubPage({
   }>(
     `SELECT id, slug, name, niche, logo_emoji, primary_color, status, mode
        FROM dropship_stores WHERE id = $1 LIMIT 1`,
-    [id],
+    [storeId],
   );
   const store = storeRes.rows[0];
   if (!store) notFound();
@@ -75,7 +78,7 @@ export default async function CopilotHubPage({
        WHERE s.store_id = $1
        ORDER BY s.updated_at DESC
        LIMIT 100`,
-    [id],
+    [storeId],
   );
 
   const productsRes = await db.query<ProductRow>(
@@ -83,7 +86,7 @@ export default async function CopilotHubPage({
        FROM dropship_store_products
        WHERE store_id = $1
        ORDER BY created_at ASC`,
-    [id],
+    [storeId],
   );
 
   const validModes: CopilotMode[] = ['research', 'curation', 'ads', 'medias', 'dev'];

@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { getDb } from '@/lib/db';
+import { resolveStoreId } from '@/lib/resolve-store';
 import { checkRateLimit, clientIp } from '@/lib/rate-limit';
 import {
   COPILOT_MODES,
@@ -48,7 +49,14 @@ export async function POST(
     );
   }
 
-  const { id: storeId } = await params;
+  const { id } = await params;
+  const storeId = await resolveStoreId(id);
+  if (!storeId) {
+    return new Response(JSON.stringify({ error: 'Store not found' }), {
+      status: 404,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 
   // Per-store rate limit: prevent runaway loops or accidental spam.
   const storeRl = await checkRateLimit(`copilot-store:${storeId}`, { max: 30, windowSec: 60 });

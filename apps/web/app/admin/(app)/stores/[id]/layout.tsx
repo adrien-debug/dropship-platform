@@ -15,8 +15,11 @@ export default async function StoreLayout({
 }) {
   const { id } = await params;
   const db = getDbRead();
-  const { rows } = await db.query<{ slug: string; name: string; logo_emoji: string; status: string }>(
-    `SELECT slug, name, logo_emoji, status FROM dropship_stores WHERE id = $1 LIMIT 1`,
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  const { rows } = await db.query<{ id: string; slug: string; name: string; logo_emoji: string; status: string }>(
+    isUuid
+      ? `SELECT id, slug, name, logo_emoji, status FROM dropship_stores WHERE id = $1 LIMIT 1`
+      : `SELECT id, slug, name, logo_emoji, status FROM dropship_stores WHERE slug = $1 LIMIT 1`,
     [id],
   );
   const store = rows[0];
@@ -38,7 +41,7 @@ export default async function StoreLayout({
         )}
       </div>
 
-      <StoreTabs storeId={id} storeSlug={store.slug} />
+      <StoreTabs storeId={store.id} storeSlug={store.slug} />
 
       <div className="flex-1 min-h-0 flex flex-col">{children}</div>
     </div>

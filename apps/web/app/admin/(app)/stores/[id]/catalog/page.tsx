@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getDbRead } from '@/lib/db';
+import { resolveStoreId } from '@/lib/resolve-store';
 import { PageHeader, SectionCard, StatCard, StatusPill } from '../../../../_components/AdminUI';
 
 export const dynamic = 'force-dynamic';
@@ -30,11 +31,13 @@ interface StoreRow {
 
 export default async function StoreCatalogPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const storeId = await resolveStoreId(id);
+  if (!storeId) notFound();
   const db = getDbRead();
 
   const storeRes = await db.query<StoreRow>(
     `SELECT id, slug, name, logo_emoji, niche FROM dropship_stores WHERE id = $1 LIMIT 1`,
-    [id],
+    [storeId],
   );
   const store = storeRes.rows[0];
   if (!store) notFound();
@@ -46,7 +49,7 @@ export default async function StoreCatalogPage({ params }: { params: Promise<{ i
        FROM dropship_store_products
       WHERE store_id = $1
       ORDER BY created_at ASC`,
-    [id],
+    [storeId],
   );
 
   const totalRetailCents = products.reduce((s, p) => s + p.price_cents, 0);

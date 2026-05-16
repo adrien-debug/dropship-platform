@@ -13,6 +13,7 @@
 
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
+import { resolveStoreId } from '@/lib/resolve-store';
 import { ASSET_KINDS, regenerateAsset, type AssetKind } from '@/lib/agent/asset-regenerator';
 
 export const dynamic = 'force-dynamic';
@@ -28,7 +29,14 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id: storeId } = await params;
+  const { id } = await params;
+  const storeId = await resolveStoreId(id);
+  if (!storeId) {
+    return new Response(
+      JSON.stringify({ error: 'Store not found' }),
+      { status: 404, headers: { 'Content-Type': 'application/json' } },
+    );
+  }
 
   let parsed;
   try {

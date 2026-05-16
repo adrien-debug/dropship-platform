@@ -15,6 +15,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { resolveStoreId } from '@/lib/resolve-store';
 import { runLuxuryUpgrade } from '@/lib/agent/luxury-pipeline';
 
 export const dynamic = 'force-dynamic';
@@ -24,7 +25,9 @@ export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id: storeId } = await params;
+  const { id } = await params;
+  const storeId = await resolveStoreId(id);
+  if (!storeId) return NextResponse.json({ success: false, error: 'Store not found' }, { status: 404 });
 
   try {
     const result = await runLuxuryUpgrade(storeId);

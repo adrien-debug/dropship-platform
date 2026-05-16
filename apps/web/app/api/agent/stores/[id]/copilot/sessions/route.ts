@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getDbRead, getDb } from '@/lib/db';
+import { resolveStoreId } from '@/lib/resolve-store';
 import {
   COPILOT_MODES,
   createCopilotSession,
@@ -20,7 +21,9 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id: storeId } = await params;
+  const { id } = await params;
+  const storeId = await resolveStoreId(id);
+  if (!storeId) return NextResponse.json({ error: 'Store not found' }, { status: 404 });
   const url = new URL(req.url);
   const modeParam = url.searchParams.get('mode');
   const parsedMode = modeParam ? modeEnum.safeParse(modeParam) : null;
@@ -80,7 +83,9 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id: storeId } = await params;
+  const { id } = await params;
+  const storeId = await resolveStoreId(id);
+  if (!storeId) return NextResponse.json({ error: 'Store not found' }, { status: 404 });
   let body;
   try {
     body = postSchema.parse(await req.json());

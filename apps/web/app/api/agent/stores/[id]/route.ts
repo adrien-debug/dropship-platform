@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getDb } from '@/lib/db';
+import { resolveStoreId } from '@/lib/resolve-store';
 import { medusa } from '@/lib/medusa';
 import { encryptSecret, secretsConfigured } from '@/lib/secrets';
 import { deleteByPrefixFromR2 } from '@/lib/storage/r2';
@@ -42,6 +43,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+  const storeId = await resolveStoreId(id);
+  if (!storeId) return NextResponse.json({ error: 'Store not found' }, { status: 404 });
   const db = getDb();
 
   const { rows } = await db.query<{
@@ -50,7 +53,7 @@ export async function DELETE(
     medusa_publishable_key: string | null;
   }>(
     'SELECT slug, medusa_sales_channel_id, medusa_publishable_key FROM dropship_stores WHERE id = $1',
-    [id],
+    [storeId],
   );
 
   if (!rows[0]) {
@@ -70,7 +73,7 @@ export async function DELETE(
   // 1. Medusa products
   const { rows: products } = await db.query<{ medusa_product_id: string }>(
     'SELECT medusa_product_id FROM dropship_store_products WHERE store_id = $1 AND medusa_product_id IS NOT NULL',
-    [id],
+    [storeId],
   );
   for (const { medusa_product_id } of products) {
     try {
@@ -120,7 +123,7 @@ export async function DELETE(
   // 6. The store row itself — CASCADE handles every referenced row
   // (store_products, ad_variants, ad_campaigns, asset_runs,
   // copilot_sessions, curation_sessions).
-  await db.query('DELETE FROM dropship_stores WHERE id = $1', [id]);
+  await db.query('DELETE FROM dropship_stores WHERE id = $1', [storeId]);
 
   console.log('[delete-store] cleanup report', report);
   return NextResponse.json({ success: true, report });
@@ -230,6 +233,8 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
+    const storeId = await resolveStoreId(id);
+    if (!storeId) return NextResponse.json({ success: false, error: 'Store not found' }, { status: 404 });
     const body = patchSchema.parse(await request.json());
     const updates = body.analytics ?? {};
 
@@ -306,7 +311,7 @@ export async function PATCH(
       return NextResponse.json({ success: true, updated: 0 });
     }
     setClauses.push(`updated_at = now()`);
-    values.push(id);
+    values.push(storeId);
     const { rowCount } = await getDb().query(
       `UPDATE dropship_stores SET ${setClauses.join(', ')} WHERE id = $${i}`,
       values,

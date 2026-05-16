@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getDb } from '@/lib/db';
+import { resolveStoreId } from '@/lib/resolve-store';
 import { enforceRateLimit } from '@/lib/rate-limit';
 import { generateAdVariants } from '@/lib/agent/ad-variants';
 
@@ -35,7 +36,9 @@ export async function POST(
   const limited = await enforceRateLimit(request, 'ad-variants', { max: 10, windowSec: 60 });
   if (limited) return limited;
 
-  const { id: storeId, pid: productId } = await params;
+  const { id, pid: productId } = await params;
+  const storeId = await resolveStoreId(id);
+  if (!storeId) return NextResponse.json({ ok: false, error: 'store_not_found' }, { status: 404 });
 
   let body: z.infer<typeof Body>;
   try {

@@ -9,6 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { resolveStoreId } from '@/lib/resolve-store';
 import {
   ASSET_KINDS,
   listRunsForStore,
@@ -23,8 +24,10 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+  const storeId = await resolveStoreId(id);
+  if (!storeId) return NextResponse.json({ ok: false, error: 'Store not found' }, { status: 404 });
   try {
-    const runs = await listRunsForStore(id, 10);
+    const runs = await listRunsForStore(storeId, 10);
     return NextResponse.json({ ok: true, runs });
   } catch (e) {
     return NextResponse.json(
@@ -44,10 +47,12 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+  const storeId = await resolveStoreId(id);
+  if (!storeId) return NextResponse.json({ ok: false, error: 'Store not found' }, { status: 404 });
   try {
     const body = setCurrentSchema.parse(await req.json());
     const { url } = await setRunAsCurrent({
-      storeId: id,
+      storeId,
       runId: body.runId,
       kind: body.kind,
     });

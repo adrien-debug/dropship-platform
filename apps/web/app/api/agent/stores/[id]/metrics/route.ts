@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDbRead } from '@/lib/db';
+import { resolveStoreId } from '@/lib/resolve-store';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,12 +19,14 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+  const storeId = await resolveStoreId(id);
+  if (!storeId) return NextResponse.json({ error: 'Store not found' }, { status: 404 });
   const db = getDbRead();
 
   // Verify store exists and get slug
   const storeRes = await db.query<{ slug: string; name: string; status: string }>(
     `SELECT slug, name, status FROM dropship_stores WHERE id = $1 LIMIT 1`,
-    [id],
+    [storeId],
   );
   const store = storeRes.rows[0];
   if (!store) {
@@ -94,12 +97,12 @@ export async function GET(
   // Product count
   const productCountRes = await db.query<{ count: number }>(
     `SELECT COUNT(*)::int FROM dropship_store_products WHERE store_id = $1`,
-    [id],
+    [storeId],
   );
 
   return NextResponse.json({
     store: {
-      id,
+      id: storeId,
       slug: store.slug,
       name: store.name,
       status: store.status,

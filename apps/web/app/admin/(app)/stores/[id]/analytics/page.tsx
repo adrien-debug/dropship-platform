@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getDbRead } from '@/lib/db';
+import { resolveStoreId } from '@/lib/resolve-store';
 import { formatMoney } from '@/lib/medusa-store';
 import { PageHeader } from '../../../../_components/AdminUI';
 
@@ -44,6 +45,8 @@ const FUNNEL_LABEL: Record<string, string> = {
 export default async function StoreAnalyticsPage({ params, searchParams }: Props) {
   const { id } = await params;
   const { range = '30d' } = await searchParams;
+  const storeId = await resolveStoreId(id);
+  if (!storeId) notFound();
   const db = getDbRead();
 
   const storeRes = await db.query<{
@@ -56,7 +59,7 @@ export default async function StoreAnalyticsPage({ params, searchParams }: Props
   }>(
     `SELECT slug, name, clarity_id, ga4_measurement_id, meta_pixel_id, tiktok_pixel_id
        FROM dropship_stores WHERE id = $1 LIMIT 1`,
-    [id],
+    [storeId],
   );
   const store = storeRes.rows[0];
   if (!store) notFound();
