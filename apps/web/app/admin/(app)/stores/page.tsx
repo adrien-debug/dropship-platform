@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowUpRight } from 'lucide-react';
 import { getDbRead } from '@/lib/db';
 import { PageHeader, StatCard, StatusPill, type Tone } from '../../_components/AdminUI';
@@ -210,10 +211,13 @@ function StoreCard({ store }: { store: StoreRow }) {
       {/* Avatar — compact 32px comme la liste du dashboard */}
       <div className="relative w-8 h-8 shrink-0 rounded-md overflow-hidden">
         {cover ? (
-          <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={cover} alt="" className="absolute inset-0 w-full h-full object-cover" />
-          </>
+          <Image
+            src={cover}
+            alt=""
+            fill
+            sizes="32px"
+            className="object-cover"
+          />
         ) : (
           <StoreAvatar slug={store.slug} name={store.name} size={32} className="rounded-none w-full h-full" />
         )}
