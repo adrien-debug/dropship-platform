@@ -37,7 +37,11 @@ export default async function CheckoutPage() {
   }
 
   const stripePublishableKey = (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '').trim();
-  const stripeEnabled = !!stripePublishableKey && !!process.env.STRIPE_SECRET_KEY?.trim();
+  // Only the publishable key is needed for the client-side Stripe Elements form.
+  // The secret key is used (and validated) by the create-payment-session API
+  // route — letting Stripe fail naturally there yields a clearer error than
+  // a generic "Stripe not configured" message in the UI.
+  const stripeEnabled = !!stripePublishableKey;
 
   return (
     <StoreShell store={store}>
