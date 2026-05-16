@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { TrashIcon } from '../../_components/AdminUI';
+import { TrashIcon } from '@/app/admin/_components/AdminUI';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 export function StoreActions({

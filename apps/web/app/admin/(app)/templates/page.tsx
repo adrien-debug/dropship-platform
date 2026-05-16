@@ -6,7 +6,7 @@ import {
   type TemplateRegister,
   type TemplateMode,
 } from '@/lib/template-catalog';
-import { PageHeader } from '../../_components/AdminUI';
+import { PageHeader } from '@/app/admin/_components/AdminUI';
 
 export const dynamic = 'force-dynamic';
 

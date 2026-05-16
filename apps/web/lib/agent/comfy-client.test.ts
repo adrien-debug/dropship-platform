@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
-import { server } from '../../test/setup-msw';
+import { server } from '@/test/setup-msw';
 import {
   getDeploymentIds,
   isComfyConfigured,

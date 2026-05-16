@@ -2,7 +2,7 @@
 
 import { apiFetch } from '@/lib/client-fetch';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface Props {
@@ -39,17 +39,20 @@ export function ForwardButton({ orderId, alreadySent }: Props) {
   const [sending, setSending] = useState(false);
   const [sentResult, setSentResult] = useState<ForwardResponse | null>(null);
 
-  async function forward(dryRun: boolean): Promise<ForwardResponse> {
-    const res = await apiFetch(`/api/agent/orders/${orderId}/forward`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        dryRun,
-        ...(dryRun ? {} : { confirm: 'PLACE_REAL_ORDER' }),
-      }),
-    });
-    return (await res.json()) as ForwardResponse;
-  }
+  const forward = useCallback(
+    async (dryRun: boolean): Promise<ForwardResponse> => {
+      const res = await apiFetch(`/api/agent/orders/${orderId}/forward`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dryRun,
+          ...(dryRun ? {} : { confirm: 'PLACE_REAL_ORDER' }),
+        }),
+      });
+      return (await res.json()) as ForwardResponse;
+    },
+    [orderId],
+  );
 
   // Auto-run dry-run when the modal opens.
   useEffect(() => {
@@ -66,7 +69,7 @@ export function ForwardButton({ orderId, alreadySent }: Props) {
         }),
       )
       .finally(() => setDryRunning(false));
-  }, [modalOpen, dryRunResult, dryRunning]);
+  }, [modalOpen, dryRunResult, dryRunning, forward]);
 
   function openModal() {
     setDryRunResult(null);

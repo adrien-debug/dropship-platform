@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getDbRead } from '@/lib/db';
 import { resolveStoreId } from '@/lib/resolve-store';
-import { PageHeader, SectionCard, StatCard, StatusPill } from '../../../../_components/AdminUI';
+import { PageHeader, SectionCard, StatCard, StatusPill } from '@/app/admin/_components/AdminUI';
 
 export const dynamic = 'force-dynamic';
 

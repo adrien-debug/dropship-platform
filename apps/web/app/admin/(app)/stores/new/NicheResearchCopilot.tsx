@@ -869,6 +869,18 @@ function ResearchToolCard({ message, onApplyShortlist }: ResearchToolCardProps) 
   const isError = message.is_error;
   const name = message.tool_name || 'tool';
 
+  // Stringify on every render is expensive when the chat scroll mounts many
+  // tool cards — memoize per message so re-renders of the parent (streaming
+  // ticks, cost updates) don't re-stringify potentially large payloads.
+  const inputJson = useMemo(
+    () => JSON.stringify(message.tool_input ?? {}, null, 2),
+    [message.tool_input],
+  );
+  const outputJson = useMemo(
+    () => JSON.stringify(message.tool_output ?? {}, null, 2),
+    [message.tool_output],
+  );
+
   // The shortlist card is a special-case: it doesn't get the collapsible
   // shell, it's a prominent CTA.
   if (name === 'shortlist_niche' && message.shortlist) {
@@ -914,13 +926,13 @@ function ResearchToolCard({ message, onApplyShortlist }: ResearchToolCardProps) 
               <div>
                 <div className="text-kicker uppercase tracking-cta text-zinc-400">input</div>
                 <pre className="mt-1 bg-zinc-50 rounded p-2 overflow-x-auto font-mono text-xs whitespace-pre-wrap break-all max-w-full">
-                  {JSON.stringify(message.tool_input ?? {}, null, 2)}
+                  {inputJson}
                 </pre>
               </div>
               <div>
                 <div className="text-kicker uppercase tracking-cta text-zinc-400">output</div>
                 <pre className="mt-1 bg-zinc-50 rounded p-2 overflow-x-auto font-mono text-xs whitespace-pre-wrap break-all max-w-full">
-                  {JSON.stringify(message.tool_output ?? {}, null, 2)}
+                  {outputJson}
                 </pre>
               </div>
             </div>

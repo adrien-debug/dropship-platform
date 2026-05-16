@@ -1,5 +1,5 @@
 import { getDbRead } from '@/lib/db';
-import { PageHeader, StatusPill, type Tone } from '../../_components/AdminUI';
+import { PageHeader, StatusPill, type Tone } from '@/app/admin/_components/AdminUI';
 import { ButtonLink } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';

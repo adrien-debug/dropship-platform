@@ -5,7 +5,7 @@ import { DryRunPendingButton } from './DryRunPendingButton';
 import { MarkPaidButton } from './MarkPaidButton';
 import { formatMoney } from '@/lib/medusa-store';
 import { aliExpressOrderUrl } from '@/lib/suppliers/aliexpress';
-import { PageHeader, StatCard, StatusPill } from '../../_components/AdminUI';
+import { PageHeader, StatCard, StatusPill } from '@/app/admin/_components/AdminUI';
 
 export const dynamic = 'force-dynamic';
 

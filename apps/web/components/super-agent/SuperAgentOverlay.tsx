@@ -17,6 +17,23 @@ function generateId() {
   return Math.random().toString(36).slice(2, 9);
 }
 
+/**
+ * Safely parse a single SSE event payload. The super-agent stream is
+ * piped from the model and the occasional truncated chunk would otherwise
+ * crash the whole reader loop. In dev we surface the offender to console
+ * so we don't lose the signal that the server is misbehaving.
+ */
+function safeParseSseEvent(raw: string): unknown | null {
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('[super-agent] SSE parse error', err, raw.slice(0, 200));
+    }
+    return null;
+  }
+}
+
 export default function SuperAgentOverlay() {
   const [open, setOpen] = useState(false);
   const [minimized, setMinimized] = useState(false);
@@ -92,78 +109,76 @@ export default function SuperAgentOverlay() {
             const json = line.slice(6).trim();
             if (!json) continue;
 
-            try {
-              const event = JSON.parse(json) as {
-                type: string;
-                text?: string;
-                name?: string;
-                input?: unknown;
-                output?: unknown;
-                is_error?: boolean;
-                tool?: string;
-                reason?: string;
-                message?: string;
-              };
+            const parsed = safeParseSseEvent(json);
+            if (!parsed) continue;
+            const event = parsed as {
+              type: string;
+              text?: string;
+              name?: string;
+              input?: unknown;
+              output?: unknown;
+              is_error?: boolean;
+              tool?: string;
+              reason?: string;
+              message?: string;
+            };
 
-              if (event.type === 'thinking' && event.text) {
-                setMessages((prev) => {
-                  const last = prev[prev.length - 1];
-                  if (last && last.role === 'assistant' && last.id === assistantId) {
-                    return [...prev.slice(0, -1), { ...last, text: (last.text ?? '') + event.text! }];
-                  }
-                  return prev;
-                });
-              }
+            if (event.type === 'thinking' && event.text) {
+              setMessages((prev) => {
+                const last = prev[prev.length - 1];
+                if (last && last.role === 'assistant' && last.id === assistantId) {
+                  return [...prev.slice(0, -1), { ...last, text: (last.text ?? '') + event.text! }];
+                }
+                return prev;
+              });
+            }
 
-              if (event.type === 'tool_call') {
-                setMessages((prev) => [
-                  ...prev,
-                  {
-                    id: generateId(),
-                    role: 'tool',
-                    toolName: event.name,
-                    toolInput: event.input,
-                  },
-                ]);
-              }
+            if (event.type === 'tool_call') {
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: generateId(),
+                  role: 'tool',
+                  toolName: event.name,
+                  toolInput: event.input,
+                },
+              ]);
+            }
 
-              if (event.type === 'tool_result') {
-                setMessages((prev) => [
-                  ...prev,
-                  {
-                    id: generateId(),
-                    role: 'tool',
-                    toolName: event.name,
-                    toolOutput: event.output,
-                    isError: event.is_error,
-                  },
-                ]);
-              }
+            if (event.type === 'tool_result') {
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: generateId(),
+                  role: 'tool',
+                  toolName: event.name,
+                  toolOutput: event.output,
+                  isError: event.is_error,
+                },
+              ]);
+            }
 
-              if (event.type === 'confirm_required') {
-                setMessages((prev) => [
-                  ...prev,
-                  {
-                    id: generateId(),
-                    role: 'system',
-                    text: `Confirmation requise : ${event.reason}`,
-                    confirmRequired: true,
-                  },
-                ]);
-              }
+            if (event.type === 'confirm_required') {
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: generateId(),
+                  role: 'system',
+                  text: `Confirmation requise : ${event.reason}`,
+                  confirmRequired: true,
+                },
+              ]);
+            }
 
-              if (event.type === 'error') {
-                setMessages((prev) => [
-                  ...prev,
-                  { id: generateId(), role: 'system', text: `Erreur : ${event.message}` },
-                ]);
-              }
+            if (event.type === 'error') {
+              setMessages((prev) => [
+                ...prev,
+                { id: generateId(), role: 'system', text: `Erreur : ${event.message}` },
+              ]);
+            }
 
-              if (event.type === 'done') {
-                setStreaming(false);
-              }
-            } catch {
-              // ignore malformed JSON
+            if (event.type === 'done') {
+              setStreaming(false);
             }
           }
         }

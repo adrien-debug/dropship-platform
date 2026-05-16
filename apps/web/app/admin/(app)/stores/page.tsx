@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { ArrowUpRight } from 'lucide-react';
 import { getDbRead } from '@/lib/db';
-import { PageHeader, StatCard, StatusPill, type Tone } from '../../_components/AdminUI';
+import { PageHeader, StatCard, StatusPill, type Tone } from '@/app/admin/_components/AdminUI';
 import { StoreAvatar, ButtonLink } from '@/components/ui';
 import { StoreActions } from './StoreActions';
 

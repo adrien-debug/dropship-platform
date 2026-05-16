@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import { getDbRead } from '@/lib/db';
 import { resolveStoreId } from '@/lib/resolve-store';
 import { ASSET_KINDS, type AssetKind } from '@/lib/agent/asset-regenerator';
-import { PageHeader } from '../../../../_components/AdminUI';
+import { PageHeader } from '@/app/admin/_components/AdminUI';
 import { AssetRegenerator } from './AssetRegenerator';
 
 export const dynamic = 'force-dynamic';

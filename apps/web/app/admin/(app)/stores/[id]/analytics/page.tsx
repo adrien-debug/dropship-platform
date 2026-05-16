@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { getDbRead } from '@/lib/db';
 import { resolveStoreId } from '@/lib/resolve-store';
 import { formatMoney } from '@/lib/medusa-store';
-import { PageHeader } from '../../../../_components/AdminUI';
+import { PageHeader } from '@/app/admin/_components/AdminUI';
 
 export const dynamic = 'force-dynamic';
 

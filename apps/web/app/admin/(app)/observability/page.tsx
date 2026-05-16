@@ -8,7 +8,7 @@ import {
   ExternalLink,
   Plus,
 } from 'lucide-react';
-import { PageHeader, StatCard } from '../../_components/AdminUI';
+import { PageHeader, StatCard } from '@/app/admin/_components/AdminUI';
 import { Button } from '@/components/ui';
 
 // ─── Types ────────────────────────────────────────────────────────────────────

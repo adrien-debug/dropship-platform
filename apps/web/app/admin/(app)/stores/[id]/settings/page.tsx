@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import { getDbRead } from '@/lib/db';
 import { resolveStoreId } from '@/lib/resolve-store';
-import { PageHeader } from '../../../../_components/AdminUI';
+import { PageHeader } from '@/app/admin/_components/AdminUI';
 import { StoreTemplateForm } from '../StoreTemplateForm';
 import { LuxuryUpgradeButton } from '../LuxuryUpgradeButton';
 import { StoreCustomDomainForm } from '../StoreCustomDomainForm';

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { medusa, type MedusaProduct } from '@/lib/medusa';
-import { PageHeader, StatusPill } from '../../_components/AdminUI';
+import { PageHeader, StatusPill } from '@/app/admin/_components/AdminUI';
 
 export const dynamic = 'force-dynamic';
 
