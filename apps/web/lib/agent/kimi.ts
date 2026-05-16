@@ -98,8 +98,27 @@ function computeCostEur(inputTokens: number, outputTokens: number): number {
 }
 
 export interface KimiMessage {
-  role: 'system' | 'user' | 'assistant';
+  role: 'system' | 'user' | 'assistant' | 'tool';
   content: string;
+  tool_call_id?: string;
+}
+
+export interface KimiTool {
+  type: 'function';
+  function: {
+    name: string;
+    description: string;
+    parameters: Record<string, unknown>;
+  };
+}
+
+export interface KimiToolCall {
+  id: string;
+  type: 'function';
+  function: {
+    name: string;
+    arguments: string;
+  };
 }
 
 export interface KimiRunMeta {
@@ -109,24 +128,30 @@ export interface KimiRunMeta {
 
 /**
  * Drop-in replacement for `trackedMessage` tailored to Kimi K2.5.
- * Returns the assistant text content + usage metadata.
+ * Supports optional function-calling via the OpenAI-compatible API.
  */
 export async function trackedKimiMessage(
   meta: KimiRunMeta,
   messages: KimiMessage[],
-): Promise<{ text: string; usage: KimiUsage }> {
+  options?: { tools?: KimiTool[] },
+): Promise<{ text: string; usage: KimiUsage; tool_calls?: KimiToolCall[] }> {
   const startedAt = Date.now();
   let responseText = '';
+  let toolCalls: KimiToolCall[] | undefined;
   let usage: KimiUsage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
   let errorJson: string | null = null;
 
   try {
-    const body = {
+    const body: Record<string, unknown> = {
       model: MODEL,
       messages,
       max_tokens: 4096,
       temperature: 0.7,
     };
+    if (options?.tools) {
+      body.tools = options.tools;
+      body.tool_choice = 'auto';
+    }
 
     let lastError: unknown;
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
@@ -141,7 +166,15 @@ export async function trackedKimiMessage(
           body: JSON.stringify(body),
         });
 
-        const data = (await res.json()) as KimiResponse;
+        const data = (await res.json()) as KimiResponse & {
+          choices?: Array<{
+            message?: {
+              role?: string;
+              content?: string | null;
+              tool_calls?: KimiToolCall[];
+            };
+          }>;
+        };
 
         if (!res.ok || data.error) {
           const errMsg = data.error?.message || `Kimi HTTP ${res.status}`;
@@ -153,7 +186,11 @@ export async function trackedKimiMessage(
           continue;
         }
 
-        responseText = data.choices[0]?.message?.content ?? '';
+        const msg = data.choices?.[0]?.message;
+        if (msg?.tool_calls && msg.tool_calls.length > 0) {
+          toolCalls = msg.tool_calls;
+        }
+        responseText = msg?.content ?? '';
         usage = data.usage ?? usage;
         break;
       } catch (e) {
@@ -168,7 +205,7 @@ export async function trackedKimiMessage(
       }
     }
 
-    return { text: responseText, usage };
+    return { text: responseText, usage, tool_calls: toolCalls };
   } catch (e) {
     errorJson = JSON.stringify({
       message: e instanceof Error ? e.message : String(e),

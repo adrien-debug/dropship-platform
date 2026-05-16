@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import localFont from 'next/font/local';
 import './globals.css';
+import SuperAgentOverlay from '@/components/super-agent/SuperAgentOverlay';
 
 /**
  * Typography stack — Satoshi Variable everywhere. Self-hosted via next/font
@@ -52,6 +53,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-screen antialiased bg-white text-zinc-900 font-sans">
         {children}
+        <SuperAgentOverlay />
       </body>
     </html>
   );
