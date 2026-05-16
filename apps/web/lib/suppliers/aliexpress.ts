@@ -154,20 +154,22 @@ export async function refreshAccessTokenDetailed(refreshToken: string): Promise<
 
     const db = getDb();
     const encAccess = encryptSecret(data.access_token);
+    // platform_settings.value is NOT NULL — keep plaintext as the legacy
+    // fallback (read path prefers value_enc when present, via tryDecryptSecret).
     await db.query(
       `INSERT INTO platform_settings (key, value, value_enc, value_nonce, updated_at)
-       VALUES ('aliexpress_access_token', NULL, $1, $2, now()),
-              ('aliexpress_token_expires', $3, NULL, NULL, now())
+       VALUES ('aliexpress_access_token', $1, $2, $3, now()),
+              ('aliexpress_token_expires', $4, NULL, NULL, now())
        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, value_enc = EXCLUDED.value_enc, value_nonce = EXCLUDED.value_nonce, updated_at = now()`,
-      [encAccess.encrypted, encAccess.nonce, data.expire_time?.toString() || ''],
+      [data.access_token, encAccess.encrypted, encAccess.nonce, data.expire_time?.toString() || ''],
     );
     const rotated = Boolean(data.refresh_token);
     if (rotated && data.refresh_token) {
       const encRefresh = encryptSecret(data.refresh_token);
       await db.query(
-        `INSERT INTO platform_settings (key, value, value_enc, value_nonce, updated_at) VALUES ('aliexpress_refresh_token', NULL, $1, $2, now())
+        `INSERT INTO platform_settings (key, value, value_enc, value_nonce, updated_at) VALUES ('aliexpress_refresh_token', $1, $2, $3, now())
          ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, value_enc = EXCLUDED.value_enc, value_nonce = EXCLUDED.value_nonce, updated_at = now()`,
-        [encRefresh.encrypted, encRefresh.nonce],
+        [data.refresh_token, encRefresh.encrypted, encRefresh.nonce],
       );
     }
 

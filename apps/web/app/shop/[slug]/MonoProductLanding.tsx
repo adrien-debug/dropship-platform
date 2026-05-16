@@ -1,6 +1,7 @@
 import { AddToCartButton } from '@/app/products/[handle]/AddToCartButton';
 import { formatMoney } from '@/lib/medusa-store';
 import type { StoreConfig } from '@/lib/store-config';
+import { sanitizeRichText } from '@/lib/sanitize-html';
 import {
   Section,
   SectionHeader,
@@ -288,7 +289,7 @@ export function MonoProductLanding({ store, product }: Props) {
           <Kicker tone="inverse">{store.landingContent?.final_cta?.kicker || 'Prêt ?'}</Kicker>
           <Heading level="h1" className="text-white mt-5">
             {store.landingContent?.final_cta?.headline_html ? (
-              <span dangerouslySetInnerHTML={{ __html: store.landingContent.final_cta.headline_html }} />
+              <span dangerouslySetInnerHTML={{ __html: sanitizeRichText(store.landingContent.final_cta.headline_html) }} />
             ) : (
               store.tagline || product.title
             )}

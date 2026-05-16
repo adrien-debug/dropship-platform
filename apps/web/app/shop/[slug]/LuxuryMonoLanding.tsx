@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { AddToCartButton } from '@/app/products/[handle]/AddToCartButton';
 import { formatMoney } from '@/lib/medusa-store';
 import type { StoreConfig } from '@/lib/store-config';
+import { sanitizeRichText } from '@/lib/sanitize-html';
 
 const serif = Cormorant_Garamond({
   subsets: ['latin'],
@@ -278,7 +279,7 @@ export function LuxuryMonoLanding({ store, products }: Props) {
                 </h4>
                 <p
                   className="text-[15px] leading-relaxed text-stone-700 font-light"
-                  dangerouslySetInnerHTML={{ __html: c.body }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeRichText(c.body) }}
                 />
               </div>
             ))}

@@ -9,6 +9,7 @@
 import { medusa, type MedusaOrder } from '@/lib/medusa';
 import { placeOrder, type AliExpressPlaceOrderInput, type AliExpressLogisticsAddress } from '@/lib/suppliers/aliexpress';
 import { getDb } from '@/lib/db';
+import { retry } from '@/lib/retry';
 
 interface OrderAttribution {
   /** Visitor session id — joins dropship_funnel_events.session_id. */
@@ -343,7 +344,37 @@ export async function forwardOrder(medusaOrderId: string, opts: ForwardOptions):
     throw e;
   }
 
-  const aeRes = await placeOrder(payload);
+  // Retry placeOrder on AliExpress 5xx and network errors.
+  // placeOrder never throws — it returns { success: false, error } — so we
+  // promote transient failures to thrown errors so retry() can catch them.
+  // 4xx-style application errors (bad payload, auth) must NOT be retried.
+  const isTransient = (errMsg: string | undefined): boolean =>
+    /HTTP\s+5\d\d|network|timeout|abort|fetch|econnreset|etimedout/i.test(errMsg ?? '');
+
+  const aeRes = await retry(
+    async () => {
+      const res = await placeOrder(payload);
+      if (!res.success && isTransient(res.error)) {
+        // Promote to a thrown Error so retry() can back-off and retry.
+        throw new Error(res.error ?? 'AliExpress transient error');
+      }
+      return res;
+    },
+    {
+      maxAttempts: 3,
+      baseDelayMs: 1000,
+      maxDelayMs: 8000,
+      backoffMultiplier: 2,
+      jitter: true,
+      // Only retry on the transient errors we just promoted to throws.
+      isRetryable: (e) => e instanceof Error && isTransient(e.message),
+    },
+  ).catch((e: unknown) => {
+    // All retries exhausted — return a failure result so the forwarder can
+    // update the DB row to status='error' as before.
+    const msg = e instanceof Error ? e.message : 'AliExpress transient error after retries';
+    return { success: false as const, raw: null, error: msg };
+  });
 
   if (aeRes.success) {
     await db.query(

@@ -170,6 +170,10 @@ async function execRunSql(
     }
   }
 
+  if (mode === 'write') {
+    console.info('[super-agent SQL write]', JSON.stringify({ query, params: params ?? [], timestamp: new Date().toISOString() }));
+  }
+
   const db = getDb();
   const { rows } = await db.query(query, params ?? []);
   return {

@@ -3,6 +3,7 @@ import { Poppins } from 'next/font/google';
 import { AddToCartButton } from '@/app/products/[handle]/AddToCartButton';
 import { formatMoney } from '@/lib/medusa-store';
 import type { StoreConfig } from '@/lib/store-config';
+import { sanitizeRichText } from '@/lib/sanitize-html';
 
 interface MedusaImage {
   url: string;
@@ -445,7 +446,7 @@ export function WellnessSoftLanding({ store, products }: Props) {
           {showcaseHeadlineHtml ? (
             <h2
               className="text-3xl sm:text-4xl font-extralight tracking-[0.02em] leading-[1.25] mb-8"
-              dangerouslySetInnerHTML={{ __html: showcaseHeadlineHtml }}
+              dangerouslySetInnerHTML={{ __html: sanitizeRichText(showcaseHeadlineHtml) }}
             />
           ) : (
             <h2 className="text-3xl sm:text-4xl font-extralight tracking-[0.02em] leading-[1.25] mb-8">

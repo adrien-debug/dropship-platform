@@ -3,6 +3,7 @@ import { Cormorant_Garamond, Inter } from 'next/font/google';
 import { AddToCartButton } from '@/app/products/[handle]/AddToCartButton';
 import { formatMoney } from '@/lib/medusa-store';
 import type { StoreConfig } from '@/lib/store-config';
+import { sanitizeRichText } from '@/lib/sanitize-html';
 
 interface MedusaImage {
   url: string;
@@ -337,7 +338,7 @@ export function WellnessRetreatLanding({ store, products }: Props) {
                   'var(--font-retreat-display), Cormorant Garamond, serif',
                 fontSize: 'clamp(1.75rem, 3.5vw, 2.75rem)',
               }}
-              dangerouslySetInnerHTML={{ __html: showcaseHeadlineHtml }}
+              dangerouslySetInnerHTML={{ __html: sanitizeRichText(showcaseHeadlineHtml) }}
             />
           ) : (
             <h2

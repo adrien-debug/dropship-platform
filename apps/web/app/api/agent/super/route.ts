@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { runSuperAgentTurn } from '@/lib/agent/super-agent';
+import { enforceRateLimit } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -13,6 +14,9 @@ const schema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const limited = await enforceRateLimit(req, 'super-agent', { max: 60, windowSec: 60 });
+  if (limited) return limited;
+
   let input;
   try {
     const body = await req.json();
