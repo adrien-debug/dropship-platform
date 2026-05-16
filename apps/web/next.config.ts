@@ -53,6 +53,25 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  images: {
+    // Whitelist of remote hosts the <Image> component is allowed to load.
+    // Suppliers (AliExpress, CJ Dropshipping) serve product images on their
+    // own CDNs; Shopify is included because some Medusa imports keep their
+    // original Shopify CDN URLs. fal.ai / R2 are for AI-generated assets.
+    remotePatterns: [
+      { protocol: 'https', hostname: '**.alicdn.com' },
+      { protocol: 'https', hostname: '**.aliexpress-media.com' },
+      { protocol: 'https', hostname: '**.cjdropshipping.com' },
+      { protocol: 'https', hostname: 'oss-cf.cjdropshipping.com' },
+      { protocol: 'https', hostname: 'cdn.shopify.com' },
+      { protocol: 'https', hostname: '**.fal.media' },
+      { protocol: 'https', hostname: 'fal.media' },
+      { protocol: 'https', hostname: '**.r2.cloudflarestorage.com' },
+      { protocol: 'https', hostname: '**.r2.dev' },
+      { protocol: 'https', hostname: '**.public.blob.vercel-storage.com' },
+      { protocol: 'https', hostname: '**.supabase.co' },
+    ],
+  },
 };
 
 export default withSentryConfig(nextConfig, {

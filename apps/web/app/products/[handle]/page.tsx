@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import Image from 'next/image';
 import { getProductByHandle, formatMoney, storefrontEnabled } from '@/lib/medusa-store';
 import { StoreShell } from '@/app/_components/StoreShell';
 import { AddToCartButton } from './AddToCartButton';
@@ -28,9 +29,15 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 grid grid-cols-1 md:grid-cols-2 gap-10">
         <div className="space-y-3">
           {images.map((img, idx) => (
-            <div key={idx} className="aspect-square bg-zinc-100 rounded-lg overflow-hidden">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={img.url} alt={product.title} className="w-full h-full object-cover" />
+            <div key={idx} className="relative aspect-square bg-zinc-100 rounded-lg overflow-hidden">
+              <Image
+                src={img.url}
+                alt={product.title}
+                fill
+                sizes="(max-width: 768px) 100vw, 50vw"
+                className="object-cover"
+                priority={idx === 0}
+              />
             </div>
           ))}
         </div>

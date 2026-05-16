@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import type { Metadata } from 'next';
 import { getStoreBySlug } from '@/lib/store-config';
 import { formatMoney, getProduct } from '@/lib/medusa-store';
@@ -112,10 +113,16 @@ export default async function ShopProductPage({
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
         {/* Image */}
-        <div className="aspect-square rounded-2xl overflow-hidden bg-zinc-100 shadow-md">
+        <div className="relative aspect-square rounded-2xl overflow-hidden bg-zinc-100 shadow-md">
           {imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={imageUrl} alt={product.title} className="w-full h-full object-cover" />
+            <Image
+              src={imageUrl}
+              alt={product.title}
+              fill
+              sizes="(max-width: 1024px) 100vw, 50vw"
+              className="object-cover"
+              priority
+            />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-zinc-400">
               <StoreLogo emoji={store.logoEmoji} size={80} strokeWidth={1.25} />
