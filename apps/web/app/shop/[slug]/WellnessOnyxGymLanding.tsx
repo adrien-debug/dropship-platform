@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { Manrope } from 'next/font/google';
 import { AddToCartButton } from '@/app/products/[handle]/AddToCartButton';
-import { formatMoney } from '@/lib/medusa-store';
 import type { StoreConfig } from '@/lib/store-config';
 
 interface MedusaImage {

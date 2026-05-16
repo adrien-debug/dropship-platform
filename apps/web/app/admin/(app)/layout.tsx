@@ -1,5 +1,5 @@
-import { AdminShell } from '../_components/AdminShell';
-import { getHeaderStats } from '../_components/getHeaderStats';
+import { AdminShell } from '@/app/admin/_components/AdminShell';
+import { getHeaderStats } from '@/app/admin/_components/getHeaderStats';
 
 export const revalidate = 0;
 

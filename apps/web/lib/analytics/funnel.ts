@@ -1,6 +1,5 @@
 import { createHash, randomUUID } from 'crypto';
 import { getDb } from '@/lib/db';
-import type { StoreConfig } from '@/lib/store-config';
 
 /**
  * Funnel events storage + RGPD-friendly PII hashing.
@@ -125,15 +124,3 @@ export function ensureSessionId(cookieValue: string | undefined): { id: string; 
   return { id: randomUUID(), isNew: true };
 }
 
-/**
- * Bag of params commonly threaded through cart/checkout routes — keeps
- * the wiring concise.
- */
-interface FunnelContext {
-  store: StoreConfig;
-  sessionId: string;
-  attribution: UtmAttribution;
-  ip?: string;
-  userAgent?: string;
-  referrer?: string;
-}

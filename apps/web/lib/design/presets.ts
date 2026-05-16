@@ -150,10 +150,6 @@ export function getPreset(slug: string | null | undefined): DesignPreset {
   return DESIGN_PRESETS.find((p) => p.slug === slug) ?? DESIGN_PRESETS[0]!;
 }
 
-function listPresetSlugs(): string[] {
-  return DESIGN_PRESETS.map((p) => p.slug);
-}
-
 /**
  * Locked, structured palette stored in `dropship_stores.palette`. The agent
  * + user decide it once at creation time and templates read from this
