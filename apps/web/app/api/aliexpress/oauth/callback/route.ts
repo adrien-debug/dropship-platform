@@ -60,16 +60,22 @@ export async function GET(req: NextRequest) {
   try { data = JSON.parse(rawBody); } catch { /* keep rawBody for display */ }
 
   if (data.error_response || !data.access_token) {
+    // Log the full upstream response server-side for ops debugging — never
+    // surface it to the user (the body can leak request parameters or
+    // partially redacted secrets that would expand an attacker's surface).
+    console.error('[ae-oauth] callback failed', {
+      httpStatus: res.status,
+      body: rawBody,
+    });
+    // Generic, static, HTML-safe user-facing message. Full upstream body
+    // stays in the server logs only.
     const escape = (s: string) => s.replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]!));
+    const userMessage = escape('Échec de la connexion AliExpress. Vérifie les logs serveur ou réessaie.');
     const errorRes = new NextResponse(
-      `<html><body style="font-family:ui-monospace,monospace;padding:2rem;max-width:900px;margin:0 auto">
+      `<html><body style="font-family:sans-serif;padding:2rem;max-width:600px;margin:0 auto">
         <h2>❌ AliExpress OAuth Error</h2>
-        <p>HTTP <strong>${res.status}</strong></p>
-        <h3>Response body</h3>
-        <pre style="background:#f4f4f4;padding:1rem;border-radius:6px;white-space:pre-wrap;word-break:break-all">${escape(rawBody)}</pre>
-        <h3>Request (debug)</h3>
-        <pre style="background:#f4f4f4;padding:1rem;border-radius:6px;white-space:pre-wrap;word-break:break-all">POST ${escape(tokenUrl.replace(APP_SECRET || 'XXX', '<secret>'))}</pre>
-        <a href="/admin/settings">← Back</a>
+        <p>${userMessage}</p>
+        <a href="/admin/settings" style="display:inline-block;margin-top:1rem;padding:.5rem 1rem;background:#000;color:#fff;border-radius:8px;text-decoration:none">← Retour admin</a>
       </body></html>`,
       { headers: { 'Content-Type': 'text/html' }, status: 500 },
     );

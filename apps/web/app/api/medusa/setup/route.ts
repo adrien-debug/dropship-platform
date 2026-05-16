@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { medusa, getMedusaBaseUrl, getMedusaAuthMode } from '@/lib/medusa';
+
+const setupSchema = z.object({ dryRun: z.boolean().optional() });
 
 interface AdminResult<T> { ok: boolean; status: number; data?: T; error?: string }
 
@@ -71,8 +74,15 @@ export async function GET() {
  */
 export async function POST(request: NextRequest) {
   const auth = await getAdminAuthHeader();
-  const body = await request.json().catch(() => ({}));
-  const dryRun: boolean = body?.dryRun === true;
+  const rawBody = await request.json().catch(() => ({}));
+  const parsed = setupSchema.safeParse(rawBody);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { success: false, error: 'invalid body', details: parsed.error.flatten() },
+      { status: 400 },
+    );
+  }
+  const dryRun: boolean = parsed.data.dryRun === true;
   const log: string[] = [];
 
   async function step<T>(label: string, fn: () => Promise<T>): Promise<T> {

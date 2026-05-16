@@ -312,6 +312,27 @@ export async function PATCH(
     }
     setClauses.push(`updated_at = now()`);
     values.push(storeId);
+
+    // INVARIANT: setClauses must only reference column names from ALLOWED_COLUMNS.
+    // Dynamic SQL is safe because column names come from a closed enum mapped
+    // from typed fields (PLAIN_FIELD_TO_COLUMN + SECRET_FIELD_TO_COLUMNS) plus
+    // the static `template`, `custom_domain` and `updated_at` fields handled
+    // above. The runtime assertion below catches future violations (e.g. a
+    // new code path pushing a clause derived from user input).
+    const ALLOWED_COLUMNS = new Set<string>([
+      'template',
+      'custom_domain',
+      'updated_at',
+      ...Object.values(PLAIN_FIELD_TO_COLUMN),
+      ...Object.values(SECRET_FIELD_TO_COLUMNS).flatMap((cols) => [cols.plain, cols.enc, cols.nonce]),
+    ]);
+    for (const clause of setClauses) {
+      const col = clause.split('=')[0].trim();
+      if (!ALLOWED_COLUMNS.has(col)) {
+        throw new Error(`[stores/[id]] Disallowed column in UPDATE: ${col}`);
+      }
+    }
+
     const { rowCount } = await getDb().query(
       `UPDATE dropship_stores SET ${setClauses.join(', ')} WHERE id = $${i}`,
       values,
