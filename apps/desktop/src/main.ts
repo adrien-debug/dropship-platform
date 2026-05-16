@@ -13,11 +13,14 @@ import {
   Menu,
   MenuItemConstructorOptions,
   app,
+  dialog,
   globalShortcut,
   ipcMain,
   session,
   shell,
 } from 'electron';
+import log from 'electron-log';
+import { autoUpdater } from 'electron-updater';
 
 import { getConfig } from './config';
 import {
@@ -28,6 +31,11 @@ import {
 import { ensureNextRunning, stopNext } from './nextProcess';
 import { createTray, destroyTray, pushRecentStore } from './tray';
 import { closeAll, hasOpenWindows, openWindow } from './windows';
+
+// Redirect console to electron-log so everything lands in
+// ~/Library/Logs/Hearst Dropship/main.log
+log.initialize();
+Object.assign(console, log.functions);
 
 // macOS-only wrapper — bail out loudly on anything else so the user knows.
 if (process.platform !== 'darwin') {
@@ -54,10 +62,6 @@ function installAuthHeader(): void {
     return;
   }
 
-  // No URL filter: Electron's pattern filter is applied before the URL is
-  // fully resolved for main-frame navigations and can miss the first request.
-  // We filter manually inside the callback so the header is only injected on
-  // requests that target our own origin.
   session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
     if (details.url.startsWith(origin)) {
       details.requestHeaders.Authorization = basicAuthHeader;
@@ -162,6 +166,12 @@ function buildAppMenu(): Menu {
             void shell.openExternal('https://github.com/');
           },
         },
+        {
+          label: 'Check for Updates',
+          click: () => {
+            void autoUpdater.checkForUpdatesAndNotify();
+          },
+        },
       ],
     },
   ];
@@ -180,12 +190,9 @@ function wireIpc(): void {
     event.returnValue = getConfig().basicAuthHeader ?? null;
   });
 
-
   ipcMain.handle(
     'window:open',
     (_event, opts: { kind: string; storeId?: string }) => {
-      // Validate the kind here — the preload type is `string` so we can't trust
-      // it at the boundary.
       const validKinds = new Set([
         'dashboard',
         'new-store',
@@ -236,6 +243,68 @@ function wireIpc(): void {
   });
 }
 
+// ── Auto-updater wiring ────────────────────────────────────────────────
+
+function setupAutoUpdater(): void {
+  // Skip in dev mode — we never want to overwrite a dev build accidentally.
+  if (getConfig().isDev) {
+    log.info('[updater] Skipped — dev mode');
+    return;
+  }
+
+  autoUpdater.logger = log;
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+
+  autoUpdater.on('checking-for-update', () => {
+    log.info('[updater] Checking for update…');
+  });
+
+  autoUpdater.on('update-available', (info) => {
+    log.info('[updater] Update available:', info.version);
+    notifyFromRenderer({
+      title: 'Mise à jour disponible',
+      body: `Version ${info.version} sera installée au prochain lancement.`,
+      urgency: 'normal',
+    });
+  });
+
+  autoUpdater.on('update-not-available', () => {
+    log.info('[updater] No update available');
+  });
+
+  autoUpdater.on('update-downloaded', (info) => {
+    log.info('[updater] Update downloaded:', info.version);
+    notifyFromRenderer({
+      title: 'Mise à jour prête',
+      body: `Version ${info.version} téléchargée. Redémarre pour appliquer.`,
+      urgency: 'normal',
+    });
+
+    dialog.showMessageBox({
+      type: 'info',
+      title: 'Mise à jour prête',
+      message: `Version ${info.version} est prête.`,
+      detail: 'Redémarre l\'application pour appliquer la mise à jour.',
+      buttons: ['Redémarrer maintenant', 'Plus tard'],
+      defaultId: 0,
+    }).then(({ response }) => {
+      if (response === 0) {
+        autoUpdater.quitAndInstall(false, true);
+      }
+    });
+  });
+
+  autoUpdater.on('error', (err) => {
+    log.error('[updater] Error:', err.message);
+  });
+
+  // Check on startup (with a small delay so the window is already visible).
+  setTimeout(() => {
+    void autoUpdater.checkForUpdatesAndNotify();
+  }, 5000);
+}
+
 app.on('ready', async () => {
   app.setName('Hearst Dropship');
   installAuthHeader();
@@ -244,11 +313,8 @@ app.on('ready', async () => {
   wireIpc();
   createTray();
   startAnomalyWatcher();
+  setupAutoUpdater();
 
-  // In dev, embed Next.js as a child process and wait for it to be ready
-  // before opening the dashboard. In prod, we hit Vercel directly so this
-  // step is skipped. ALL errors are surfaced in a dedicated splash window
-  // so the user never sees a blank / crashing main window.
   const cfg = getConfig();
   if (cfg.isDev && cfg.isLocal) {
     try {
@@ -259,28 +325,21 @@ app.on('ready', async () => {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.error('[startup] Next.js failed to start:', message);
-      const { dialog } = require('electron') as typeof import('electron');
-      // Show a native error dialog so the user sees exactly whats wrong
-      // instead of staring at a black/empty window.
       dialog.showErrorBox(
-        'Next.js n a pas démarré',
-        `Le serveur de développement n a pas répondu sur le port 4302.\n\n${message}\n\nVérifie /tmp/hdrop-next.log ou lance manuellement :\n  cd apps/web && npm run dev`,
+        'Next.js n\'a pas démarré',
+        `Le serveur de développement n\'a pas répondu sur le port 4302.\n\n${message}\n\nVérifie /tmp/hdrop-next.log ou lance manuellement :\n  cd apps/web && npm run dev`,
       );
-      // Open the window anyway — Cmd+R will retry once the user fixes things.
     }
   }
 
   openWindow({ kind: 'dashboard' });
-  // Force foreground after window creation
   app.focus({ steal: true });
 });
 
-// macOS convention: keep the app running even with no windows.
 app.on('window-all-closed', () => {
   // Intentionally do nothing — the tray + menu bar keep the app alive.
 });
 
-// Dock click with no windows open → reopen the dashboard.
 app.on('activate', () => {
   if (!hasOpenWindows()) {
     openWindow({ kind: 'dashboard' });
@@ -293,8 +352,6 @@ app.on('will-quit', async (event) => {
   destroyTray();
   closeAll();
 
-  // Kill the embedded Next.js dev server cleanly. We need to delay the
-  // actual quit until SIGTERM/SIGKILL completes so it doesnt linger.
   if (getConfig().isDev) {
     event.preventDefault();
     await stopNext();
