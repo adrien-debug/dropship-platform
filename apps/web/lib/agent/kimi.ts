@@ -13,7 +13,7 @@ import { getDb } from '@/lib/db';
 import { runContext } from './run-context';
 
 const API_BASE = process.env.HYPER_API_BASE || 'https://api.hypercli.com/v1';
-const MODEL = process.env.KIMI_MODEL || 'kimi-k2-5';
+const MODEL = process.env.KIMI_MODEL || 'kimi-k2.5';
 const TIMEOUT_MS = 60_000;
 const MAX_RETRIES = 3;
 
