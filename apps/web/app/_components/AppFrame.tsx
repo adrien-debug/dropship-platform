@@ -5,6 +5,7 @@
 import { usePathname } from 'next/navigation';
 import { CockpitShell } from '@hearst/cockpit-shell';
 import SuperAgentOverlayMobile from '@/components/super-agent/SuperAgentOverlayMobile';
+import { MerchantBottomBar } from '@/components/cockpit/MerchantBottomBar';
 import { createClientChatPersistence } from './cockpit-chat-persistence-client';
 
 const MERCHANT_PRODUCTS = [
@@ -25,6 +26,8 @@ export default function AppFrame({ children }: { children: React.ReactNode }) {
           <CockpitShell products={MERCHANT_PRODUCTS} appId="merchant" chatConfig={chatConfig}>
             {children}
           </CockpitShell>
+          {/* Navigation centralisée admin — flottante en bas, uniquement /admin/* */}
+          <MerchantBottomBar />
         </div>
         <SuperAgentOverlayMobile />
       </>
