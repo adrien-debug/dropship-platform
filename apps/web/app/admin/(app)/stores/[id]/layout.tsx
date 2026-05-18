@@ -2,14 +2,15 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getDbRead } from '@/lib/db';
 import { StoreLogo } from '@/components/ui';
+import { StoreTabsBar } from './_components/StoreTabsBar';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * Store layout — Cockpit migration notes:
- *   - StoreTabs removed: per-store nav is now handled by BottomBar (COCKPIT_STORE_TABS in nav.config.ts).
+ *   - Per-store nav rendered via StoreTabsBar (Cockpit tokens).
  *   - Breadcrumb kept (lightweight, context-useful).
- *   - Data fetch (store name/slug/status) preserved for breadcrumb + future BottomBar context.
+ *   - Data fetch (store name/slug/status) preserved for breadcrumb + StoreTabsBar.
  */
 export default async function StoreLayout({
   children,
@@ -67,6 +68,8 @@ export default async function StoreLayout({
           </span>
         )}
       </nav>
+
+      <StoreTabsBar storeId={store.id} />
 
       <div className="flex-1 min-h-0 flex flex-col">{children}</div>
     </div>

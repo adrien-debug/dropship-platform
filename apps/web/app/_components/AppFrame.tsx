@@ -5,10 +5,13 @@
 import { usePathname } from 'next/navigation';
 import { CockpitShell } from '@hearst/cockpit-shell';
 import SuperAgentOverlayMobile from '@/components/super-agent/SuperAgentOverlayMobile';
+import { createClientChatPersistence } from './cockpit-chat-persistence-client';
 
 const MERCHANT_PRODUCTS = [
   { id: 'merchant' as const, name: 'Hearst Merchant', short: 'MR', color: '#F0567A' },
 ];
+
+const chatConfig = { persistence: createClientChatPersistence() };
 
 export default function AppFrame({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -19,7 +22,7 @@ export default function AppFrame({ children }: { children: React.ReactNode }) {
         {/* Wrap in a neutral dark container to prevent flash-of-white before
             CockpitShell (.ct-root) hydrates and paints its own background. */}
         <div style={{ minHeight: '100dvh', background: 'var(--ct-bg-deep)' }}>
-          <CockpitShell products={MERCHANT_PRODUCTS} appId="merchant">
+          <CockpitShell products={MERCHANT_PRODUCTS} appId="merchant" chatConfig={chatConfig}>
             {children}
           </CockpitShell>
         </div>
