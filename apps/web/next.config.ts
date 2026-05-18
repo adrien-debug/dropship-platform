@@ -52,6 +52,7 @@ const SECURITY_HEADERS = [
 ];
 
 const nextConfig: NextConfig = {
+  transpilePackages: ['@hearst/cockpit-shell'],
   async headers() {
     return [
       {

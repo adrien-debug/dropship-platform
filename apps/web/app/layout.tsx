@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import localFont from 'next/font/local';
 import './globals.css';
-import './cockpit.css';
+import '@hearst/cockpit-shell/tokens.css';
 import AppFrame from '@/app/_components/AppFrame';
 
 /**
