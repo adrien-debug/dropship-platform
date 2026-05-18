@@ -15,7 +15,14 @@ import { withSentryConfig } from '@sentry/nextjs';
  *    have time to monitor reports.
  */
 const SECURITY_HEADERS = [
-  { key: 'X-Frame-Options', value: 'DENY' },
+  // X-Frame-Options replaced by CSP frame-ancestors below so the Hearst Hub
+  // (Electron webview on localhost:4200/4201) can embed Merchant while all
+  // other origins remain blocked.
+  // { key: 'X-Frame-Options', value: 'DENY' },
+  {
+    key: 'Content-Security-Policy',
+    value: "frame-ancestors 'self' localhost:4200 localhost:4201",
+  },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },

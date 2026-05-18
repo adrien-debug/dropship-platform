@@ -15,6 +15,7 @@
     "vercel-build": "next build"
   },
   "dependencies": {
+    "@hearst/hub-sdk": "file:/Users/adrienbeyondcrypto/Dev/Hearst Corporation /packages/hub-sdk",
     "@anthropic-ai/sdk": "^0.96.0",
     "@aws-sdk/client-s3": "^3.1045.0",
     "@fal-ai/client": "^1.10.1",
