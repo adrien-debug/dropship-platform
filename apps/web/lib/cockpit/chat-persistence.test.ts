@@ -147,7 +147,7 @@ describe('createCockpitChatPersistence', () => {
       expect(insertQuery!.sql).toMatch(/ON CONFLICT.*DO NOTHING/i);
     });
 
-    it('passes correct params to the insert query', async () => {
+    it('passes correct params to the insert query (including adminUser for ownership)', async () => {
       const persistence = createCockpitChatPersistence('admin');
       const msg = { id: 'msg-def', role: 'assistant' as const, content: 'World', createdAt: 1700000002000 };
       await persistence.saveMessage('chat-2', msg);
@@ -156,10 +156,11 @@ describe('createCockpitChatPersistence', () => {
         q.sql.includes('dropship_cockpit_chat_messages'),
       );
       expect(insertQuery).toBeDefined();
-      expect(insertQuery!.params).toEqual(['msg-def', 'chat-2', 'assistant', 'World', 1700000002000]);
+      // $6 is adminUser for the ownership sub-select
+      expect(insertQuery!.params).toEqual(['msg-def', 'chat-2', 'assistant', 'World', 1700000002000, 'admin']);
     });
 
-    it('updates the parent chat updated_at after saving a message', async () => {
+    it('updates the parent chat updated_at after saving a message (with ownership guard)', async () => {
       const persistence = createCockpitChatPersistence('admin');
       const msg = { id: 'msg-upd', role: 'user' as const, content: 'Ping', createdAt: 1700000003000 };
       await persistence.saveMessage('chat-3', msg);
@@ -169,6 +170,8 @@ describe('createCockpitChatPersistence', () => {
       );
       expect(updateQuery).toBeDefined();
       expect(updateQuery!.params[0]).toBe('chat-3');
+      // admin_user ownership guard also in the UPDATE
+      expect(updateQuery!.params[1]).toBe('admin');
     });
   });
 });

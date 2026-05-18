@@ -2,6 +2,7 @@ import { createCockpitChatHandler } from "@hearst/cockpit-shell/handler";
 import { kimi, KIMI_MODEL } from "@/lib/llm/kimi";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export const { POST } = createCockpitChatHandler({
   llmClient: kimi,

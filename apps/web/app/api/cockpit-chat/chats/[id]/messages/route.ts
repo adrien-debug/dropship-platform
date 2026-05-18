@@ -4,8 +4,16 @@
  * Auth: Basic Auth enforced by middleware for all non-PUBLIC_EXCEPTIONS API routes.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import type { ChatMessage } from '@hearst/cockpit-shell';
+import { z } from 'zod';
 import { createCockpitChatPersistence } from '@/lib/cockpit/chat-persistence';
+
+const ChatMessageSchema = z.object({
+  id: z.string().min(1).max(128),
+  role: z.enum(['user', 'assistant']),
+  content: z.string().min(1).max(50000),
+  createdAt: z.number().int().positive(),
+});
+const PostBodySchema = z.object({ message: ChatMessageSchema });
 
 export const runtime = 'nodejs';
 
@@ -35,16 +43,21 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: 'ADMIN_USERNAME not configured' }, { status: 500 });
   }
 
-  let message: ChatMessage;
+  let rawBody: unknown;
   try {
-    const body = (await req.json()) as { message: ChatMessage };
-    message = body.message;
-    if (!message?.id || !message?.role || !message?.content) {
-      return NextResponse.json({ error: 'Invalid message payload' }, { status: 400 });
-    }
+    rawBody = await req.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
+
+  const parsed = PostBodySchema.safeParse(rawBody);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'Invalid message payload', issues: parsed.error.issues },
+      { status: 400 },
+    );
+  }
+  const { message } = parsed.data;
 
   try {
     const persistence = createCockpitChatPersistence(adminUser);

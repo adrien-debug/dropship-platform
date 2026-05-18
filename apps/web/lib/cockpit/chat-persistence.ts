@@ -43,16 +43,21 @@ export function createCockpitChatPersistence(adminUser: string): ChatPersistence
 
     async saveMessage(chatId: string, msg: ChatMessage): Promise<void> {
       const db = getDb();
+      // Ownership check inline: the INSERT only executes if the chat belongs
+      // to the current adminUser. If the chat doesn't exist or belongs to
+      // another admin the SELECT returns no rows and nothing is inserted.
       await db.query(
         `INSERT INTO dropship_cockpit_chat_messages (id, chat_id, role, content, created_at_ms)
-         VALUES ($1, $2, $3, $4, $5)
+         SELECT $1, $2, $3, $4, $5
+         FROM dropship_cockpit_chats
+         WHERE id = $2 AND admin_user = $6
          ON CONFLICT (id) DO NOTHING`,
-        [msg.id, chatId, msg.role, msg.content, msg.createdAt],
+        [msg.id, chatId, msg.role, msg.content, msg.createdAt, adminUser],
       );
-      // Keep updated_at fresh on the parent chat row.
+      // Keep updated_at fresh on the parent chat row — same ownership guard.
       await db.query(
-        `UPDATE dropship_cockpit_chats SET updated_at = now() WHERE id = $1`,
-        [chatId],
+        `UPDATE dropship_cockpit_chats SET updated_at = now() WHERE id = $1 AND admin_user = $2`,
+        [chatId, adminUser],
       );
     },
   };
