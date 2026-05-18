@@ -4,7 +4,7 @@ import { getDbRead } from '@/lib/db';
 import { resolveStoreId } from '@/lib/resolve-store';
 import { StoreAvatar, ButtonLink } from '@/components/ui';
 import { StoreActions } from '../StoreActions';
-import { cn } from '@/lib/utils/cn';
+import { KpiGrid, KpiCard } from '@/components/cockpit/primitives';
 
 export const dynamic = 'force-dynamic';
 
@@ -97,44 +97,43 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
   const statusActive = store.status === 'active';
 
   return (
-    <div className="flex flex-col flex-1 space-y-4">
-      {/* Store header — branding clean, palette strict, avatar locked to monogram */}
-      <div className="border border-admin-border rounded-admin-lg shadow-admin-card bg-admin-bg overflow-hidden">
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-admin-border-soft">
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, gap: 16 }}>
+      {/* Store header */}
+      <div style={{ border: '1px solid var(--ct-border)', borderRadius: 12, background: 'var(--ct-surface-1)', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', borderBottom: '1px solid var(--ct-border-soft)' }}>
           <StoreAvatar slug={store.slug} name={store.name} size={40} />
-          <div className="min-w-0 flex-1">
-            {/* H1 — page title, 24px tracked, real hierarchy */}
-            <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-admin-text leading-tight truncate">
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <h1 className="ct-title" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {store.name}
             </h1>
             {store.tagline && (
-              <p className="text-[12px] text-admin-text-muted truncate mt-0.5">{store.tagline}</p>
+              <p style={{ fontSize: 12, color: 'var(--ct-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 2 }}>{store.tagline}</p>
             )}
           </div>
-          <div className="shrink-0">
+          <div style={{ flexShrink: 0 }}>
             <StoreActions storeId={store.id} storeName={store.name} />
           </div>
         </div>
 
-        <div className="p-4">
-          {/* KPI grid — values capped at text-xl (20px), never bigger than H1 */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-            <Stat label="Produits" value={products.length.toString()} />
-            <Stat label="Prix moyen" value={`${avgPrice.toFixed(2)} €`} />
-            <Stat label="Marge moy." value={`${margin.toFixed(2)} €`} />
-            <Stat label="Statut" value={statusActive ? 'En ligne' : store.status} highlight={statusActive} />
-          </div>
+        <div style={{ padding: 16 }}>
+          {/* KPI grid */}
+          <KpiGrid className="mb-4">
+            <KpiCard label="Produits" value={products.length.toString()} />
+            <KpiCard label="Prix moyen" value={`${avgPrice.toFixed(2)} €`} />
+            <KpiCard label="Marge moy." value={`${margin.toFixed(2)} €`} />
+            <KpiCard label="Statut" value={statusActive ? 'En ligne' : store.status} accent={statusActive} />
+          </KpiGrid>
 
-          {/* Meta info — H3 inline labels, body 13px */}
-          <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-[13px]">
+          {/* Meta info */}
+          <dl style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 24, rowGap: 8, fontSize: 13 }}>
             <Row label="Niche">{store.niche || '—'}</Row>
             <Row label="Fournisseurs">
               {Object.entries(supplierCounts).map(([s, count]) => `${s} (${count})`).join(', ') || '—'}
             </Row>
             {store.medusa_publishable_key && (
               <Row label="Clé API" full>
-                <code className="text-[11px] bg-admin-bg-muted text-admin-text-secondary px-2 py-0.5 rounded font-mono">
-                  {store.medusa_publishable_key.slice(0, 24)}…
+                <code style={{ fontSize: 11, background: 'var(--ct-surface-3)', color: 'var(--ct-text-body)', padding: '2px 8px', borderRadius: 4, fontFamily: 'monospace' }}>
+                  {store.medusa_publishable_key.slice(0, 24)}&hellip;
                 </code>
               </Row>
             )}
@@ -144,12 +143,12 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
             <Row label="Domaine">{store.custom_domain || '—'}</Row>
             {store.error_message && !statusActive && (
               <Row label="Erreur" full>
-                <span className="text-admin-text-secondary">{store.error_message}</span>
+                <span style={{ color: 'var(--ct-text-muted)' }}>{store.error_message}</span>
                 <Link
                   href={`/admin/stores/new?niche=${encodeURIComponent(store.niche)}&name=${encodeURIComponent(store.name)}`}
-                  className="ml-3 text-[12px] text-admin-accent hover:underline font-medium"
+                  style={{ marginLeft: 12, fontSize: 12, color: 'var(--ct-accent)', fontWeight: 500, textDecoration: 'underline' }}
                 >
-                  Recréer ce store
+                  Recr&eacute;er ce store
                 </Link>
               </Row>
             )}
@@ -158,12 +157,12 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
       </div>
 
       {/* Catalogue teaser */}
-      <div className="rounded-admin-lg border border-admin-border bg-admin-bg shadow-admin-card p-4 flex items-center justify-between gap-3">
+      <div style={{ borderRadius: 12, border: '1px solid var(--ct-border)', background: 'var(--ct-surface-1)', padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
         <div>
-          <p className="text-[10px] uppercase tracking-[0.18em] text-admin-text-muted font-medium">Catalogue</p>
-          <p className="mt-1 text-[13px] text-admin-text-secondary">
-            <span className="font-semibold text-admin-text tabular-nums">{products.length}</span>{' '}
-            produit{products.length > 1 ? 's' : ''} importé{products.length > 1 ? 's' : ''}.
+          <p style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--ct-text-muted)', fontWeight: 700 }}>Catalogue</p>
+          <p style={{ marginTop: 4, fontSize: 13, color: 'var(--ct-text-body)' }}>
+            <span style={{ fontWeight: 600, color: 'var(--ct-text-primary)', fontVariantNumeric: 'tabular-nums' }}>{products.length}</span>{' '}
+            produit{products.length > 1 ? 's' : ''} import&eacute;{products.length > 1 ? 's' : ''}.
           </p>
         </div>
         <ButtonLink href={`/admin/stores/${store.id}/catalog`} variant="primary" size="md">
@@ -174,38 +173,13 @@ export default async function StoreDetailPage({ params }: { params: Promise<{ id
   );
 }
 
-/**
- * Standard KPI tile — value is text-xl (20px), capped below the H1 so
- * the hierarchy reads page-title → kpi-value → body. Highlight tone
- * uses the brand accent (blue) for positive states.
- */
-function Stat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
-  return (
-    <div className="border border-admin-border bg-admin-bg rounded-admin-md px-3.5 py-3 shadow-admin-card">
-      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-admin-text-muted font-medium">
-        <span
-          className={cn('inline-block w-1.5 h-1.5 rounded-full', highlight ? 'bg-admin-accent' : 'bg-admin-text-faint')}
-          aria-hidden
-        />
-        {label}
-      </div>
-      <div
-        className={cn(
-          'mt-1.5 text-[20px] font-semibold tracking-[-0.02em] tabular-nums leading-none',
-          highlight ? 'text-admin-accent' : 'text-admin-text',
-        )}
-      >
-        {value}
-      </div>
-    </div>
-  );
-}
-
+// Stat is no longer used directly — replaced by KpiCard primitive in the store detail page.
+// Keeping for reference; cn import is still needed for Row.
 function Row({ label, full, children }: { label: string; full?: boolean; children: React.ReactNode }) {
   return (
-    <div className={cn('flex items-baseline gap-2 min-w-0', full && 'md:col-span-2')}>
-      <dt className="text-admin-text-secondary font-medium shrink-0">{label} :</dt>
-      <dd className="text-admin-text-muted min-w-0 truncate">{children}</dd>
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0, gridColumn: full ? 'span 2' : undefined }}>
+      <dt style={{ color: 'var(--ct-text-muted)', fontWeight: 500, flexShrink: 0 }}>{label} :</dt>
+      <dd style={{ color: 'var(--ct-text-body)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{children}</dd>
     </div>
   );
 }

@@ -38,49 +38,53 @@ export function ResearchToolCard({ message, onApplyShortlist }: ResearchToolCard
 
   return (
     <div
-      className={`rounded-xl border bg-white text-sm overflow-hidden ${
-        isError ? 'border-red-200 bg-red-50/20' : 'border-zinc-200'
-      }`}
+      className="rounded-xl text-sm overflow-hidden"
+      style={{
+        border: `1px solid ${isError ? 'var(--ct-border-accent)' : 'var(--ct-border)'}`,
+        background: isError ? 'var(--ct-accent-soft)' : 'var(--ct-surface-1)',
+      }}
     >
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full px-4 py-2 flex items-center gap-2 text-left hover:bg-zinc-50 transition-colors"
+        className="w-full px-4 py-2 flex items-center gap-2 text-left transition-colors"
+        style={{ background: 'transparent' }}
       >
         <span
-          className={`inline-block w-1.5 h-1.5 rounded-full ${
-            isError
-              ? 'bg-zinc-100'
+          className="inline-block w-1.5 h-1.5 rounded-full"
+          style={{
+            background: isError
+              ? 'var(--ct-accent-strong)'
               : message.tool_output
-              ? 'bg-blue-100'
-              : 'bg-blue-50'
-          }`}
+              ? 'var(--ct-accent)'
+              : 'var(--ct-border-strong)',
+          }}
         />
-        <code className="font-mono text-xs text-zinc-700">{name}</code>
-        <span className="ml-auto text-xs text-zinc-500 line-clamp-1">{message.content}</span>
-        <span className="text-xs text-zinc-300">{open ? '▾' : '▸'}</span>
+        <code className="font-mono text-xs" style={{ color: 'var(--ct-text-body)' }}>{name}</code>
+        <span className="ml-auto text-xs line-clamp-1" style={{ color: 'var(--ct-text-muted)' }}>{message.content}</span>
+        <span className="text-xs" style={{ color: 'var(--ct-border-strong)' }}>{open ? '▾' : '▸'}</span>
       </button>
 
       {open && message.tool_output != null && (
-        <div className="px-4 pb-4 pt-1 border-t border-zinc-100 space-y-3">
+        <div className="px-4 pb-4 pt-1 space-y-3" style={{ borderTop: '1px solid var(--ct-border-soft)' }}>
           {name === 'web_search' && <WebSearchRenderer output={message.tool_output} />}
           {name === 'ask_perplexity' && <PerplexityRenderer output={message.tool_output} />}
           {name === 'meta_ads_library' && <MetaLibraryRenderer output={message.tool_output} />}
           {(name === 'aliexpress_search' || name === 'cj_search') && (
             <SupplierRenderer output={message.tool_output} supplier={name === 'cj_search' ? 'cj' : 'aliexpress'} />
           )}
-          <details className="text-xs text-zinc-500">
-            <summary className="cursor-pointer hover:text-zinc-700">Détails techniques</summary>
+          <details className="text-xs" style={{ color: 'var(--ct-text-muted)' }}>
+            <summary className="cursor-pointer">Détails techniques</summary>
             <div className="mt-2 space-y-2">
               <div>
-                <div className="text-kicker uppercase tracking-cta text-zinc-400">input</div>
-                <pre className="mt-1 bg-zinc-50 rounded p-2 overflow-x-auto font-mono text-xs whitespace-pre-wrap break-all max-w-full">
+                <div className="text-kicker uppercase tracking-cta" style={{ color: 'var(--ct-text-muted)' }}>input</div>
+                <pre className="mt-1 rounded p-2 overflow-x-auto font-mono text-xs whitespace-pre-wrap break-all max-w-full" style={{ background: 'var(--ct-surface-0)', color: 'var(--ct-text-body)' }}>
                   {inputJson}
                 </pre>
               </div>
               <div>
-                <div className="text-kicker uppercase tracking-cta text-zinc-400">output</div>
-                <pre className="mt-1 bg-zinc-50 rounded p-2 overflow-x-auto font-mono text-xs whitespace-pre-wrap break-all max-w-full">
+                <div className="text-kicker uppercase tracking-cta" style={{ color: 'var(--ct-text-muted)' }}>output</div>
+                <pre className="mt-1 rounded p-2 overflow-x-auto font-mono text-xs whitespace-pre-wrap break-all max-w-full" style={{ background: 'var(--ct-surface-0)', color: 'var(--ct-text-body)' }}>
                   {outputJson}
                 </pre>
               </div>

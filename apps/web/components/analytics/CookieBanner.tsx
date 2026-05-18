@@ -8,9 +8,7 @@ import { apiFetch } from '@/lib/client-fetch';
  * Minimal, self-contained RGPD banner. Shows only when the consent cookie
  * is unset; on Accept / Refuse, POSTs the choice to /api/consent (which
  * writes the cookie HTTP-side) then reloads the page so SSR re-injects
- * (or re-omits) the analytics tags. Self-styled — doesn't pull from the
- * design system because it must render even on edge cases where the
- * layout is missing.
+ * (or re-omits) the analytics tags.
  */
 export function CookieBanner() {
   const [visible, setVisible] = useState(false);
@@ -43,20 +41,48 @@ export function CookieBanner() {
 
   return (
     <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:max-w-md z-[60]">
-      <div className="bg-white rounded-2xl shadow-2xl border border-zinc-200 p-5 sm:p-6">
-        <p className="text-kicker uppercase tracking-kicker text-zinc-400 font-medium mb-3">
+      <div
+        className="rounded-2xl p-5 sm:p-6"
+        style={{
+          background: 'var(--ct-surface-2)',
+          border: '1px solid var(--ct-border-strong)',
+          boxShadow: 'var(--ct-shadow-depth)',
+          backdropFilter: 'blur(24px) saturate(150%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(150%)',
+        }}
+      >
+        <p
+          className="text-[10px] uppercase tracking-[0.14em] font-bold mb-3"
+          style={{ color: 'var(--ct-text-muted)' }}
+        >
           Cookies
         </p>
-        <p className="text-sm text-zinc-700 leading-relaxed mb-5">
-          On utilise des cookies de mesure d&apos;audience pour comprendre comment notre site est utilisé et améliorer l&apos;expérience.
-          Aucune donnée personnelle n&apos;est revendue. Tu peux refuser sans impact sur ta navigation.
+        <p
+          className="text-sm leading-relaxed mb-5"
+          style={{ color: 'var(--ct-text-body)' }}
+        >
+          On utilise des cookies de mesure d&apos;audience pour comprendre comment notre site est
+          utilisé et améliorer l&apos;expérience. Aucune donnée personnelle n&apos;est revendue. Tu
+          peux refuser sans impact sur ta navigation.
         </p>
         <div className="flex gap-3">
           <button
             type="button"
             onClick={() => choose('denied')}
             disabled={pending}
-            className="flex-1 border border-zinc-200 text-zinc-700 px-4 py-2.5 rounded-full text-xs uppercase tracking-cta font-medium hover:bg-zinc-50 transition-colors disabled:opacity-50"
+            className="flex-1 px-4 py-2.5 rounded-full text-xs uppercase tracking-[0.1em] font-medium disabled:opacity-50"
+            style={{
+              color: 'var(--ct-text-body)',
+              border: '1px solid var(--ct-border-strong)',
+              background: 'transparent',
+              transition: 'background var(--ct-dur-base) var(--ct-ease)',
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = 'var(--ct-surface-3)';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+            }}
           >
             Refuser
           </button>
@@ -64,7 +90,12 @@ export function CookieBanner() {
             type="button"
             onClick={() => choose('granted')}
             disabled={pending}
-            className="flex-1 bg-zinc-950 text-white px-4 py-2.5 rounded-full text-xs uppercase tracking-cta font-medium hover:bg-black transition-colors disabled:opacity-50"
+            className="flex-1 px-4 py-2.5 rounded-full text-xs uppercase tracking-[0.1em] font-medium disabled:opacity-50"
+            style={{
+              background: 'var(--ct-accent)',
+              color: 'var(--ct-text-strong)',
+              transition: 'opacity var(--ct-dur-base) var(--ct-ease)',
+            }}
           >
             Accepter
           </button>

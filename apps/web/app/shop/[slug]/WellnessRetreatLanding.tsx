@@ -218,19 +218,8 @@ export function WellnessRetreatLanding({ store, products }: Props) {
                   fontSize: 'clamp(2.5rem, 6.5vw, 5.5rem)',
                 }}
               >
-                {heroLineA}
+                {heroLineA}{heroLineB && <><br />{heroLineB}</>}
               </h1>
-              {heroLineB && (
-                <h1
-                  className="font-light tracking-[0.08em] leading-[1.05]"
-                  style={{
-                    color: ink,
-                    fontSize: 'clamp(2.5rem, 6.5vw, 5.5rem)',
-                  }}
-                >
-                  {heroLineB}
-                </h1>
-              )}
             </div>
             <p
               className="mt-8 italic text-base sm:text-lg font-light max-w-xl"

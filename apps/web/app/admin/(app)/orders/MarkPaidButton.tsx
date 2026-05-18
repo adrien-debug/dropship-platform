@@ -43,11 +43,30 @@ export function MarkPaidButton({ orderId }: Props) {
       <button
         onClick={() => setConfirmOpen(true)}
         disabled={busy}
-        className="px-3 py-1.5 text-xs rounded-md border border-blue-200 bg-white text-blue-600 hover:border-blue-200 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="px-3 py-1.5 text-xs rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+        style={{
+          background: 'var(--ct-surface-1)',
+          color: 'var(--ct-accent)',
+          border: '1px solid var(--ct-border-accent)',
+          transition: 'background var(--ct-dur-base) var(--ct-ease)',
+        }}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLButtonElement).style.background = 'var(--ct-accent-soft)';
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLButtonElement).style.background = 'var(--ct-surface-1)';
+        }}
       >
         {busy ? '…' : 'Marquer payée'}
       </button>
-      {error && <span className="text-kicker text-zinc-500 max-w-[200px] text-right">{error}</span>}
+      {error && (
+        <span
+          className="text-[10px] max-w-[200px] text-right"
+          style={{ color: 'var(--ct-text-muted)' }}
+        >
+          {error}
+        </span>
+      )}
       <ConfirmDialog
         open={confirmOpen}
         title="Confirmer le paiement"

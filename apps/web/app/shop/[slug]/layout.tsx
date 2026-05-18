@@ -75,7 +75,7 @@ export default async function ShopLayout({
         </div>
       </header>
 
-      <main className="min-h-screen bg-white">{children}</main>
+      <main>{children}</main>
 
       <footer className="bg-zinc-950 text-white py-14">
         <div className="max-w-7xl mx-auto px-4 text-center space-y-4 flex flex-col items-center">

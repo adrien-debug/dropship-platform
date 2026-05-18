@@ -66,13 +66,13 @@ export function StoreAnalyticsForm({ storeId, initial }: Props) {
   }
 
   return (
-    <div className="border border-zinc-200 rounded-xl bg-white shadow-sm">
-      <div className="px-5 py-4 border-b border-zinc-200 flex items-baseline justify-between">
+    <div className="ct-card" style={{ margin: 0 }}>
+      <div className="px-5 py-4 flex items-baseline justify-between" style={{ borderBottom: '1px solid var(--ct-border)' }}>
         <div>
-          <h3 className="text-base font-semibold tracking-tight">
-            Analytics & <em className="italic text-zinc-600">attribution</em>
+          <h3 className="text-base font-semibold tracking-tight" style={{ color: 'var(--ct-text-primary)' }}>
+            Analytics & <em className="italic" style={{ color: 'var(--ct-text-muted)' }}>attribution</em>
           </h3>
-          <p className="text-xs text-zinc-400 mt-0.5">
+          <p className="text-xs mt-0.5" style={{ color: 'var(--ct-text-muted)' }}>
             Les pixels et tags injectés sur la boutique. Tous facultatifs, tous propres à ce store.
           </p>
         </div>
@@ -171,9 +171,9 @@ export function StoreAnalyticsForm({ storeId, initial }: Props) {
         </Group>
       </div>
 
-      <div className="px-5 py-4 border-t border-zinc-200 bg-zinc-100/60 flex items-center justify-between gap-4">
+      <div className="px-5 py-4 flex items-center justify-between gap-4" style={{ borderTop: '1px solid var(--ct-border)', background: 'var(--ct-surface-2)' }}>
         {feedback ? (
-          <span className={`text-sm ${feedback.type === 'ok' ? 'text-blue-600' : 'text-zinc-500'}`}>
+          <span className="text-sm" style={{ color: feedback.type === 'ok' ? 'var(--ct-accent)' : 'var(--ct-text-muted)' }}>
             {feedback.msg}
           </span>
         ) : dirty ? (
@@ -182,7 +182,7 @@ export function StoreAnalyticsForm({ storeId, initial }: Props) {
             Non sauvegardé
           </span>
         ) : (
-          <span className="text-xs text-zinc-400">
+          <span className="text-xs" style={{ color: 'var(--ct-text-muted)' }}>
             Champ vide → la valeur est effacée. Champ inchangé → conservé.
           </span>
         )}
@@ -190,7 +190,7 @@ export function StoreAnalyticsForm({ storeId, initial }: Props) {
           type="button"
           onClick={submit}
           disabled={pending || !dirty}
-          className="bg-blue-600 text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="ct-seg-btn primary px-6 py-2.5 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {pending ? 'Enregistrement…' : 'Enregistrer'}
         </button>
@@ -213,10 +213,10 @@ function Group({
   return (
     <section>
       <div className="mb-4">
-        <h4 className={`text-xs uppercase tracking-label font-medium ${tone === 'warn' ? 'text-blue-600' : 'text-zinc-400'}`}>
+        <h4 className="text-xs uppercase tracking-label font-medium" style={{ color: tone === 'warn' ? 'var(--ct-accent)' : 'var(--ct-text-muted)' }}>
           {title}
         </h4>
-        {hint && <p className="text-xs text-zinc-400 mt-1">{hint}</p>}
+        {hint && <p className="text-xs mt-1" style={{ color: 'var(--ct-text-muted)' }}>{hint}</p>}
       </div>
       <div className="space-y-4">{children}</div>
     </section>
@@ -242,7 +242,7 @@ function Field({
 }) {
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-zinc-900 mb-1.5">
+      <label htmlFor={id} className="block text-sm font-medium mb-1.5" style={{ color: 'var(--ct-text-primary)' }}>
         {label}
       </label>
       <input
@@ -251,11 +251,12 @@ function Field({
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+        className="w-full rounded-lg px-3 py-2 text-sm font-mono focus:outline-none"
+        style={{ border: '1px solid var(--ct-border)', background: 'var(--ct-surface-2)', color: 'var(--ct-text-primary)' }}
         autoComplete="off"
         spellCheck={false}
       />
-      {help && <p className="text-[11px] text-zinc-400 mt-1">{help}</p>}
+      {help && <p className="text-[11px] mt-1" style={{ color: 'var(--ct-text-muted)' }}>{help}</p>}
     </div>
   );
 }

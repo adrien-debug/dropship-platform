@@ -148,6 +148,14 @@
     --radius-md: 10px;
     --radius-lg: 14px;
     --radius-xl: 18px;
+
+    /* Cockpit semantic extensions (hors SPEC §2 — app-level) */
+    --ct-warning: rgba(251,191,36,1);
+    --ct-warning-soft: rgba(251,191,36,0.08);
+    --ct-warning-border: rgba(251,191,36,0.4);
+    --ct-warning-text: rgba(251,191,36,0.92);
+    --ct-titlebar-height: 36px;
+    --ct-radius-nav: 10px;
   }
 }
 

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { medusa, type MedusaProduct } from '@/lib/medusa';
 import { PageHeader, StatusPill } from '@/app/admin/_components/AdminUI';
+// StatusPill is used in product rows (emerald/neutral for published status)
 
 export const dynamic = 'force-dynamic';
 
@@ -23,12 +24,12 @@ export default async function CatalogPage() {
         kicker="Production · Medusa"
         title={
           <>
-            Catalogue <em className="italic text-zinc-400">Medusa</em>
+            Catalogue <em style={{ fontStyle: 'italic', color: 'var(--ct-text-muted)' }}>Medusa</em>
           </>
         }
-        lede="Tous les SKU publiés par l’agent. Source de vérité du stock e-commerce, indépendante des storefronts."
+        lede="Tous les SKU publiés par l'agent. Source de vérité du stock e-commerce, indépendante des storefronts."
         actions={
-          <span className="text-xs text-zinc-400 tabular-nums">
+          <span style={{ fontSize: 11, color: 'var(--ct-text-faint)', fontVariantNumeric: 'tabular-nums' }}>
             {products.length} produit{products.length > 1 ? 's' : ''}
             {drafts > 0 ? ` · ${drafts} brouillon${drafts > 1 ? 's' : ''}` : ''}
             {published > 0 ? ` · ${published} publié${published > 1 ? 's' : ''}` : ''}
@@ -37,68 +38,68 @@ export default async function CatalogPage() {
       />
 
       {error && (
-        <div className="border border-zinc-200 bg-white rounded-xl shadow-sm p-5">
-          <p className="text-kicker uppercase tracking-label text-zinc-500 font-medium">Erreur Medusa</p>
-          <p className="mt-1.5 text-sm text-zinc-500">{error}</p>
+        <div className="ct-card" style={{ margin: 0 }}>
+          <p style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--ct-text-muted)', fontWeight: 700 }}>Erreur Medusa</p>
+          <p style={{ marginTop: 6, fontSize: 13, color: 'var(--ct-text-muted)' }}>{error}</p>
         </div>
       )}
 
       {!error && products.length === 0 && (
-        <div className="flex-1 min-h-0 flex items-center justify-center border border-dashed border-zinc-200 rounded-xl bg-white shadow-sm">
-          <div className="text-center px-6 py-16">
-            <p className="text-sm font-semibold tracking-tight text-zinc-900">Aucun produit publié pour le moment.</p>
-            <p className="mt-1 text-xs text-zinc-400">Lance l’agent pour publier les premiers SKU.</p>
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dashed var(--ct-border-strong)', borderRadius: 12, background: 'var(--ct-surface-1)' }}>
+          <div style={{ textAlign: 'center', padding: '64px 24px' }}>
+            <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--ct-text-primary)' }}>Aucun produit publie pour le moment.</p>
+            <p style={{ marginTop: 4, fontSize: 12, color: 'var(--ct-text-muted)' }}>Lance l&apos;agent pour publier les premiers SKU.</p>
           </div>
         </div>
       )}
 
       {products.length > 0 && (
-        <section className="flex-1 min-h-0 flex flex-col border border-zinc-200 rounded-xl overflow-hidden bg-white shadow-sm">
-          <div className="overflow-auto flex-1 min-h-0">
-            <table className="w-full min-w-[760px] text-sm">
-              <thead className="bg-zinc-50 text-kicker uppercase tracking-header text-zinc-400 sticky top-0">
-                <tr className="border-b border-zinc-200">
-                  <th className="text-left px-5 py-3 font-medium w-16"></th>
-                  <th className="text-left px-5 py-3 font-medium">Produit</th>
-                  <th className="text-left px-5 py-3 font-medium">Handle</th>
-                  <th className="text-left px-5 py-3 font-medium">Statut</th>
-                  <th className="text-left px-5 py-3 font-medium">Variantes</th>
-                  <th className="text-right px-5 py-3 font-medium">Action</th>
+        <section style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', border: '1px solid var(--ct-border)', borderRadius: 12, overflow: 'hidden', background: 'var(--ct-surface-1)' }}>
+          <div style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
+            <table style={{ width: '100%', minWidth: 760, fontSize: 13, borderCollapse: 'collapse' }}>
+              <thead style={{ position: 'sticky', top: 0, background: 'var(--ct-surface-2)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--ct-text-faint)', borderBottom: '1px solid var(--ct-border)' }}>
+                <tr>
+                  <th style={{ textAlign: 'left', padding: '12px 20px', fontWeight: 500, width: 64 }}></th>
+                  <th style={{ textAlign: 'left', padding: '12px 20px', fontWeight: 500 }}>Produit</th>
+                  <th style={{ textAlign: 'left', padding: '12px 20px', fontWeight: 500 }}>Handle</th>
+                  <th style={{ textAlign: 'left', padding: '12px 20px', fontWeight: 500 }}>Statut</th>
+                  <th style={{ textAlign: 'left', padding: '12px 20px', fontWeight: 500 }}>Variantes</th>
+                  <th style={{ textAlign: 'right', padding: '12px 20px', fontWeight: 500 }}>Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody>
                 {products.map((p) => (
-                  <tr key={p.id} className="hover:bg-blue-50/40 transition-colors">
-                    <td className="px-5 py-3">
+                  <tr key={p.id} style={{ borderTop: '1px solid var(--ct-border-soft)' }}>
+                    <td style={{ padding: '12px 20px' }}>
                       {p.thumbnail ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={p.thumbnail}
                           alt=""
-                          className="w-11 h-11 rounded-lg object-cover bg-zinc-100 border border-zinc-200"
+                          style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', background: 'var(--ct-surface-3)', border: '1px solid var(--ct-border)' }}
                         />
                       ) : (
-                        <div className="w-11 h-11 rounded-lg bg-zinc-100 border border-zinc-200" />
+                        <div style={{ width: 44, height: 44, borderRadius: 8, background: 'var(--ct-surface-3)', border: '1px solid var(--ct-border)' }} />
                       )}
                     </td>
-                    <td className="px-5 py-3 font-medium text-zinc-900">{p.title}</td>
-                    <td className="px-5 py-3">
-                      <code className="text-xs text-zinc-400 font-mono">{p.handle}</code>
+                    <td style={{ padding: '12px 20px', fontWeight: 500, color: 'var(--ct-text-primary)' }}>{p.title}</td>
+                    <td style={{ padding: '12px 20px' }}>
+                      <code style={{ fontSize: 11, color: 'var(--ct-text-muted)', fontFamily: 'monospace' }}>{p.handle}</code>
                     </td>
-                    <td className="px-5 py-3">
+                    <td style={{ padding: '12px 20px' }}>
                       <StatusPill tone={p.status === 'published' ? 'emerald' : 'neutral'}>
                         {p.status}
                       </StatusPill>
                     </td>
-                    <td className="px-5 py-3 text-zinc-500 tabular-nums">{p.variants?.length ?? 0}</td>
-                    <td className="px-5 py-3 text-right">
+                    <td style={{ padding: '12px 20px', color: 'var(--ct-text-body)', fontVariantNumeric: 'tabular-nums' }}>{p.variants?.length ?? 0}</td>
+                    <td style={{ padding: '12px 20px', textAlign: 'right' }}>
                       <Link
                         href={`/products/${p.handle}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-xs text-zinc-400 hover:text-zinc-900 underline underline-offset-4 decoration-zinc-200 hover:decoration-zinc-500 transition-colors"
+                        style={{ fontSize: 12, color: 'var(--ct-text-muted)', textDecoration: 'underline', textUnderlineOffset: 4 }}
                       >
-                        Ouvrir <span aria-hidden>↗</span>
+                        Ouvrir <span aria-hidden>&#8599;</span>
                       </Link>
                     </td>
                   </tr>

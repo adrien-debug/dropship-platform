@@ -24,27 +24,27 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
           alignItems: 'center',
           justifyContent: 'center',
           fontFamily: 'system-ui, -apple-system, sans-serif',
-          background: '#fff',
-          color: '#18181b',
+          background: '#1A050B',
+          color: '#ffffff',
           padding: '24px',
         }}
       >
         <div style={{ maxWidth: '420px', textAlign: 'center' }}>
-          <p style={{ fontSize: '10px', letterSpacing: '0.3em', textTransform: 'uppercase', color: '#a1a1aa', margin: '0 0 20px' }}>
+          <p style={{ fontSize: '10px', letterSpacing: '0.3em', textTransform: 'uppercase', color: 'rgba(245,245,245,0.72)', margin: '0 0 20px' }}>
             Erreur
           </p>
           <h1 style={{ fontSize: '32px', lineHeight: 1.1, margin: '0 0 20px', fontWeight: 600 }}>
-            Quelque chose s’est mal passé.
+            Quelque chose s&apos;est mal pass&eacute;.
           </h1>
-          <p style={{ fontSize: '15px', color: '#52525b', margin: '0 0 32px', lineHeight: 1.6 }}>
+          <p style={{ fontSize: '15px', color: 'rgba(245,245,245,0.72)', margin: '0 0 32px', lineHeight: 1.6 }}>
             Rechargez la page pour réessayer. Votre panier reste intact.
           </p>
           <button
             type="button"
             onClick={reset}
             style={{
-              background: '#09090b',
-              color: '#fff',
+              background: '#be123c',
+              color: '#ffffff',
               border: 'none',
               padding: '14px 28px',
               borderRadius: '999px',
@@ -58,7 +58,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
             Réessayer
           </button>
           {error.digest && (
-            <p style={{ marginTop: '32px', fontSize: '10px', letterSpacing: '0.22em', color: '#a1a1aa', textTransform: 'uppercase' }}>
+            <p style={{ marginTop: '32px', fontSize: '10px', letterSpacing: '0.22em', color: 'rgba(245,245,245,0.72)', textTransform: 'uppercase' }}>
               Référence · {error.digest}
             </p>
           )}

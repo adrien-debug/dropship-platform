@@ -102,3 +102,16 @@ Source of truth is [`apps/web/env.example`](apps/web/env.example). The README ha
 ## Suppliers setup
 
 Provisioning details for AliExpress DS API + CJ Dropshipping (OAuth flow, app permissions, diagnostic endpoints) live in `SUPPLIERS.md`. Read that before touching `lib/suppliers/` or `lib/agent/store-creator.ts`.
+
+## Commandes locales calibrées (.claude/commands/)
+
+Workspace calibré le 2026-05-18 via `/adrien-initialiser-workspace`. Les stubs dans `.claude/commands/` pré-câblent le contexte monorepo (app réelle = `apps/web`, port 4302, npm, Vercel + Railway, pas de Supabase) pour éviter la re-détection :
+
+- `/dev-adrien` — kill + relance `npm run dev` depuis `apps/web` (port 4302) + Chrome
+- `/audit-adrien` — audit unifié focalisé Next.js / agent layer / suppliers / Electron
+- `/ship-adrien` — pre-PR vers `main` (lint + test depuis `apps/web`, attendre Vercel)
+- `/brief-adrien` — briefing express 5 lignes
+- `/ready-adrien` — preflight go-live (Vercel + Railway Postgres/Medusa)
+- `/investigate-adrien` — debug guidé (repro + bisect + fix minimal)
+
+Ces fichiers sont commités avec le repo (config workspace partagée). Relancer `/adrien-initialiser-workspace` après tout changement de stack, port ou service.

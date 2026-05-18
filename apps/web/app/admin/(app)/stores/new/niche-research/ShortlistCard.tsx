@@ -17,36 +17,30 @@ export function ShortlistCard({
     payload.design_proposals?.[0] ?? null,
   );
   const sat = payload.saturation;
-  const verdictTone =
-    sat == null
-      ? 'border-blue-200 bg-blue-100/40'
-      : sat > 70
-      ? 'border-zinc-200 bg-zinc-100/40'
-      : sat >= 30
-      ? 'border-blue-200 bg-blue-50/40'
-      : 'border-blue-200 bg-blue-100/40';
+  const verdictBorder = sat != null && sat > 70 ? 'var(--ct-border)' : 'var(--ct-border-accent)';
+  const verdictBg = sat != null && sat > 70 ? 'var(--ct-surface-1)' : 'var(--ct-accent-soft)';
   const fp = payload.featured_product;
   const fpCost = fp ? (fp.cost_cents / 100).toFixed(2) : null;
   const fpPrice = fp ? (fp.suggested_price_cents / 100).toFixed(2) : null;
   const fpMargin = fp ? ((fp.suggested_price_cents - fp.cost_cents) / 100).toFixed(2) : null;
-  const supplierTag = fp?.supplier === 'cj'
-    ? 'bg-blue-50 text-blue-700 border-blue-200'
-    : 'bg-zinc-100 text-zinc-700 border-zinc-200';
+  const supplierTagStyle = fp?.supplier === 'cj'
+    ? { background: 'var(--ct-accent-soft)', color: 'var(--ct-accent)', borderColor: 'var(--ct-border-accent)' }
+    : { background: 'var(--ct-surface-3)', color: 'var(--ct-text-body)', borderColor: 'var(--ct-border)' };
 
   return (
-    <div className={`rounded-xl border ${verdictTone} px-5 py-4 space-y-4 min-w-0 max-w-full`}>
+    <div className="rounded-xl px-5 py-4 space-y-4 min-w-0 max-w-full" style={{ border: `1px solid ${verdictBorder}`, background: verdictBg }}>
       <div className="flex items-baseline justify-between gap-3">
-        <p className="text-kicker uppercase tracking-label text-zinc-500 font-medium">
+        <p className="text-kicker uppercase tracking-label font-medium" style={{ color: 'var(--ct-text-muted)' }}>
           Recommandation IA
         </p>
         {sat != null && (
-          <span className="text-xs text-zinc-500">Saturation {sat}/100</span>
+          <span className="text-xs" style={{ color: 'var(--ct-text-muted)' }}>Saturation {sat}/100</span>
         )}
       </div>
-      <h3 className="font-semibold tracking-tight text-xl text-zinc-900">
+      <h3 className="font-semibold tracking-tight text-xl" style={{ color: 'var(--ct-text-primary)' }}>
         <em className="italic">{payload.niche}</em>
       </h3>
-      <p className="text-sm text-zinc-700 leading-relaxed whitespace-pre-wrap">
+      <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--ct-text-body)' }}>
         {payload.rationale}
       </p>
 
@@ -58,9 +52,10 @@ export function ShortlistCard({
           href={fp.supplier_url}
           target="_blank"
           rel="noreferrer noopener"
-          className="group flex gap-3 items-stretch bg-white rounded-xl border border-zinc-200 hover:border-zinc-300 transition-colors overflow-hidden"
+          className="group flex gap-3 items-stretch rounded-xl transition-colors overflow-hidden"
+          style={{ border: '1px solid var(--ct-border)', background: 'var(--ct-surface-1)' }}
         >
-          <div className="w-28 sm:w-32 shrink-0 aspect-square bg-zinc-100 overflow-hidden">
+          <div className="w-28 sm:w-32 shrink-0 aspect-square overflow-hidden" style={{ background: 'var(--ct-surface-2)' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={fp.image_url}
@@ -71,49 +66,49 @@ export function ShortlistCard({
           </div>
           <div className="flex-1 min-w-0 py-3 pr-3 space-y-1.5">
             <div className="flex items-center gap-2 text-[10px] uppercase tracking-cta">
-              <span className={`px-1.5 py-0.5 rounded-sm border ${supplierTag} font-semibold`}>
+              <span className="px-1.5 py-0.5 rounded-sm border font-semibold" style={supplierTagStyle}>
                 {fp.supplier}
               </span>
               {fp.orders != null && (
-                <span className="text-zinc-500 tabular-nums">{fp.orders} cmd</span>
+                <span className="tabular-nums" style={{ color: 'var(--ct-text-muted)' }}>{fp.orders} cmd</span>
               )}
               {fp.rating && (
-                <span className="text-zinc-500 tabular-nums">★ {fp.rating}</span>
+                <span className="tabular-nums" style={{ color: 'var(--ct-text-muted)' }}>★ {fp.rating}</span>
               )}
             </div>
-            <p className="text-sm font-medium text-zinc-900 line-clamp-2 leading-tight">
+            <p className="text-sm font-medium line-clamp-2 leading-tight" style={{ color: 'var(--ct-text-primary)' }}>
               {fp.title}
             </p>
             <div className="flex items-baseline gap-3 text-xs tabular-nums">
-              <span className="text-zinc-500">{fpCost} €</span>
-              <span className="text-zinc-300">→</span>
-              <span className="text-zinc-900 font-semibold">{fpPrice} €</span>
-              <span className="text-blue-600 font-medium">+{fpMargin} €</span>
+              <span style={{ color: 'var(--ct-text-muted)' }}>{fpCost} €</span>
+              <span style={{ color: 'var(--ct-border-strong)' }}>→</span>
+              <span className="font-semibold" style={{ color: 'var(--ct-text-primary)' }}>{fpPrice} €</span>
+              <span className="font-medium" style={{ color: 'var(--ct-accent)' }}>+{fpMargin} €</span>
               {fp.expected_aov_eur != null && (
-                <span className="text-zinc-400 ml-auto">AOV ~{fp.expected_aov_eur} €</span>
+                <span className="ml-auto" style={{ color: 'var(--ct-text-muted)' }}>AOV ~{fp.expected_aov_eur} €</span>
               )}
             </div>
             {fp.pricing_rationale && (
-              <p className="text-xs text-zinc-600 leading-snug line-clamp-2 italic">
+              <p className="text-xs leading-snug line-clamp-2 italic" style={{ color: 'var(--ct-text-body)' }}>
                 {fp.pricing_rationale}
               </p>
             )}
             {fp.why_this_one && (
-              <p className="text-xs text-zinc-500 leading-snug line-clamp-2">{fp.why_this_one}</p>
+              <p className="text-xs leading-snug line-clamp-2" style={{ color: 'var(--ct-text-muted)' }}>{fp.why_this_one}</p>
             )}
           </div>
         </a>
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-        <div className="bg-white/70 rounded-lg p-3 border border-zinc-200">
-          <p className="text-kicker uppercase tracking-cta text-zinc-400">Nom suggéré</p>
-          <p className="mt-1 font-medium text-zinc-900">{payload.suggested_store_name}</p>
+        <div className="rounded-lg p-3" style={{ background: 'var(--ct-surface-1)', border: '1px solid var(--ct-border)' }}>
+          <p className="text-kicker uppercase tracking-cta" style={{ color: 'var(--ct-text-muted)' }}>Nom suggéré</p>
+          <p className="mt-1 font-medium" style={{ color: 'var(--ct-text-primary)' }}>{payload.suggested_store_name}</p>
         </div>
         {payload.estimated_aov_eur != null && (
-          <div className="bg-white/70 rounded-lg p-3 border border-zinc-200">
-            <p className="text-kicker uppercase tracking-cta text-zinc-400">AOV estimé</p>
-            <p className="mt-1 font-medium text-zinc-900">
+          <div className="rounded-lg p-3" style={{ background: 'var(--ct-surface-1)', border: '1px solid var(--ct-border)' }}>
+            <p className="text-kicker uppercase tracking-cta" style={{ color: 'var(--ct-text-muted)' }}>AOV estimé</p>
+            <p className="mt-1 font-medium" style={{ color: 'var(--ct-text-primary)' }}>
               {payload.estimated_aov_eur.toLocaleString('fr-FR', {
                 style: 'currency',
                 currency: 'EUR',
@@ -124,8 +119,8 @@ export function ShortlistCard({
         )}
       </div>
       {payload.target_audience && (
-        <p className="text-xs text-zinc-500 leading-relaxed">
-          <span className="font-medium text-zinc-700">Cible : </span>
+        <p className="text-xs leading-relaxed" style={{ color: 'var(--ct-text-muted)' }}>
+          <span className="font-medium" style={{ color: 'var(--ct-text-body)' }}>Cible : </span>
           {payload.target_audience}
         </p>
       )}
@@ -139,7 +134,7 @@ export function ShortlistCard({
         />
       )}
 
-      <div className="sticky bottom-0 -mx-5 -mb-4 px-5 pt-3 pb-4 bg-gradient-to-t from-white via-white to-white/0 backdrop-blur-sm">
+      <div className="sticky bottom-0 -mx-5 -mb-4 px-5 pt-3 pb-4 backdrop-blur-sm" style={{ background: 'linear-gradient(to top, var(--ct-surface-0) 60%, transparent)' }}>
         <button
           type="button"
           onClick={() =>
@@ -151,7 +146,7 @@ export function ShortlistCard({
               design_proposals: selectedDesign ? [selectedDesign] : payload.design_proposals,
             })
           }
-          className="w-full bg-zinc-900 text-white py-3 rounded-lg text-sm font-medium hover:bg-zinc-800 transition-colors shadow-cta"
+          className="ct-seg-btn primary w-full py-3 rounded-lg text-sm font-medium"
         >
           Lancer cette niche →
         </button>

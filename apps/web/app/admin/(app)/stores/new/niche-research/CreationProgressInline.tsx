@@ -13,14 +13,14 @@ export function CreationProgressInline({ progress }: { progress: CreationProgres
   if (result) {
     return (
       <div className="flex justify-start">
-        <div className="max-w-[88%] rounded-2xl rounded-tl-md px-4 py-3 text-sm border border-blue-200 bg-blue-50/60">
+        <div className="max-w-[88%] rounded-2xl rounded-tl-md px-4 py-3 text-sm" style={{ border: '1px solid var(--ct-border-accent)', background: 'var(--ct-accent-soft)' }}>
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="w-2 h-2 rounded-full bg-blue-600" aria-hidden />
-            <span className="font-medium text-zinc-900">
+            <span className="w-2 h-2 rounded-full" style={{ background: 'var(--ct-accent)' }} aria-hidden />
+            <span className="font-medium" style={{ color: 'var(--ct-text-primary)' }}>
               {result.storeName} est en ligne
             </span>
           </div>
-          <p className="text-zinc-600 text-xs mb-3">
+          <p className="text-xs mb-3" style={{ color: 'var(--ct-text-body)' }}>
             {result.productCount} produit{result.productCount > 1 ? 's' : ''} importé
             {result.productCount > 1 ? 's' : ''} · prêt à vendre
           </p>
@@ -28,7 +28,7 @@ export function CreationProgressInline({ progress }: { progress: CreationProgres
             href={`/shop/${result.slug}`}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+            className="ct-seg-btn primary inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5"
           >
             Ouvrir le store →
           </a>
@@ -40,12 +40,12 @@ export function CreationProgressInline({ progress }: { progress: CreationProgres
   if (error) {
     return (
       <div className="flex justify-start">
-        <div className="max-w-[88%] rounded-2xl rounded-tl-md px-4 py-3 text-sm border border-rose-200 bg-rose-50/60">
+        <div className="max-w-[88%] rounded-2xl rounded-tl-md px-4 py-3 text-sm" style={{ border: '1px solid var(--ct-border-accent)', background: 'var(--ct-accent-soft)' }}>
           <div className="flex items-center gap-2 mb-1">
-            <span className="w-2 h-2 rounded-full bg-rose-500" aria-hidden />
-            <span className="font-medium text-zinc-900">Création interrompue</span>
+            <span className="w-2 h-2 rounded-full" style={{ background: 'var(--ct-accent-strong)' }} aria-hidden />
+            <span className="font-medium" style={{ color: 'var(--ct-text-primary)' }}>Création interrompue</span>
           </div>
-          <p className="text-xs text-zinc-600 whitespace-pre-wrap">{error}</p>
+          <p className="text-xs whitespace-pre-wrap" style={{ color: 'var(--ct-text-body)' }}>{error}</p>
         </div>
       </div>
     );
@@ -57,33 +57,33 @@ export function CreationProgressInline({ progress }: { progress: CreationProgres
 
   return (
     <div className="flex justify-start">
-      <div className="max-w-[88%] w-full rounded-2xl rounded-tl-md px-4 py-3 text-sm border border-blue-200 bg-white shadow-sm">
+      <div className="max-w-[88%] w-full rounded-2xl rounded-tl-md px-4 py-3 text-sm" style={{ border: '1px solid var(--ct-border)', background: 'var(--ct-surface-1)', boxShadow: 'var(--ct-shadow-depth)' }}>
         <div className="flex items-center gap-2 mb-2">
-          <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" aria-hidden />
-          <span className="font-medium text-zinc-900 truncate">
+          <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--ct-accent)' }} aria-hidden />
+          <span className="font-medium truncate" style={{ color: 'var(--ct-text-primary)' }}>
             Création de {storeName || '…'}
           </span>
-          <span className="ml-auto text-[11px] tabular-nums text-zinc-400 shrink-0">
+          <span className="ml-auto text-[11px] tabular-nums shrink-0" style={{ color: 'var(--ct-text-muted)' }}>
             {percent}% · {elapsed}s
           </span>
         </div>
         {currentStep && (
-          <p className="text-xs text-zinc-600 italic mb-2 truncate" title={currentStep}>
+          <p className="text-xs italic mb-2 truncate" style={{ color: 'var(--ct-text-body)' }} title={currentStep}>
             {currentStep}
           </p>
         )}
-        <div className="h-1 w-full rounded-full bg-zinc-100 overflow-hidden">
+        <div className="h-1 w-full rounded-full overflow-hidden" style={{ background: 'var(--ct-surface-3)' }}>
           <div
-            className="h-full bg-blue-600 transition-all duration-300"
-            style={{ width: `${Math.max(2, Math.min(100, percent))}%` }}
+            className="h-full transition-all duration-300"
+            style={{ width: `${Math.max(2, Math.min(100, percent))}%`, background: 'var(--ct-accent)' }}
             aria-hidden
           />
         </div>
         {recentLogs.length > 0 && (
-          <ul className="mt-3 space-y-1 text-[11px] text-zinc-500 max-h-32 overflow-y-auto pr-1">
+          <ul className="mt-3 space-y-1 text-[11px] max-h-32 overflow-y-auto pr-1" style={{ color: 'var(--ct-text-body)' }}>
             {recentLogs.map((l) => (
               <li key={l.id} className="flex items-start gap-2">
-                <span className="text-zinc-300 mt-px shrink-0">·</span>
+                <span className="mt-px shrink-0" style={{ color: 'var(--ct-border-strong)' }}>·</span>
                 <span className="break-words">{l.message}</span>
               </li>
             ))}

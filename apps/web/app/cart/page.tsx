@@ -16,10 +16,13 @@ export default async function CartPage() {
     return (
       <StoreShell store={store}>
         <div className="max-w-3xl mx-auto px-6 py-24 text-center">
-          <h1 className="font-semibold tracking-tight text-4xl sm:text-5xl mb-6 text-zinc-900">Votre panier est vide</h1>
+          <h1 className="ct-title mb-6">
+            Votre panier est vide
+          </h1>
           <Link
             href={boutiqueHref}
-            className="inline-block text-base underline underline-offset-4 hover:no-underline text-zinc-700"
+            className="inline-block text-base underline underline-offset-4 hover:no-underline"
+            style={{ color: 'var(--ct-text-body, rgba(245,245,245,0.72))' }}
           >
             Parcourir la boutique
           </Link>
@@ -31,11 +34,22 @@ export default async function CartPage() {
   return (
     <StoreShell store={store}>
       <section className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-12 py-14 sm:py-20">
-        <h1 className="font-semibold tracking-tight text-4xl sm:text-5xl mb-12 text-zinc-900">Panier</h1>
-        <div className="border border-zinc-200 rounded-2xl overflow-hidden">
+        <h1 className="ct-title mb-12">
+          Panier
+        </h1>
+        <div
+          className="rounded-2xl overflow-hidden border"
+          style={{ borderColor: 'var(--ct-border, rgba(255,255,255,0.10))' }}
+        >
           <div className="overflow-x-auto">
           <table className="w-full min-w-[600px]">
-            <thead className="bg-zinc-50 text-xs uppercase tracking-cta text-zinc-500 font-medium">
+            <thead
+              className="text-xs uppercase tracking-cta font-medium"
+              style={{
+                backgroundColor: 'var(--ct-surface-1, rgba(255,255,255,0.04))',
+                color: 'var(--ct-text-muted, rgba(245,245,245,0.48))',
+              }}
+            >
               <tr>
                 <th className="text-left p-6">Produit</th>
                 <th className="text-left p-6">Qté</th>
@@ -43,7 +57,10 @@ export default async function CartPage() {
                 <th className="p-6"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody
+              className="divide-y"
+              style={{ '--tw-divide-color': 'var(--ct-border-soft, rgba(255,255,255,0.06))' } as React.CSSProperties}
+            >
               {cart.items.map((item) => (
                 <CartLineRow key={item.id} item={item} currency={currency} />
               ))}
@@ -60,7 +77,12 @@ export default async function CartPage() {
         <div className="mt-12 flex justify-end">
           <Link
             href="/checkout"
-            className="group inline-flex items-center gap-3 bg-zinc-950 text-white px-10 py-5 rounded-full text-sm font-medium uppercase tracking-cta transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_22px_40px_-18px_rgba(0,0,0,0.55)] hover:bg-black"
+            className="group inline-flex items-center gap-3 px-10 py-5 rounded-full text-sm font-medium uppercase tracking-cta transition-all duration-300 hover:-translate-y-0.5"
+            style={{
+              backgroundColor: 'var(--ct-accent)',
+              color: 'var(--ct-text-strong)',
+              boxShadow: '0 22px 40px -18px rgba(190,18,60,0.45)',
+            }}
           >
             Passer au paiement
             <svg
@@ -81,12 +103,27 @@ export default async function CartPage() {
 }
 
 function Row({ label, value, bold = false }: { label: string; value: string; bold?: boolean }) {
+  if (bold) {
+    return (
+      <div
+        className="flex justify-between font-semibold tracking-tight text-2xl border-t pt-4 mt-2"
+        style={{
+          color: 'var(--ct-text-strong, #fff)',
+          borderColor: 'var(--ct-border, rgba(255,255,255,0.10))',
+        }}
+      >
+        <span>{label}</span>
+        <span>{value}</span>
+      </div>
+    );
+  }
   return (
     <div
-      className={`flex justify-between ${bold ? 'font-semibold tracking-tight text-2xl text-zinc-900 border-t border-zinc-200 pt-4 mt-2' : 'text-zinc-600'}`}
+      className="flex justify-between"
+      style={{ color: 'var(--ct-text-muted, rgba(245,245,245,0.48))' }}
     >
       <span>{label}</span>
-      <span className={bold ? '' : 'text-zinc-900 font-medium'}>{value}</span>
+      <span style={{ color: 'var(--ct-text-body, rgba(245,245,245,0.72))', fontWeight: 500 }}>{value}</span>
     </div>
   );
 }

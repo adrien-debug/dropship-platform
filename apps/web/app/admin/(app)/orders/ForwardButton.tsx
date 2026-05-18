@@ -109,7 +109,13 @@ export function ForwardButton({ orderId, alreadySent }: Props) {
       <button
         onClick={openModal}
         disabled={alreadySent}
-        className="px-3 py-1.5 text-xs rounded-md bg-zinc-900 text-white hover:bg-zinc-800 disabled:bg-zinc-200 disabled:text-zinc-400 disabled:cursor-not-allowed transition-colors"
+        className="px-3 py-1.5 text-xs rounded-md disabled:cursor-not-allowed"
+        style={{
+          background: alreadySent ? 'var(--ct-surface-1)' : 'var(--ct-surface-3)',
+          color: alreadySent ? 'var(--ct-text-muted)' : 'var(--ct-text-primary)',
+          border: '1px solid var(--ct-border)',
+          transition: 'opacity var(--ct-dur-base) var(--ct-ease)',
+        }}
         title={alreadySent ? 'Déjà envoyée à AliExpress' : 'Préparer et envoyer la commande AE'}
       >
         {alreadySent ? 'Envoyée' : 'Envoyer à AE'}
@@ -117,11 +123,12 @@ export function ForwardButton({ orderId, alreadySent }: Props) {
 
       {sentResult && !modalOpen && (
         <div
-          className={`text-[11px] rounded-md px-2.5 py-1.5 border max-w-[280px] ${
-            sentResult.ok
-              ? 'bg-blue-50 border-blue-200 text-blue-600'
-              : 'bg-zinc-50 border-zinc-200 text-zinc-500'
-          }`}
+          className="text-[11px] rounded-md px-2.5 py-1.5 max-w-[280px]"
+          style={{
+            background: sentResult.ok ? 'var(--ct-surface-2)' : 'var(--ct-surface-1)',
+            border: `1px solid ${sentResult.ok ? 'var(--ct-border-accent)' : 'var(--ct-border)'}`,
+            color: sentResult.ok ? 'var(--ct-accent-strong)' : 'var(--ct-text-muted)',
+          }}
         >
           {sentResult.status === 'sent' && `Envoyée — AE #${sentResult.aeOrderId}`}
           {sentResult.status === 'error' && (sentResult.error ?? 'Erreur inconnue')}
@@ -183,16 +190,33 @@ function ReviewModal({
       aria-labelledby="forward-review-title"
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
     >
+      {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-zinc-950/40 backdrop-blur-sm"
+        style={{ background: 'rgba(26,5,11,0.65)', backdropFilter: 'blur(6px)' }}
+        className="absolute inset-0"
         onClick={() => !sending && onClose()}
       />
-      <div className="relative bg-white rounded-xl shadow-xl max-w-xl w-full max-h-[90vh] flex flex-col border border-zinc-200">
-        <header className="px-5 py-4 border-b border-zinc-200">
-          <h2 id="forward-review-title" className="text-base font-semibold text-zinc-900">
+      {/* Panel */}
+      <div
+        className="relative rounded-xl max-w-xl w-full max-h-[90vh] flex flex-col"
+        style={{
+          background: 'var(--ct-surface-2)',
+          border: '1px solid var(--ct-border-strong)',
+          boxShadow: 'var(--ct-shadow-depth)',
+        }}
+      >
+        <header
+          className="px-5 py-4"
+          style={{ borderBottom: '1px solid var(--ct-border)' }}
+        >
+          <h2
+            id="forward-review-title"
+            className="text-base font-semibold"
+            style={{ color: 'var(--ct-text-primary)' }}
+          >
             Vérifier la commande AliExpress
           </h2>
-          <p className="mt-1 text-xs text-zinc-500">
+          <p className="mt-1 text-xs" style={{ color: 'var(--ct-text-muted)' }}>
             Cette commande sera créée chez AE en statut « En attente de paiement ». Tu paieras
             ensuite manuellement sur aliexpress.com.
           </p>
@@ -200,35 +224,68 @@ function ReviewModal({
 
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
           {sentResult?.ok && sentResult.status === 'sent' ? (
-            <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
-              <p className="text-sm font-medium text-blue-700">
+            <div
+              className="rounded-lg px-4 py-3"
+              style={{
+                background: 'var(--ct-surface-1)',
+                border: '1px solid var(--ct-border-accent)',
+              }}
+            >
+              <p className="text-sm font-medium" style={{ color: 'var(--ct-accent-strong)' }}>
                 Envoyée — AE #{sentResult.aeOrderId}
               </p>
-              <p className="mt-1 text-xs text-blue-600">
+              <p className="mt-1 text-xs" style={{ color: 'var(--ct-text-body)' }}>
                 Connecte-toi sur aliexpress.com pour finaliser le paiement.
               </p>
             </div>
           ) : sentResult?.status === 'error' ? (
-            <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3">
-              <p className="text-sm font-medium text-zinc-700">Erreur lors de l&apos;envoi</p>
-              <p className="mt-1 text-xs text-zinc-500">{sentResult.error}</p>
+            <div
+              className="rounded-lg px-4 py-3"
+              style={{
+                background: 'var(--ct-surface-1)',
+                border: '1px solid var(--ct-border)',
+              }}
+            >
+              <p className="text-sm font-medium" style={{ color: 'var(--ct-text-primary)' }}>
+                Erreur lors de l&apos;envoi
+              </p>
+              <p className="mt-1 text-xs" style={{ color: 'var(--ct-text-muted)' }}>
+                {sentResult.error}
+              </p>
             </div>
           ) : dryRunning ? (
-            <div className="flex items-center gap-2 text-sm text-zinc-500 py-8 justify-center">
-              <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+            <div className="flex items-center gap-2 text-sm py-8 justify-center" style={{ color: 'var(--ct-text-muted)' }}>
+              <span
+                className="w-2 h-2 rounded-full animate-pulse"
+                style={{ background: 'var(--ct-accent)' }}
+              />
               Préparation du payload AE…
             </div>
           ) : dryRunResult?.status === 'error' || !dryRunResult?.ok ? (
-            <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3">
-              <p className="text-sm font-medium text-zinc-700">Impossible de préparer la commande</p>
-              <p className="mt-1 text-xs text-zinc-500">{dryRunResult?.error ?? 'Erreur inconnue'}</p>
+            <div
+              className="rounded-lg px-4 py-3"
+              style={{
+                background: 'var(--ct-surface-1)',
+                border: '1px solid var(--ct-border)',
+              }}
+            >
+              <p className="text-sm font-medium" style={{ color: 'var(--ct-text-primary)' }}>
+                Impossible de préparer la commande
+              </p>
+              <p className="mt-1 text-xs" style={{ color: 'var(--ct-text-muted)' }}>
+                {dryRunResult?.error ?? 'Erreur inconnue'}
+              </p>
             </div>
           ) : (
             <>
               {addr && (
                 <Section title="Adresse de livraison">
-                  <div className="text-sm text-zinc-700 leading-relaxed">
-                    {addr.full_name && <div className="font-medium">{addr.full_name}</div>}
+                  <div className="text-sm leading-relaxed" style={{ color: 'var(--ct-text-body)' }}>
+                    {addr.full_name && (
+                      <div className="font-medium" style={{ color: 'var(--ct-text-primary)' }}>
+                        {addr.full_name}
+                      </div>
+                    )}
                     {addr.address && <div>{addr.address}</div>}
                     <div>
                       {[addr.zip, addr.city].filter(Boolean).join(' ')}
@@ -240,15 +297,21 @@ function ReviewModal({
 
               <Section title={`Produits AE (${items.length})`}>
                 {items.length === 0 ? (
-                  <p className="text-xs text-zinc-500">Aucun produit mappable — envoi impossible.</p>
+                  <p className="text-xs" style={{ color: 'var(--ct-text-muted)' }}>
+                    Aucun produit mappable — envoi impossible.
+                  </p>
                 ) : (
                   <ul className="space-y-1.5">
                     {items.map((it, i) => (
                       <li key={i} className="flex items-baseline gap-2 text-xs">
-                        <span className="font-mono text-zinc-500">{it.product_id}</span>
-                        <span className="text-zinc-400">×{it.product_count}</span>
+                        <span className="font-mono" style={{ color: 'var(--ct-text-muted)' }}>
+                          {it.product_id}
+                        </span>
+                        <span style={{ color: 'var(--ct-text-faint)' }}>×{it.product_count}</span>
                         {it.sku_attr && (
-                          <span className="text-zinc-400 font-mono">{it.sku_attr}</span>
+                          <span className="font-mono" style={{ color: 'var(--ct-text-faint)' }}>
+                            {it.sku_attr}
+                          </span>
                         )}
                       </li>
                     ))}
@@ -260,9 +323,11 @@ function ReviewModal({
                 <Section title={`Items non mappés (${unmapped.length})`} tone="warn">
                   <ul className="space-y-1.5">
                     {unmapped.map((u, i) => (
-                      <li key={i} className="text-xs text-zinc-700">
-                        <div className="font-medium">{u.title}</div>
-                        <div className="text-zinc-500">{u.reason}</div>
+                      <li key={i} className="text-xs" style={{ color: 'var(--ct-text-body)' }}>
+                        <div className="font-medium" style={{ color: 'var(--ct-text-primary)' }}>
+                          {u.title}
+                        </div>
+                        <div style={{ color: 'var(--ct-text-muted)' }}>{u.reason}</div>
                       </li>
                     ))}
                   </ul>
@@ -272,12 +337,28 @@ function ReviewModal({
           )}
         </div>
 
-        <footer className="px-5 py-4 border-t border-zinc-200 bg-zinc-50 flex items-center justify-end gap-2">
+        <footer
+          className="px-5 py-4 flex items-center justify-end gap-2"
+          style={{
+            borderTop: '1px solid var(--ct-border)',
+            background: 'var(--ct-surface-1)',
+          }}
+        >
           <button
             type="button"
             onClick={onClose}
             disabled={sending}
-            className="px-4 py-2 rounded-lg text-sm font-medium text-zinc-700 hover:bg-zinc-100 transition-colors disabled:opacity-50"
+            className="px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
+            style={{
+              color: 'var(--ct-text-body)',
+              transition: 'background var(--ct-dur-base) var(--ct-ease)',
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = 'var(--ct-surface-3)';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+            }}
           >
             {sentResult?.ok ? 'Fermer' : 'Annuler'}
           </button>
@@ -286,9 +367,15 @@ function ReviewModal({
               type="button"
               onClick={onConfirm}
               disabled={!canSend || sending || dryRunning}
-              className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-700 disabled:bg-zinc-200 disabled:text-zinc-400 disabled:cursor-not-allowed transition-colors"
+              className="px-4 py-2 rounded-lg text-sm font-medium disabled:cursor-not-allowed"
+              style={{
+                background: 'var(--ct-accent-strong)',
+                color: 'var(--ct-text-strong)',
+                transition: 'opacity var(--ct-dur-base) var(--ct-ease)',
+                opacity: !canSend || sending || dryRunning ? 0.4 : 1,
+              }}
             >
-              {sending ? 'Envoi…' : 'Confirmer l’envoi'}
+              {sending ? 'Envoi…' : "Confirmer l'envoi"}
             </button>
           )}
         </footer>
@@ -309,16 +396,20 @@ function Section({
   return (
     <section>
       <h3
-        className={`text-[10px] uppercase tracking-[0.12em] font-semibold mb-2 ${
-          tone === 'warn' ? 'text-amber-600' : 'text-zinc-400'
-        }`}
+        className="text-[10px] uppercase tracking-[0.12em] font-semibold mb-2"
+        style={{
+          color: tone === 'warn' ? 'var(--ct-accent-strong)' : 'var(--ct-text-muted)',
+        }}
       >
         {title}
       </h3>
       <div
-        className={`rounded-lg border px-4 py-3 ${
-          tone === 'warn' ? 'border-amber-200 bg-amber-50' : 'border-zinc-200 bg-white'
-        }`}
+        className="rounded-lg px-4 py-3"
+        style={{
+          border: `1px solid ${tone === 'warn' ? 'var(--ct-border-accent)' : 'var(--ct-border)'}`,
+          background:
+            tone === 'warn' ? 'var(--ct-accent-soft)' : 'var(--ct-surface-1)',
+        }}
       >
         {children}
       </div>

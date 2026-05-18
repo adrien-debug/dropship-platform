@@ -41,16 +41,26 @@ export function DryRunPendingButton() {
       <button
         onClick={run}
         disabled={busy}
-        className="px-4 py-2 text-xs rounded-lg border border-zinc-900 bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors uppercase tracking-wider"
+        className="px-4 py-2 text-xs rounded-lg uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
+        style={{
+          background: 'var(--ct-surface-3)',
+          color: 'var(--ct-text-primary)',
+          border: '1px solid var(--ct-border-strong)',
+          transition: 'opacity var(--ct-dur-base) var(--ct-ease)',
+        }}
       >
         {busy ? 'Pré-calcul…' : 'Pré-calculer les dry-runs'}
       </button>
       {result && (
-        <span className="text-kicker text-zinc-500">
+        <span className="text-[10px]" style={{ color: 'var(--ct-text-muted)' }}>
           {result.processed} traitée{result.processed > 1 ? 's' : ''} sur {result.scanned} payée{result.scanned > 1 ? 's' : ''}
         </span>
       )}
-      {error && <span className="text-kicker text-zinc-500">{error}</span>}
+      {error && (
+        <span className="text-[10px]" style={{ color: 'var(--ct-text-muted)' }}>
+          {error}
+        </span>
+      )}
     </div>
   );
 }

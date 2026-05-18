@@ -42,23 +42,23 @@ export function StoreCustomDomainForm({
   };
 
   return (
-    <section className="border border-zinc-200 bg-white rounded-xl overflow-hidden shadow-sm">
-      <div className="px-5 pt-4 pb-3 border-b border-zinc-200/70">
-        <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">Domaine</p>
-        <h3 className="mt-1 text-base font-semibold tracking-tight text-zinc-900">
-          Domaine <em className="italic text-zinc-400">personnalisé</em>
+    <section className="ct-card overflow-hidden" style={{ margin: 0 }}>
+      <div className="px-5 pt-4 pb-3" style={{ borderBottom: '1px solid var(--ct-border)' }}>
+        <p className="text-kicker uppercase tracking-label font-medium" style={{ color: 'var(--ct-text-muted)' }}>Domaine</p>
+        <h3 className="mt-1 text-base font-semibold tracking-tight" style={{ color: 'var(--ct-text-primary)' }}>
+          Domaine <em className="italic" style={{ color: 'var(--ct-text-muted)' }}>personnalisé</em>
         </h3>
-        <p className="mt-1.5 text-xs text-zinc-400 max-w-2xl">
+        <p className="mt-1.5 text-xs max-w-2xl" style={{ color: 'var(--ct-text-muted)' }}>
           Saisir le domaine apex (ex.{' '}
-          <code className="font-mono text-zinc-600">maison-chic.com</code>). Les visites sur ce
+          <code className="font-mono" style={{ color: 'var(--ct-text-body)' }}>maison-chic.com</code>). Les visites sur ce
           domaine seront servies en tant que{' '}
-          <code className="font-mono text-zinc-600">/shop/{'{slug}'}</code> sans redirection.
+          <code className="font-mono" style={{ color: 'var(--ct-text-body)' }}>/shop/{'{slug}'}</code> sans redirection.
         </p>
       </div>
 
       <div className="p-5 space-y-4">
         <div>
-          <label htmlFor="custom-domain" className="block text-xs font-medium text-zinc-500 mb-1.5">
+          <label htmlFor="custom-domain" className="block text-xs font-medium mb-1.5" style={{ color: 'var(--ct-text-body)' }}>
             Domaine
           </label>
           <input
@@ -68,15 +68,16 @@ export function StoreCustomDomainForm({
             onChange={(e) => setValue(e.target.value)}
             placeholder="maison-chic.com"
             disabled={pending}
-            className="w-full sm:w-80 border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 disabled:opacity-50"
+            className="w-full sm:w-80 rounded-lg px-3 py-2 text-sm focus:outline-none disabled:opacity-50"
+            style={{ border: '1px solid var(--ct-border)', background: 'var(--ct-surface-2)', color: 'var(--ct-text-primary)' }}
           />
         </div>
 
-        <div className="text-xs text-zinc-500 bg-zinc-100 rounded-lg p-3 space-y-1 max-w-lg">
-          <p className="font-medium text-zinc-900">Configuration DNS requise</p>
+        <div className="text-xs rounded-lg p-3 space-y-1 max-w-lg" style={{ background: 'var(--ct-surface-2)', color: 'var(--ct-text-body)' }}>
+          <p className="font-medium" style={{ color: 'var(--ct-text-primary)' }}>Configuration DNS requise</p>
           <p>
             Pointer votre DNS A/CNAME vers{' '}
-            <code className="font-mono text-zinc-500">cname.vercel-dns.com</code>, puis ajouter le
+            <code className="font-mono" style={{ color: 'var(--ct-text-body)' }}>cname.vercel-dns.com</code>, puis ajouter le
             domaine dans <strong>Vercel &rarr; Domains</strong>.
           </p>
         </div>
@@ -86,7 +87,7 @@ export function StoreCustomDomainForm({
             type="button"
             onClick={submit}
             disabled={!dirty || pending}
-            className="bg-blue-600 text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="ct-seg-btn primary text-sm font-medium px-5 py-2.5 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {pending ? 'Enregistrement…' : 'Enregistrer'}
           </button>
@@ -97,9 +98,9 @@ export function StoreCustomDomainForm({
             </span>
           )}
           {saved && !dirty && (
-            <span className="text-xs text-blue-600">Enregistré.</span>
+            <span className="text-xs" style={{ color: 'var(--ct-accent)' }}>Enregistré.</span>
           )}
-          {error && <span className="text-xs text-zinc-500">{error}</span>}
+          {error && <span className="text-xs" style={{ color: 'var(--ct-text-muted)' }}>{error}</span>}
         </div>
       </div>
     </section>

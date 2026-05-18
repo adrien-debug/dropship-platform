@@ -38,7 +38,7 @@ export function StoreTabs({ storeId, storeSlug }: { storeId: string; storeSlug: 
   const tabs = buildTabs(storeId, storeSlug);
 
   return (
-    <nav className="border-b border-zinc-200 bg-zinc-100 -mx-5 px-5 sticky top-0 z-10">
+    <nav className="-mx-5 px-5 sticky top-0 z-10" style={{ borderBottom: '1px solid var(--ct-border)', background: 'var(--ct-surface-1)' }}>
       <div className="flex gap-1 overflow-x-auto no-scrollbar">
         {tabs.map((tab) => {
           const isExternal = tab.href.startsWith('/shop/');
@@ -52,16 +52,13 @@ export function StoreTabs({ storeId, storeSlug }: { storeId: string; storeSlug: 
               key={tab.href}
               href={tab.href}
               target={isExternal ? '_blank' : undefined}
-              className={`relative whitespace-nowrap px-3 py-2.5 text-sm font-medium transition-colors inline-flex items-center gap-1.5 ${
-                active
-                  ? 'text-zinc-900'
-                  : 'text-zinc-500 hover:text-zinc-900'
-              }`}
+              className="relative whitespace-nowrap px-3 py-2.5 text-sm font-medium transition-colors inline-flex items-center gap-1.5"
+              style={{ color: active ? 'var(--ct-text-primary)' : 'var(--ct-text-muted)' }}
             >
               {tab.Icon && <tab.Icon size={15} strokeWidth={1.75} aria-hidden />}
               {tab.label}
               {active && (
-                <span className="absolute left-3 right-3 -bottom-px h-0.5 bg-blue-600" aria-hidden />
+                <span className="absolute left-3 right-3 -bottom-px h-0.5" style={{ background: 'var(--ct-accent)' }} aria-hidden />
               )}
             </Link>
           );

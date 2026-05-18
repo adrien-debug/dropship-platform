@@ -2,8 +2,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowUpRight } from 'lucide-react';
 import { getDbRead } from '@/lib/db';
-import { PageHeader, StatCard, StatusPill, type Tone } from '@/app/admin/_components/AdminUI';
+import { PageHeader, StatusPill, type Tone } from '@/app/admin/_components/AdminUI';
 import { StoreAvatar, ButtonLink } from '@/components/ui';
+import { KpiGrid, KpiCard } from '@/components/cockpit/primitives';
 import { StoreActions } from './StoreActions';
 
 export const dynamic = 'force-dynamic';
@@ -83,10 +84,10 @@ export default async function StoresPage({
         kicker="Production · Agent IA"
         title={
           <>
-            Stores <em className="italic text-zinc-400">dropshipping</em>
+            Stores <em style={{ fontStyle: 'italic', color: 'var(--ct-text-muted)' }}>dropshipping</em>
           </>
         }
-        lede="L’agent recherche les produits, enrichit les fiches puis publie le store Medusa complet. Mono-produit pour une landing DTC, collection pour un catalogue."
+        lede="L'agent recherche les produits, enrichit les fiches puis publie le store Medusa complet. Mono-produit pour une landing DTC, collection pour un catalogue."
         actions={
           <ButtonLink
             href="/admin/stores/new"
@@ -99,12 +100,12 @@ export default async function StoresPage({
         }
       />
 
-      <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard label="En ligne" value={String(active.length)} tone={active.length > 0 ? 'emerald' : 'neutral'} />
-        <StatCard label="En création" value={String(creating.length)} tone="neutral" />
-        <StatCard label="En erreur" value={String(failed.length)} tone="neutral" />
-        <StatCard label="Produits publiés" value={String(totalProducts)} hint="Cumul stores actifs" />
-      </section>
+      <KpiGrid>
+        <KpiCard label="En ligne" value={String(active.length)} accent={active.length > 0} />
+        <KpiCard label="En création" value={String(creating.length)} />
+        <KpiCard label="En erreur" value={String(failed.length)} />
+        <KpiCard label="Produits publiés" value={String(totalProducts)} />
+      </KpiGrid>
 
       {rows.length === 0 ? (
         <EmptyState />
@@ -124,7 +125,7 @@ export default async function StoresPage({
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 pt-4">
               <PaginationLink page={page - 1} disabled={page <= 1} label="← Précédent" />
-              <span className="text-sm text-zinc-400 tabular-nums px-3">
+              <span style={{ fontSize: 13, color: 'var(--ct-text-faint)', fontVariantNumeric: 'tabular-nums', padding: '0 12px' }}>
                 Page {page} / {totalPages}
               </span>
               <PaginationLink page={page + 1} disabled={page >= totalPages} label="Suivant →" />
@@ -147,7 +148,7 @@ function PaginationLink({
 }) {
   if (disabled) {
     return (
-      <span className="text-sm text-zinc-300 px-3 py-1.5 rounded-lg cursor-not-allowed">
+      <span style={{ fontSize: 13, color: 'var(--ct-text-faint)', padding: '6px 12px', borderRadius: 8, cursor: 'not-allowed' }}>
         {label}
       </span>
     );
@@ -155,7 +156,7 @@ function PaginationLink({
   return (
     <Link
       href={`/admin/stores?page=${page}`}
-      className="text-sm text-zinc-600 hover:text-zinc-900 px-3 py-1.5 rounded-lg hover:bg-zinc-50 transition-colors"
+      style={{ fontSize: 13, color: 'var(--ct-text-body)', padding: '6px 12px', borderRadius: 8, textDecoration: 'none', border: '1px solid var(--ct-border)', transition: 'background var(--ct-dur-base)' }}
     >
       {label}
     </Link>
@@ -164,17 +165,26 @@ function PaginationLink({
 
 function EmptyState() {
   return (
-    <div className="border border-dashed border-zinc-200 rounded-xl px-6 py-20 text-center bg-white">
-      <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">Premier pas</p>
-      <h3 className="mt-2 text-[20px] font-semibold tracking-[-0.02em] text-admin-text">
-        Lance ton <em className="not-italic text-admin-text-muted font-light">premier store</em>.
+    <div style={{
+      border: '1px dashed var(--ct-border-strong)',
+      borderRadius: 12, padding: '80px 24px',
+      textAlign: 'center',
+      background: 'var(--ct-surface-1)',
+    }}>
+      <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ct-text-muted)' }}>
+        Premier pas
+      </p>
+      <h3 className="ct-kpi-value" style={{ marginTop: 8, minWidth: 0 }}>
+        Lance ton <em style={{ fontStyle: 'normal', color: 'var(--ct-text-muted)', fontWeight: 300 }}>premier store</em>.
       </h3>
-      <p className="mt-3 text-sm text-zinc-500 max-w-md mx-auto leading-relaxed">
+      <p style={{ marginTop: 12, fontSize: 13, color: 'var(--ct-text-muted)', maxWidth: 400, margin: '12px auto 0', lineHeight: 1.6 }}>
         L’agent IA recherche les produits, génère les visuels, écrit les fiches et publie le store. Une niche suffit.
       </p>
-      <ButtonLink href="/admin/stores/new" variant="primary" size="lg" className="mt-8 shadow-cta">
-        Créer un store
-      </ButtonLink>
+      <div style={{ marginTop: 32 }}>
+        <ButtonLink href="/admin/stores/new" variant="primary" size="lg">
+          Créer un store
+        </ButtonLink>
+      </div>
     </div>
   );
 }
@@ -190,10 +200,10 @@ function StoreGroup({
 }) {
   return (
     <section>
-      <div className="flex items-baseline justify-between mb-4">
-        <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">{kicker}</p>
-      </div>
-      <div className={`flex flex-col gap-1.5 ${dim ? 'opacity-70' : ''}`}>
+      <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ct-text-muted)', marginBottom: 12 }}>
+        {kicker}
+      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, opacity: dim ? 0.7 : 1 }}>
         {stores.map((store) => (
           <StoreCard key={store.id} store={store} />
         ))}
@@ -207,45 +217,49 @@ function StoreCard({ store }: { store: StoreRow }) {
   const cover = pickStoreCover(store);
 
   return (
-    <article className="group relative bg-admin-bg flex items-center gap-3 border border-admin-border rounded-admin-md shadow-admin-card transition-colors duration-150 hover:border-admin-border-strong hover:bg-admin-bg-subtle px-3 py-2">
-      {/* Avatar — compact 32px comme la liste du dashboard */}
-      <div className="relative w-8 h-8 shrink-0 rounded-md overflow-hidden">
+    <article style={{
+      position: 'relative',
+      background: 'var(--ct-surface-1)',
+      display: 'flex', alignItems: 'center', gap: 12,
+      border: '1px solid var(--ct-border)',
+      borderRadius: 8,
+      padding: '8px 12px',
+      transition: 'border-color var(--ct-dur-base)',
+    }}>
+      {/* Avatar */}
+      <div style={{ position: 'relative', width: 32, height: 32, flexShrink: 0, borderRadius: 6, overflow: 'hidden' }}>
         {cover ? (
-          <Image
-            src={cover}
-            alt=""
-            fill
-            sizes="32px"
-            className="object-cover"
-          />
+          <Image src={cover} alt="" fill sizes="32px" style={{ objectFit: 'cover' }} />
         ) : (
           <StoreAvatar slug={store.slug} name={store.name} size={32} className="rounded-none w-full h-full" />
         )}
       </div>
 
-      {/* Nom + slug — pile de 2 lignes compactes */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-baseline gap-2 min-w-0">
-          <h3 className="text-[13px] font-medium text-admin-text truncate leading-tight">{store.name}</h3>
-          <span className="text-[10px] text-admin-text-faint uppercase tracking-wide truncate shrink-0">
+      {/* Nom + slug */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
+          <h3 style={{ fontSize: 13, fontWeight: 500, color: 'var(--ct-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+            {store.name}
+          </h3>
+          <span style={{ fontSize: 10, color: 'var(--ct-text-faint)', textTransform: 'uppercase', letterSpacing: '0.1em', flexShrink: 0 }}>
             {store.niche}
           </span>
         </div>
-        <p className="text-[11px] text-admin-text-faint truncate tabular-nums leading-tight mt-0.5">
+        <p style={{ fontSize: 11, color: 'var(--ct-text-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>
           /shop/{store.slug}
         </p>
       </div>
 
       {/* Statut + produits */}
-      <div className="hidden sm:flex flex-col items-end gap-0.5 shrink-0 min-w-[100px]">
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, flexShrink: 0, minWidth: 100 }}>
         <StatusPill tone={s.tone}>{s.label}</StatusPill>
-        <span className="text-[11px] text-admin-text-faint tabular-nums">
+        <span style={{ fontSize: 11, color: 'var(--ct-text-faint)', fontVariantNumeric: 'tabular-nums' }}>
           {store.product_count} produit{store.product_count > 1 ? 's' : ''}
         </span>
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-1 shrink-0">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
         <ButtonLink href={`/admin/stores/${store.id}`} variant="primary" size="sm">
           Gérer
         </ButtonLink>
@@ -256,7 +270,13 @@ function StoreCard({ store }: { store: StoreRow }) {
             rel="noreferrer"
             aria-label="Ouvrir la boutique"
             title="Ouvrir la boutique"
-            className="inline-flex items-center justify-center w-7 h-7 rounded-admin-md border border-admin-border hover:bg-admin-bg-subtle hover:border-admin-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-admin-border-strong focus-visible:ring-offset-1 transition-colors text-admin-text-muted"
+            style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              width: 28, height: 28,
+              borderRadius: 6, border: '1px solid var(--ct-border)',
+              color: 'var(--ct-text-muted)', textDecoration: 'none',
+              transition: 'background var(--ct-dur-base)',
+            }}
           >
             <ArrowUpRight size={13} strokeWidth={1.75} aria-hidden />
           </Link>

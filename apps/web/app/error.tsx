@@ -16,34 +16,36 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
   }, [error]);
 
   return (
-    <main className="min-h-[80vh] flex items-center justify-center px-6 bg-white text-zinc-900">
+    <main className="min-h-[80vh] flex items-center justify-center px-6" style={{ background: 'var(--ct-bg-deep)', color: 'var(--ct-text-primary)' }}>
       <div className="max-w-md text-center">
-        <p className="text-kicker uppercase tracking-kicker text-zinc-400 font-medium mb-5">
+        <p className="text-kicker uppercase tracking-kicker font-medium mb-5" style={{ color: 'var(--ct-text-muted)' }}>
           Erreur
         </p>
-        <h1 className="font-semibold tracking-tight text-4xl sm:text-5xl leading-[1.05] tracking-tight mb-5">
+        <h1 className="font-semibold tracking-tight text-4xl sm:text-5xl leading-[1.05] mb-5">
           On vient de manquer une marche.
         </h1>
-        <p className="text-base text-zinc-600 leading-relaxed mb-10">
+        <p className="text-base leading-relaxed mb-10" style={{ color: 'var(--ct-text-body)' }}>
           Une erreur a interrompu le chargement de cette page. Réessayez ou retournez à l&apos;accueil — votre panier reste intact.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
           <button
             type="button"
             onClick={reset}
-            className="inline-flex items-center justify-center bg-zinc-950 text-white px-7 py-3.5 rounded-full text-sm font-medium uppercase tracking-cta transition-colors hover:-translate-y-0.5 hover:bg-black"
+            className="inline-flex items-center justify-center px-7 py-3.5 rounded-full text-sm font-medium uppercase tracking-cta transition-colors hover:-translate-y-0.5"
+            style={{ background: 'var(--ct-accent)', color: 'var(--ct-text-strong)' }}
           >
             Réessayer
           </button>
           <Link
             href="/"
-            className="inline-flex items-center justify-center border border-zinc-200 text-zinc-900 px-7 py-3.5 rounded-full text-sm font-medium uppercase tracking-cta transition-colors hover:bg-zinc-50"
+            className="inline-flex items-center justify-center px-7 py-3.5 rounded-full text-sm font-medium uppercase tracking-cta transition-colors"
+            style={{ border: '1px solid var(--ct-border)', color: 'var(--ct-text-body)' }}
           >
             Retour
           </Link>
         </div>
         {error.digest && (
-          <p className="mt-10 text-kicker uppercase tracking-label text-zinc-400">
+          <p className="mt-10 text-kicker uppercase tracking-label" style={{ color: 'var(--ct-text-muted)' }}>
             Référence · {error.digest}
           </p>
         )}

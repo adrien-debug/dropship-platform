@@ -6,7 +6,10 @@ export function ProductCard({ product }: { product: StoreProduct }) {
   const price = variant?.calculated_price;
   return (
     <Link href={`/products/${product.handle}`} className="group block">
-      <div className="aspect-square bg-zinc-100 rounded-lg overflow-hidden">
+      <div
+        className="aspect-square rounded-lg overflow-hidden"
+        style={{ backgroundColor: 'var(--ct-surface-2, rgba(255,255,255,0.06))' }}
+      >
         {product.thumbnail ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -17,9 +20,19 @@ export function ProductCard({ product }: { product: StoreProduct }) {
         ) : null}
       </div>
       <div className="mt-3 flex items-start justify-between gap-2">
-        <h3 className="text-sm font-medium line-clamp-2">{product.title}</h3>
+        <h3
+          className="text-sm font-medium line-clamp-2"
+          style={{ color: 'var(--ct-text-primary, rgba(245,245,245,0.92))' }}
+        >
+          {product.title}
+        </h3>
         {price ? (
-          <span className="text-sm whitespace-nowrap">{formatMoney(price.calculated_amount, price.currency_code)}</span>
+          <span
+            className="text-sm whitespace-nowrap"
+            style={{ color: 'var(--ct-text-body, rgba(245,245,245,0.72))' }}
+          >
+            {formatMoney(price.calculated_amount, price.currency_code)}
+          </span>
         ) : null}
       </div>
     </Link>

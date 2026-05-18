@@ -18,19 +18,19 @@ const CHANNEL_LABEL: Record<MediaChannel['name'], string> = {
 export function MediaPlanBlock({ plan }: { plan: MediaPlan }) {
   const totalWeight = plan.channels.reduce((acc, c) => acc + c.weight_pct, 0) || 100;
   return (
-    <div className="border-t border-zinc-200/70 pt-4 space-y-4">
+    <div className="pt-4 space-y-4" style={{ borderTop: '1px solid var(--ct-border)' }}>
       <div className="flex items-baseline justify-between gap-3">
-        <p className="text-kicker uppercase tracking-label text-zinc-500 font-medium">
+        <p className="text-kicker uppercase tracking-label font-medium" style={{ color: 'var(--ct-text-muted)' }}>
           Plan média
         </p>
-        <span className="text-xs text-zinc-500 tabular-nums">
+        <span className="text-xs tabular-nums" style={{ color: 'var(--ct-text-body)' }}>
           {plan.daily_budget_eur.toLocaleString('fr-FR')} € / jour
         </span>
       </div>
 
       {/* Channel mix — stacked horizontal bar */}
       <div>
-        <div className="flex h-2 rounded-full overflow-hidden bg-zinc-100">
+        <div className="flex h-2 rounded-full overflow-hidden" style={{ background: 'var(--ct-surface-3)' }}>
           {plan.channels.map((c) => (
             <div
               key={c.name}
@@ -44,15 +44,15 @@ export function MediaPlanBlock({ plan }: { plan: MediaPlan }) {
           {plan.channels.map((c) => (
             <li key={c.name} className="flex items-center gap-1.5">
               <span className={`w-2 h-2 rounded-full ${CHANNEL_COLOR[c.name]}`} />
-              <span className="text-zinc-700 font-medium">{CHANNEL_LABEL[c.name]}</span>
-              <span className="text-zinc-400 tabular-nums">{c.weight_pct}%</span>
+              <span className="font-medium" style={{ color: 'var(--ct-text-body)' }}>{CHANNEL_LABEL[c.name]}</span>
+              <span className="tabular-nums" style={{ color: 'var(--ct-text-muted)' }}>{c.weight_pct}%</span>
             </li>
           ))}
         </ul>
       </div>
 
       {/* Outcomes */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-white/70 rounded-lg border border-zinc-200 p-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs rounded-lg p-3" style={{ border: '1px solid var(--ct-border)', background: 'var(--ct-surface-1)' }}>
         <Metric label="CPA cible" value={`${plan.expected_outcomes.target_cpa_eur.toFixed(0)} €`} />
         <Metric label="ROAS cible" value={`×${plan.expected_outcomes.target_roas.toFixed(1)}`} />
         <Metric
@@ -65,34 +65,35 @@ export function MediaPlanBlock({ plan }: { plan: MediaPlan }) {
         />
       </div>
       {plan.expected_outcomes.breakeven_note && (
-        <p className="text-xs text-zinc-500 italic leading-snug">
+        <p className="text-xs italic leading-snug" style={{ color: 'var(--ct-text-body)' }}>
           {plan.expected_outcomes.breakeven_note}
         </p>
       )}
 
       {/* Geo + audience side by side */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-        <div className="bg-white/70 rounded-lg border border-zinc-200 p-3">
-          <p className="text-kicker uppercase tracking-cta text-zinc-400 mb-1.5">Géo</p>
-          <p className="font-medium text-zinc-900">{plan.geo.primary_countries.join(' · ')}</p>
+        <div className="rounded-lg p-3" style={{ border: '1px solid var(--ct-border)', background: 'var(--ct-surface-1)' }}>
+          <p className="text-kicker uppercase tracking-cta mb-1.5" style={{ color: 'var(--ct-text-muted)' }}>Géo</p>
+          <p className="font-medium" style={{ color: 'var(--ct-text-primary)' }}>{plan.geo.primary_countries.join(' · ')}</p>
           {plan.geo.emphasis && plan.geo.emphasis.length > 0 && (
-            <p className="text-zinc-600 mt-1">
+            <p className="mt-1" style={{ color: 'var(--ct-text-body)' }}>
               Focus : {plan.geo.emphasis.join(', ')}
             </p>
           )}
           {plan.geo.rationale && (
-            <p className="text-zinc-500 mt-1 leading-snug">{plan.geo.rationale}</p>
+            <p className="mt-1 leading-snug" style={{ color: 'var(--ct-text-muted)' }}>{plan.geo.rationale}</p>
           )}
         </div>
-        <div className="bg-white/70 rounded-lg border border-zinc-200 p-3">
-          <p className="text-kicker uppercase tracking-cta text-zinc-400 mb-1.5">Audience</p>
-          <p className="text-zinc-700 leading-snug">{plan.audience.demographics}</p>
+        <div className="rounded-lg p-3" style={{ border: '1px solid var(--ct-border)', background: 'var(--ct-surface-1)' }}>
+          <p className="text-kicker uppercase tracking-cta mb-1.5" style={{ color: 'var(--ct-text-muted)' }}>Audience</p>
+          <p className="leading-snug" style={{ color: 'var(--ct-text-body)' }}>{plan.audience.demographics}</p>
           {plan.audience.interests.length > 0 && (
             <div className="mt-1.5 flex flex-wrap gap-1">
               {plan.audience.interests.slice(0, 6).map((i) => (
                 <span
                   key={i}
-                  className="inline-flex items-center px-1.5 py-0.5 rounded-sm border border-zinc-200 text-[10px] text-zinc-600"
+                  className="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[10px]"
+                  style={{ border: '1px solid var(--ct-border)', color: 'var(--ct-text-body)' }}
                 >
                   {i}
                 </span>
@@ -103,30 +104,30 @@ export function MediaPlanBlock({ plan }: { plan: MediaPlan }) {
       </div>
 
       {/* Schedule */}
-      <div className="bg-white/70 rounded-lg border border-zinc-200 p-3 text-xs">
-        <p className="text-kicker uppercase tracking-cta text-zinc-400 mb-1.5">Horaires</p>
-        <p className="text-zinc-700">
-          <span className="font-medium text-zinc-900">{plan.schedule.best_hours_local.join(' · ')}</span>
-          <span className="text-zinc-400 mx-1.5">·</span>
+      <div className="rounded-lg p-3 text-xs" style={{ border: '1px solid var(--ct-border)', background: 'var(--ct-surface-1)' }}>
+        <p className="text-kicker uppercase tracking-cta mb-1.5" style={{ color: 'var(--ct-text-muted)' }}>Horaires</p>
+        <p style={{ color: 'var(--ct-text-body)' }}>
+          <span className="font-medium" style={{ color: 'var(--ct-text-primary)' }}>{plan.schedule.best_hours_local.join(' · ')}</span>
+          <span className="mx-1.5" style={{ color: 'var(--ct-text-muted)' }}>·</span>
           {plan.schedule.best_days.join(', ')}
           {plan.schedule.timezone && (
-            <span className="text-zinc-400 ml-1.5">({plan.schedule.timezone})</span>
+            <span className="ml-1.5" style={{ color: 'var(--ct-text-muted)' }}>({plan.schedule.timezone})</span>
           )}
         </p>
         {plan.schedule.rationale && (
-          <p className="text-zinc-500 mt-1 leading-snug">{plan.schedule.rationale}</p>
+          <p className="mt-1 leading-snug" style={{ color: 'var(--ct-text-muted)' }}>{plan.schedule.rationale}</p>
         )}
       </div>
 
       {/* Top hooks */}
       {plan.top_hooks && plan.top_hooks.length > 0 && (
         <div>
-          <p className="text-kicker uppercase tracking-cta text-zinc-400 mb-2">Hooks créatifs</p>
+          <p className="text-kicker uppercase tracking-cta mb-2" style={{ color: 'var(--ct-text-muted)' }}>Hooks créatifs</p>
           <ul className="space-y-1.5">
             {plan.top_hooks.slice(0, 3).map((h, i) => (
               <li key={i} className="flex items-baseline gap-2 text-xs">
-                <span className="text-zinc-400 tabular-nums shrink-0">{(i + 1).toString().padStart(2, '0')}</span>
-                <span className="text-zinc-700 leading-snug">«&nbsp;{h}&nbsp;»</span>
+                <span className="tabular-nums shrink-0" style={{ color: 'var(--ct-text-muted)' }}>{(i + 1).toString().padStart(2, '0')}</span>
+                <span className="leading-snug" style={{ color: 'var(--ct-text-body)' }}>«&nbsp;{h}&nbsp;»</span>
               </li>
             ))}
           </ul>

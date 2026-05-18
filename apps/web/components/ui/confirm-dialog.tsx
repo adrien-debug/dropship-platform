@@ -75,10 +75,17 @@ export function ConfirmDialog({
     }
   };
 
-  const confirmClass =
+  const confirmStyle: React.CSSProperties =
     tone === 'destructive'
-      ? 'bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-400'
-      : 'bg-zinc-900 text-white hover:bg-zinc-800 focus-visible:ring-zinc-400';
+      ? {
+          background: 'var(--ct-accent-strong)',
+          color: 'var(--ct-text-strong)',
+        }
+      : {
+          background: 'var(--ct-surface-3)',
+          color: 'var(--ct-text-primary)',
+          border: '1px solid var(--ct-border-strong)',
+        };
 
   return (
     <div
@@ -88,20 +95,35 @@ export function ConfirmDialog({
       aria-describedby={description ? 'confirm-dialog-description' : undefined}
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
     >
+      {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-zinc-950/50 backdrop-blur-sm"
+        style={{ background: 'rgba(26,5,11,0.65)', backdropFilter: 'blur(6px)' }}
+        className="absolute inset-0"
         onClick={() => {
           if (!confirming) onCancel();
         }}
       />
-      <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6 border border-zinc-200">
-        <h2 id="confirm-dialog-title" className="text-base font-semibold text-zinc-900 leading-snug">
+      {/* Dialog panel */}
+      <div
+        className="relative rounded-xl max-w-md w-full p-6"
+        style={{
+          background: 'var(--ct-surface-2)',
+          border: '1px solid var(--ct-border-strong)',
+          boxShadow: 'var(--ct-shadow-depth)',
+        }}
+      >
+        <h2
+          id="confirm-dialog-title"
+          className="text-base font-semibold leading-snug"
+          style={{ color: 'var(--ct-text-primary)' }}
+        >
           {title}
         </h2>
         {description && (
           <p
             id="confirm-dialog-description"
-            className="mt-2 text-sm text-zinc-600 leading-relaxed whitespace-pre-wrap"
+            className="mt-2 text-sm leading-relaxed whitespace-pre-wrap"
+            style={{ color: 'var(--ct-text-body)' }}
           >
             {description}
           </p>
@@ -111,7 +133,17 @@ export function ConfirmDialog({
             type="button"
             onClick={onCancel}
             disabled={confirming}
-            className="px-4 py-2 rounded-lg text-sm font-medium text-zinc-700 hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-4 py-2 rounded-lg text-sm font-medium focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{
+              color: 'var(--ct-text-body)',
+              transition: 'background var(--ct-dur-base) var(--ct-ease)',
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = 'var(--ct-surface-3)';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+            }}
           >
             {cancelLabel}
           </button>
@@ -120,7 +152,11 @@ export function ConfirmDialog({
             type="button"
             onClick={handleConfirm}
             disabled={confirming}
-            className={`px-4 py-2 rounded-lg text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 disabled:opacity-70 disabled:cursor-not-allowed transition-colors ${confirmClass}`}
+            className="px-4 py-2 rounded-lg text-sm font-medium focus-visible:outline-none disabled:opacity-70 disabled:cursor-not-allowed"
+            style={{
+              ...confirmStyle,
+              transition: 'opacity var(--ct-dur-base) var(--ct-ease)',
+            }}
           >
             {confirming ? 'En cours…' : confirmLabel}
           </button>

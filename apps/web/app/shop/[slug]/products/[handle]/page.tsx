@@ -98,7 +98,7 @@ export default async function ShopProductPage({
         productId={product.id}
         variantId={variant?.id}
       />
-      <nav className="mb-8 text-sm text-zinc-500">
+      <nav className="mb-8 text-sm" style={{ color: 'var(--ds-text-muted, rgba(0,0,0,0.5))' }}>
         <Link
           href={`/shop/${slug}`}
           className="hover:underline inline-flex items-center gap-1.5"
@@ -108,12 +108,15 @@ export default async function ShopProductPage({
           {store.name}
         </Link>
         <span className="mx-2">›</span>
-        <span className="text-zinc-900">{product.title}</span>
+        <span style={{ color: 'var(--ds-text, inherit)' }}>{product.title}</span>
       </nav>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
         {/* Image */}
-        <div className="relative aspect-square rounded-2xl overflow-hidden bg-zinc-100 shadow-md">
+        <div
+          className="relative aspect-square rounded-2xl overflow-hidden shadow-md"
+          style={{ backgroundColor: 'var(--ds-bg-alt, rgba(0,0,0,0.05))' }}
+        >
           {imageUrl ? (
             <Image
               src={imageUrl}
@@ -124,7 +127,7 @@ export default async function ShopProductPage({
               priority
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-zinc-400">
+            <div className="w-full h-full flex items-center justify-center" style={{ color: 'var(--ds-text-muted, rgba(0,0,0,0.4))' }}>
               <StoreLogo emoji={store.logoEmoji} size={80} strokeWidth={1.25} />
             </div>
           )}
@@ -132,7 +135,12 @@ export default async function ShopProductPage({
 
         {/* Details */}
         <div className="flex flex-col">
-          <h1 className="text-3xl font-bold text-zinc-900 mb-4">{product.title}</h1>
+          <h1
+            className="text-3xl font-bold mb-4"
+            style={{ color: 'var(--ds-text, inherit)' }}
+          >
+            {product.title}
+          </h1>
 
           {price !== undefined && (
             <div className="text-4xl font-bold mb-6" style={{ color: store.accentColor }}>
@@ -141,22 +149,34 @@ export default async function ShopProductPage({
           )}
 
           {product.description && (
-            <div className="prose prose-sm text-zinc-600 mb-8 leading-relaxed">
+            <div
+              className="prose prose-sm mb-8 leading-relaxed"
+              style={{ color: 'var(--ds-text-muted, rgba(0,0,0,0.65))' }}
+            >
               {product.description}
             </div>
           )}
 
           <div className="space-y-3 mb-8">
-            <div className="flex items-center gap-2.5 text-sm text-zinc-600">
-              <Truck size={16} strokeWidth={1.75} className="text-zinc-500" aria-hidden />
+            <div
+              className="flex items-center gap-2.5 text-sm"
+              style={{ color: 'var(--ds-text-muted, rgba(0,0,0,0.6))' }}
+            >
+              <Truck size={16} strokeWidth={1.75} aria-hidden />
               <span>Livraison internationale disponible</span>
             </div>
-            <div className="flex items-center gap-2.5 text-sm text-zinc-600">
-              <ShieldCheck size={16} strokeWidth={1.75} className="text-zinc-500" aria-hidden />
+            <div
+              className="flex items-center gap-2.5 text-sm"
+              style={{ color: 'var(--ds-text-muted, rgba(0,0,0,0.6))' }}
+            >
+              <ShieldCheck size={16} strokeWidth={1.75} aria-hidden />
               <span>Paiement 100% sécurisé</span>
             </div>
-            <div className="flex items-center gap-2.5 text-sm text-zinc-600">
-              <RotateCcw size={16} strokeWidth={1.75} className="text-zinc-500" aria-hidden />
+            <div
+              className="flex items-center gap-2.5 text-sm"
+              style={{ color: 'var(--ds-text-muted, rgba(0,0,0,0.6))' }}
+            >
+              <RotateCcw size={16} strokeWidth={1.75} aria-hidden />
               <span>Retours faciles sous 30 jours</span>
             </div>
           </div>
@@ -165,7 +185,10 @@ export default async function ShopProductPage({
             <AddToCartButton variantId={variant.id} storeSlug={slug} showQuantity />
           )}
 
-          <p className="text-xs text-zinc-400 mt-4 text-center">
+          <p
+            className="text-xs mt-4 text-center"
+            style={{ color: 'var(--ds-text-muted, rgba(0,0,0,0.4))' }}
+          >
             Article ajouté au panier global — checkout sécurisé par Stripe
           </p>
         </div>

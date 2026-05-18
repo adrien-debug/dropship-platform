@@ -98,33 +98,34 @@ export default async function StoreAssetsPage({ params }: { params: Promise<{ id
   };
 
   return (
-    <div className="flex flex-col flex-1 space-y-4">
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, gap: 16 }}>
       <PageHeader
         kicker={`Production · Assets · ${store.niche}`}
         title={
           <>
-            Assets de <em className="italic text-zinc-400">{store.name}</em>
+            Assets de <em style={{ fontStyle: 'italic', color: 'var(--ct-text-muted)' }}>{store.name}</em>
           </>
         }
         lede={
           <>
-            Régénère chaque visuel sans toucher au produit. Le prompt est éditable, l’historique
-            conserve les 10 derniers runs et un clic suffit pour revenir à une version
-            précédente. Le storefront <code className="font-mono text-zinc-500">/shop/{store.slug}</code>{' '}
-            reflète immédiatement la version courante.
+            R&eacute;g&eacute;n&egrave;re chaque visuel sans toucher au produit. Le prompt est &eacute;ditable, l&apos;historique
+            conserve les 10 derniers runs et un clic suffit pour revenir &agrave; une version
+            pr&eacute;c&eacute;dente. Le storefront{' '}
+            <code style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--ct-text-muted)', background: 'var(--ct-surface-3)', padding: '2px 6px', borderRadius: 4 }}>/shop/{store.slug}</code>{' '}
+            refl&egrave;te imm&eacute;diatement la version courante.
           </>
         }
       />
 
       {!product?.image_url && (
-        <div className="border border-blue-200 bg-blue-50 rounded-xl px-5 py-4 text-sm text-blue-700">
-          <strong className="font-medium">Aucun produit de référence.</strong> Aucune image produit
-          n’est associée à ce store — la régénération ne peut pas s’appuyer sur un visuel source.
-          Importe un produit avec une image avant d’utiliser cette page.
+        <div style={{ border: '1px solid var(--ct-border-accent)', background: 'var(--ct-accent-soft)', borderRadius: 12, padding: '16px 20px', fontSize: 13, color: 'var(--ct-accent-strong)' }}>
+          <strong style={{ fontWeight: 600 }}>Aucun produit de r&eacute;f&eacute;rence.</strong> Aucune image produit
+          n&apos;est associ&eacute;e &agrave; ce store &mdash; la r&eacute;g&eacute;n&eacute;ration ne peut pas s&apos;appuyer sur un visuel source.
+          Importe un produit avec une image avant d&apos;utiliser cette page.
         </div>
       )}
 
-      <div className="space-y-4">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {ASSET_KINDS.map((kind) => (
           <AssetRegenerator
             key={kind}

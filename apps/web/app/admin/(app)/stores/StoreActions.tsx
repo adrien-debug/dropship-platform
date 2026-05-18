@@ -48,7 +48,18 @@ export function StoreActions({
         disabled={deleting}
         aria-label={`Supprimer ${storeName}`}
         title={error || `Supprimer ${storeName}`}
-        className={`inline-flex items-center justify-center rounded-lg border bg-white border-zinc-200 text-zinc-400 hover:bg-blue-50 hover:text-zinc-900 hover:border-zinc-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-1 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${error ? 'border-red-200 text-red-500' : ''} ${sizeCls}`}
+        className={`inline-flex items-center justify-center rounded-lg border transition-colors focus-visible:outline-none disabled:opacity-40 disabled:cursor-not-allowed ${sizeCls}`}
+        style={{
+          background: 'var(--ct-surface-1)',
+          borderColor: error ? 'var(--ct-border-accent)' : 'var(--ct-border)',
+          color: error ? 'var(--ct-accent-strong)' : 'var(--ct-text-muted)',
+        }}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLButtonElement).style.background = 'var(--ct-surface-2)';
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLButtonElement).style.background = 'var(--ct-surface-1)';
+        }}
       >
         <TrashIcon size={compact ? 13 : 15} />
       </button>

@@ -5,7 +5,8 @@ import { DryRunPendingButton } from './DryRunPendingButton';
 import { MarkPaidButton } from './MarkPaidButton';
 import { formatMoney } from '@/lib/medusa-store';
 import { aliExpressOrderUrl } from '@/lib/suppliers/aliexpress';
-import { PageHeader, StatCard, StatusPill } from '@/app/admin/_components/AdminUI';
+import { PageHeader, StatusPill } from '@/app/admin/_components/AdminUI';
+import { KpiGrid, KpiCard } from '@/components/cockpit/primitives';
 
 export const dynamic = 'force-dynamic';
 
@@ -97,80 +98,60 @@ export default async function OrdersPage() {
     errors: Array.from(forwardsByOrder.values()).filter((f) => f.status === 'error').length,
   };
 
-  const awaitingTotal = awaitingPayment.reduce((acc, r) => acc + (r.total_minor ?? 0), 0);
-  const awaitingCurrency = awaitingPayment[0]?.currency_code ?? null;
-
   return (
     <div className="flex flex-col flex-1 space-y-4">
       <PageHeader
         kicker="Production · Dropship"
         title={
           <>
-            Carnet de <em className="italic text-zinc-400">commandes</em>
+            Carnet de <em style={{ fontStyle: 'italic', color: 'var(--ct-text-muted)' }}>commandes</em>
           </>
         }
         lede="Forward chaque commande payée vers AliExpress. Le dry-run sauve le payload sans rien envoyer."
         actions={<DryRunPendingButton />}
       />
 
-      <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard label="Commandes payées" value={String(stats.paidOrders)} hint="Sur les 50 dernières" />
-        <StatCard
-          label="À payer chez AE"
-          value={String(stats.awaitingPayment)}
-          hint={
-            stats.awaitingPayment > 0 && awaitingCurrency
-              ? `Total : ${formatMoney(awaitingTotal, awaitingCurrency)}`
-              : 'Aucune en attente'
-          }
-          tone={stats.awaitingPayment > 0 ? 'emerald' : 'neutral'}
-        />
-        <StatCard
-          label="Payées chez AE"
-          value={String(stats.paidAtAe)}
-          tone={stats.paidAtAe > 0 ? 'emerald' : 'neutral'}
-        />
-        <StatCard
-          label="Erreurs forward"
-          value={String(stats.errors)}
-          tone="neutral"
-        />
-      </section>
+      <KpiGrid>
+        <KpiCard label="Commandes payées" value={String(stats.paidOrders)} />
+        <KpiCard label="À payer chez AE" value={String(stats.awaitingPayment)} accent={stats.awaitingPayment > 0} />
+        <KpiCard label="Payées chez AE" value={String(stats.paidAtAe)} accent={stats.paidAtAe > 0} />
+        <KpiCard label="Erreurs forward" value={String(stats.errors)} />
+      </KpiGrid>
 
       {fetchError && (
-        <div className="border border-zinc-200 bg-white rounded-xl p-3 text-xs text-zinc-500 shadow-sm">
-          Erreur Medusa : {fetchError}
+        <div className="ct-card" style={{ margin: 0 }}>
+          <span style={{ fontSize: 12, color: 'var(--ct-text-muted)' }}>Erreur Medusa : {fetchError}</span>
         </div>
       )}
 
       {awaitingPayment.length > 0 && (
-        <section className="border border-zinc-200 bg-white rounded-xl overflow-hidden shadow-sm">
-          <div className="px-4 py-3 border-b border-zinc-100">
-            <div className="flex items-baseline gap-2">
-              <h3 className="text-base font-semibold tracking-[-0.02em] text-zinc-900">
-                À payer <em className="italic text-zinc-400">chez AliExpress</em>
+        <section style={{ border: '1px solid var(--ct-border)', background: 'var(--ct-surface-1)', borderRadius: 12, overflow: 'hidden' }}>
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--ct-border)' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 600, color: 'var(--ct-text-primary)', letterSpacing: '-0.02em' }}>
+                À payer <em style={{ fontStyle: 'italic', color: 'var(--ct-text-muted)' }}>chez AliExpress</em>
               </h3>
-              <span className="text-[11px] uppercase tracking-wider text-zinc-400">
+              <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--ct-text-faint)' }}>
                 · {awaitingPayment.length} commande{awaitingPayment.length > 1 ? 's' : ''}
               </span>
             </div>
-            <p className="mt-1 text-[11px] text-zinc-500 max-w-3xl leading-relaxed">
+            <p style={{ marginTop: 4, fontSize: 11, color: 'var(--ct-text-muted)', lineHeight: 1.6 }}>
               AE n&apos;a pas d&apos;API de paiement. Ouvre le lien, paie sur aliexpress.com, puis clique <strong>Marquer payée</strong>. Annulation auto après <strong>20 jours</strong>.
             </p>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead className="bg-zinc-50/60 text-[10px] uppercase tracking-wider text-zinc-400">
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
+              <thead style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--ct-text-faint)', background: 'var(--ct-surface-2)' }}>
                 <tr>
-                  <th className="text-left px-3 py-2 font-medium">Commande</th>
-                  <th className="text-left px-3 py-2 font-medium">Client</th>
-                  <th className="text-left px-3 py-2 font-medium">Total</th>
-                  <th className="text-left px-3 py-2 font-medium">Order AE</th>
-                  <th className="text-left px-3 py-2 font-medium">Forwardée</th>
-                  <th className="text-right px-3 py-2 font-medium">Action</th>
+                  <th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 500 }}>Commande</th>
+                  <th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 500 }}>Client</th>
+                  <th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 500 }}>Total</th>
+                  <th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 500 }}>Order AE</th>
+                  <th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 500 }}>Forwardée</th>
+                  <th style={{ textAlign: 'right', padding: '8px 12px', fontWeight: 500 }}>Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody>
                 {awaitingPayment.map((row) => {
                   const ageMs = Date.now() - new Date(row.forwarded_at).getTime();
                   const ageHours = Math.floor(ageMs / 3_600_000);
@@ -178,35 +159,39 @@ export default async function OrdersPage() {
                     ageHours < 1 ? '< 1 h' : ageHours < 48 ? `${ageHours} h` : `${Math.floor(ageHours / 24)} j`;
                   const stale = ageHours >= 24 * 15;
                   return (
-                    <tr key={row.medusa_order_id} className="hover:bg-blue-50/40 transition-colors">
-                      <td className="px-3 py-1.5">
-                        <div className="font-medium text-zinc-900">
+                    <tr key={row.medusa_order_id} style={{ borderTop: '1px solid var(--ct-border-soft)' }}>
+                      <td style={{ padding: '6px 12px' }}>
+                        <div style={{ fontWeight: 500, color: 'var(--ct-text-primary)' }}>
                           #{row.display_id ?? row.medusa_order_id.slice(0, 8)}
                         </div>
-                        <div className="text-[10px] text-zinc-400 font-mono mt-0.5 truncate max-w-[140px]">{row.medusa_order_id}</div>
+                        <div style={{ fontSize: 10, color: 'var(--ct-text-faint)', fontFamily: 'monospace', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }}>
+                          {row.medusa_order_id}
+                        </div>
                       </td>
-                      <td className="px-3 py-1.5 text-zinc-500 truncate max-w-[160px]">{row.customer_email ?? '—'}</td>
-                      <td className="px-3 py-1.5 font-semibold tabular-nums text-zinc-900">
+                      <td style={{ padding: '6px 12px', color: 'var(--ct-text-body)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160 }}>
+                        {row.customer_email ?? '—'}
+                      </td>
+                      <td style={{ padding: '6px 12px', fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: 'var(--ct-text-primary)' }}>
                         {row.total_minor != null && row.currency_code
                           ? formatMoney(row.total_minor, row.currency_code)
                           : '—'}
                       </td>
-                      <td className="px-3 py-1.5">
+                      <td style={{ padding: '6px 12px' }}>
                         <a
                           href={aliExpressOrderUrl(row.ae_order_id)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-700 underline underline-offset-4 decoration-blue-200 hover:decoration-blue-500 font-mono text-[11px]"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--ct-accent)', fontFamily: 'monospace', fontSize: 11, textDecoration: 'underline' }}
                         >
                           {row.ae_order_id}
                           <span aria-hidden="true">↗</span>
                         </a>
                       </td>
-                      <td className={`px-3 py-1.5 text-[11px] ${stale ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                        <StatusPill tone={stale ? 'neutral' : 'neutral'}>il y a {ageLabel}</StatusPill>
-                        {stale && <div className="mt-0.5 text-[10px] font-medium text-zinc-500">proche annulation</div>}
+                      <td style={{ padding: '6px 12px', fontSize: 11, color: stale ? 'var(--ct-text-muted)' : 'var(--ct-text-faint)' }}>
+                        <StatusPill tone="neutral">il y a {ageLabel}</StatusPill>
+                        {stale && <div style={{ marginTop: 2, fontSize: 10, fontWeight: 500, color: 'var(--ct-accent)' }}>proche annulation</div>}
                       </td>
-                      <td className="px-3 py-1.5 text-right">
+                      <td style={{ padding: '6px 12px', textAlign: 'right' }}>
                         <MarkPaidButton orderId={row.medusa_order_id} />
                       </td>
                     </tr>
@@ -219,72 +204,77 @@ export default async function OrdersPage() {
       )}
 
       {!fetchError && orders.length === 0 && (
-        <div className="flex-1 min-h-0 border border-dashed border-zinc-200 rounded-xl px-6 py-12 text-center bg-white shadow-sm">
-          <p className="text-sm font-semibold tracking-tight text-zinc-900">Aucune commande pour le moment.</p>
-          <p className="mt-1 text-xs text-zinc-400">
+        <div style={{
+          flex: 1, minHeight: 0,
+          border: '1px dashed var(--ct-border-strong)', borderRadius: 12,
+          padding: '48px 24px', textAlign: 'center',
+          background: 'var(--ct-surface-1)',
+        }}>
+          <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--ct-text-primary)' }}>Aucune commande pour le moment.</p>
+          <p style={{ marginTop: 4, fontSize: 12, color: 'var(--ct-text-muted)' }}>
             Les commandes Medusa payées apparaîtront ici dès qu&apos;un client passera commande.
           </p>
         </div>
       )}
 
       {orders.length > 0 && (
-        <section className="flex-1 min-h-0 border border-zinc-200 bg-white rounded-xl overflow-hidden shadow-sm">
-          <div className="px-4 py-3 border-b border-zinc-100 flex items-baseline gap-2">
-            <h3 className="text-base font-semibold tracking-[-0.02em] text-zinc-900">
-              Toutes les <em className="italic text-zinc-400">commandes</em>
+        <section style={{ flex: 1, minHeight: 0, border: '1px solid var(--ct-border)', background: 'var(--ct-surface-1)', borderRadius: 12, overflow: 'hidden' }}>
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--ct-border)', display: 'flex', alignItems: 'baseline', gap: 8 }}>
+            <h3 style={{ fontSize: 15, fontWeight: 600, color: 'var(--ct-text-primary)', letterSpacing: '-0.02em' }}>
+              Toutes les <em style={{ fontStyle: 'italic', color: 'var(--ct-text-muted)' }}>commandes</em>
             </h3>
-            <span className="text-[11px] uppercase tracking-wider text-zinc-400">
+            <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--ct-text-faint)' }}>
               · {orders.length} affichée{orders.length > 1 ? 's' : ''}
             </span>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead className="bg-zinc-50/60 text-[10px] uppercase tracking-wider text-zinc-400">
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
+              <thead style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--ct-text-faint)', background: 'var(--ct-surface-2)' }}>
                 <tr>
-                  <th className="text-left px-3 py-2 font-medium">Commande</th>
-                  <th className="text-left px-3 py-2 font-medium">Client</th>
-                  <th className="text-left px-3 py-2 font-medium">Total</th>
-                  <th className="text-left px-3 py-2 font-medium">Paiement</th>
-                  <th className="text-left px-3 py-2 font-medium">AliExpress</th>
-                  <th className="text-right px-3 py-2 font-medium">Action</th>
+                  <th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 500 }}>Commande</th>
+                  <th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 500 }}>Client</th>
+                  <th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 500 }}>Total</th>
+                  <th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 500 }}>Paiement</th>
+                  <th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 500 }}>AliExpress</th>
+                  <th style={{ textAlign: 'right', padding: '8px 12px', fontWeight: 500 }}>Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody>
                 {orders.map((order) => {
                   const forward = forwardsByOrder.get(order.id) ?? null;
                   const sent = forward?.status === 'sent';
                   const paymentOk =
                     order.payment_status === 'captured' || order.payment_status === 'authorized';
                   return (
-                    <tr key={order.id} className="hover:bg-blue-50/40 transition-colors">
-                      <td className="px-3 py-1.5">
-                        <div className="font-medium text-zinc-900">#{order.display_id ?? order.id.slice(0, 8)}</div>
-                        <div className="text-[10px] text-zinc-400 mt-0.5">
+                    <tr key={order.id} style={{ borderTop: '1px solid var(--ct-border-soft)' }}>
+                      <td style={{ padding: '6px 12px' }}>
+                        <div style={{ fontWeight: 500, color: 'var(--ct-text-primary)' }}>#{order.display_id ?? order.id.slice(0, 8)}</div>
+                        <div style={{ fontSize: 10, color: 'var(--ct-text-faint)', marginTop: 2 }}>
                           {new Date(order.created_at).toLocaleDateString('fr-FR', {
-                            day: '2-digit',
-                            month: 'short',
-                            year: 'numeric',
+                            day: '2-digit', month: 'short', year: 'numeric',
                           })}
                         </div>
                       </td>
-                      <td className="px-3 py-1.5">
-                        <div className="text-zinc-500 truncate max-w-[160px]">{order.email ?? '—'}</div>
+                      <td style={{ padding: '6px 12px' }}>
+                        <div style={{ color: 'var(--ct-text-body)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160 }}>
+                          {order.email ?? '—'}
+                        </div>
                         {order.shipping_address?.city && (
-                          <div className="text-[10px] text-zinc-400 mt-0.5">{order.shipping_address.city}</div>
+                          <div style={{ fontSize: 10, color: 'var(--ct-text-faint)', marginTop: 2 }}>{order.shipping_address.city}</div>
                         )}
                       </td>
-                      <td className="px-3 py-1.5 font-semibold tabular-nums text-zinc-900">
+                      <td style={{ padding: '6px 12px', fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: 'var(--ct-text-primary)' }}>
                         {formatMoney(order.total, order.currency_code)}
                       </td>
-                      <td className="px-3 py-1.5">
+                      <td style={{ padding: '6px 12px' }}>
                         <StatusPill tone={paymentOk ? 'emerald' : 'neutral'}>
                           {order.payment_status ?? order.status ?? '—'}
                         </StatusPill>
                       </td>
-                      <td className="px-3 py-1.5">
+                      <td style={{ padding: '6px 12px' }}>
                         {forward ? (
                           forward.status === 'sent' && forward.ae_order_id ? (
-                            <div className="flex flex-col gap-0.5">
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                               <StatusPill tone={forward.paid_at ? 'emerald' : 'neutral'}>
                                 {forward.paid_at ? 'payée' : 'à payer'}
                               </StatusPill>
@@ -292,7 +282,7 @@ export default async function OrdersPage() {
                                 href={aliExpressOrderUrl(forward.ae_order_id)}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="font-mono text-[10px] text-zinc-400 hover:text-blue-600 hover:underline underline-offset-2"
+                                style={{ fontFamily: 'monospace', fontSize: 10, color: 'var(--ct-text-faint)', textDecoration: 'underline' }}
                               >
                                 {forward.ae_order_id}
                               </a>
@@ -300,21 +290,21 @@ export default async function OrdersPage() {
                           ) : forward.status === 'dry_run' ? (
                             <StatusPill tone="emerald">dry-run prêt</StatusPill>
                           ) : (
-                            <div className="flex flex-col gap-0.5 max-w-[200px]">
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, maxWidth: 200 }}>
                               <StatusPill tone="neutral">erreur</StatusPill>
                               {forward.error_message && (
-                                <span className="text-[10px] text-zinc-400 line-clamp-2" title={forward.error_message}>
+                                <span style={{ fontSize: 10, color: 'var(--ct-text-faint)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } as React.CSSProperties} title={forward.error_message}>
                                   {forward.error_message}
                                 </span>
                               )}
                             </div>
                           )
                         ) : (
-                          <span className="text-zinc-400 text-[11px]">—</span>
+                          <span style={{ color: 'var(--ct-text-faint)', fontSize: 11 }}>—</span>
                         )}
                       </td>
-                      <td className="px-3 py-1.5 text-right">
-                        <div className="flex justify-end">
+                      <td style={{ padding: '6px 12px', textAlign: 'right' }}>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                           <ForwardButton orderId={order.id} alreadySent={sent} />
                         </div>
                       </td>

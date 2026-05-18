@@ -219,7 +219,7 @@ const SUPER_TOOLS: Anthropic.Messages.Tool[] = [
   {
     name: 'run_sql',
     description:
-      'Exécute une requête SQL sur la base Postgres. Par défaut lecture seule (SELECT). Pour INSERT/UPDATE/DELETE, l\'outil retourne une demande de confirmation que l\'opérateur doit approuver avant exécution.',
+      'Exécute une requête SQL sur la base Postgres. Par défaut lecture seule (SELECT). Pour INSERT/UPDATE/DELETE, l\'outil retourne une demande de confirmation que l\'opérateur doit approuver avant exécution. Si une lecture est refusée par le garde-fou lecture seule, relance en mode=write (confirmation opérateur requise).',
     input_schema: {
       type: 'object',
       properties: {
@@ -388,7 +388,69 @@ interface ExecResult {
   confirm_key?: string;
 }
 
-async function execRunSql(
+// SQL keywords that indicate a data-modifying statement. REPLACE/DO/COPY/CALL
+// are intentionally omitted: the first-keyword gate (SELECT/WITH only) already
+// blocks them as statement starters, and inside a SELECT they produce
+// false-positives (e.g. replace() is a valid Postgres read function).
+const WRITE_KEYWORDS = [
+  'INSERT', 'UPDATE', 'DELETE', 'DROP', 'ALTER', 'TRUNCATE', 'CREATE',
+  'GRANT', 'REVOKE', 'MERGE', 'VACUUM', 'REINDEX',
+] as const;
+
+/**
+ * Validates that a SQL query is strictly read-only (SELECT or WITH…SELECT).
+ *
+ * Returns null when the query is allowed, or an error message string when it
+ * must be rejected. Designed as a pure function so it is easily unit-testable.
+ *
+ * Rules:
+ * - Strip leading SQL block/line comments and whitespace before inspecting.
+ * - First keyword must be SELECT or WITH.
+ * - No data-modifying statement keywords (see WRITE_KEYWORDS) may appear at a
+ *   word boundary anywhere in the query.
+ * - At most one statement: rejects queries containing `;` followed by any
+ *   non-whitespace (i.e. a trailing `;` alone is fine).
+ * - WITH CTEs that contain a data-modifying sub-statement (e.g. WITH x AS
+ *   (DELETE … RETURNING …)) are rejected by the keyword scan above.
+ *
+ * Keyword matching is word-boundary-based and case-insensitive to avoid false
+ * positives on column names like `updated_at` or string literals. Being
+ * slightly conservative (occasionally rejecting an exotic-but-valid read query)
+ * is acceptable — the operator can always use mode=write with confirmation.
+ */
+export function assertReadOnlySql(query: string): string | null {
+  // Iteratively strip leading whitespace and comments so we reach the first
+  // real token regardless of comment nesting depth.
+  let stripped = query;
+  let prev = '';
+  while (prev !== stripped) {
+    prev = stripped;
+    stripped = stripped.replace(/^\s+/, '');
+    stripped = stripped.replace(/^--[^\n]*\n?/, '');
+    stripped = stripped.replace(/^\/\*[\s\S]*?\*\//, '');
+  }
+
+  const firstWord = (stripped.match(/^([A-Za-z_]+)/) ?? [])[1]?.toUpperCase();
+  if (firstWord !== 'SELECT' && firstWord !== 'WITH') {
+    return `run_sql mode=read rejeté : le premier mot-clé doit être SELECT ou WITH (trouvé : "${firstWord ?? '(vide)'}"). Utilisez mode=write pour les requêtes de modification.`;
+  }
+
+  if (/;[ \t\r\n]*\S/.test(query)) {
+    return 'run_sql mode=read rejeté : plusieurs instructions (;) détectées. Une seule requête SELECT est autorisée par appel.';
+  }
+
+  // \b word-boundary anchors ensure "updated_at" does not trigger "UPDATE".
+  for (const kw of WRITE_KEYWORDS) {
+    const re = new RegExp(`\\b${kw}\\b`, 'i');
+    if (re.test(query)) {
+      return `run_sql mode=read rejeté : mot-clé de modification "${kw}" détecté. Utilisez mode=write pour les requêtes de modification.`;
+    }
+  }
+
+  return null;
+}
+
+export async function execRunSql(
   input: unknown,
   confirmations: Record<string, boolean>,
 ): Promise<ExecResult> {
@@ -398,6 +460,13 @@ async function execRunSql(
     params: z.array(z.string()).optional(),
   });
   const { query, mode, params } = schema.parse(input);
+
+  if (mode === 'read') {
+    const err = assertReadOnlySql(query);
+    if (err !== null) {
+      throw new Error(err);
+    }
+  }
 
   if (mode === 'write') {
     const confirmKey = `sql:${query.slice(0, 40)}`;
