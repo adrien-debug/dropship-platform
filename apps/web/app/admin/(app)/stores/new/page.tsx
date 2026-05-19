@@ -206,13 +206,6 @@ function NewStoreForm() {
     // Everything downstream reads from that single entry — including the
     // store-creator UPDATE that freezes design_preset + palette in DB.
     const chosen = payload.design_proposals?.[0];
-    // eslint-disable-next-line no-console
-    console.info('[applyShortlist] launching create-store', {
-      niche,
-      storeName,
-      mode: effMode,
-      design: chosen ? `${chosen.preset} (${chosen.primary} / ${chosen.accent})` : 'default',
-    });
     launch({
       niche,
       storeName,

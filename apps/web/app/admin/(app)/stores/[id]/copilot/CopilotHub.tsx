@@ -147,8 +147,7 @@ export function CopilotHub({
       const saved = localStorage.getItem(key) as CopilotMode | null;
       if (saved && MODE_ORDER.includes(saved)) setMode(saved);
     } catch { /* ignore */ }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [storeId]); // storeId is stable (from props), setMode is stable (useState setter)
   useEffect(() => {
     try { localStorage.setItem(`copilot-mode:${storeId}`, mode); } catch { /* ignore */ }
   }, [mode, storeId]);
@@ -172,8 +171,7 @@ export function CopilotHub({
       setSessionId(first.id);
       void loadSession(first.id);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, modeSessions]);
+  }, [mode, modeSessions, sessionId]); // loadSession omitted: stable useCallback declared below, adding it causes hoisting error (TS2448)
 
   // ── Auto-scroll
   useEffect(() => {

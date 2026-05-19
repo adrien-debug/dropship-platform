@@ -39,11 +39,11 @@ export interface SessionListItem {
 
 const SESSION_STORAGE_KEY = 'super-agent:session-id';
 
-export function generateId() {
+function generateId() {
   return Math.random().toString(36).slice(2, 9);
 }
 
-export function dbMessageToUI(row: {
+function dbMessageToUI(row: {
   id: string;
   role: 'user' | 'assistant' | 'tool';
   content: string;
@@ -68,7 +68,7 @@ export function dbMessageToUI(row: {
   return { id: row.id, role: row.role, text: row.content };
 }
 
-export function safeParseSseEvent(raw: string): unknown | null {
+function safeParseSseEvent(raw: string): unknown | null {
   try {
     return JSON.parse(raw);
   } catch (err) {

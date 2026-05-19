@@ -36,9 +36,6 @@ const PALETTE_MOOD =
 const STUDIO_LIGHT =
   'éclairage studio softbox latérale, ombre douce, reflets mats, contraste maîtrisé, grain photo argentique léger';
 
-const NEGATIVE_LUXE =
-  'plastique brillant, flash direct, fond blanc clinique, étiquettes prix, badges promo, watermark, logo aliexpress, qualité smartphone, JPEG artifacts, bruit numérique';
-
 /**
  * Hero shot — full-bleed image for the storefront top.
  * Single product, dramatic lighting, generous negative space.
@@ -137,14 +134,6 @@ export function luxuryVideoPrompt(ctx: LuxuryBrandContext): string {
     PALETTE_MOOD,
     'sans coupe, sans transition, mood méditatif, niveau ad film Hermès / Aesop.',
   ].join(' ');
-}
-
-/**
- * Negative prompt shared across all luxury renders. Pinned here so callers
- * can pass it consistently into the model without copy-pasting.
- */
-export function luxuryNegativePrompt(): string {
-  return NEGATIVE_LUXE;
 }
 
 /**

@@ -178,7 +178,7 @@ export type SuperAgentTheme = 'admin' | 'cockpit';
  * HistoryPanel — session list, shared between overlay and rail.
  * Exported so SuperAgentPanel can compose it.
  */
-export function HistoryPanel({
+function HistoryPanel({
   chat,
   theme,
 }: {
@@ -342,7 +342,7 @@ function SessionRow({
  * ChatBody — messages list + input textarea.
  * Shared between overlay and SuperAgentPanel.
  */
-export function ChatBody({
+function ChatBody({
   chat,
   theme,
 }: {
@@ -521,7 +521,7 @@ export function ChatBody({
  * MessageBubble — renders a single message in either theme.
  * Exported for potential use in other panels.
  */
-export function MessageBubble({
+function MessageBubble({
   msg,
   onConfirm,
   theme = 'admin',
