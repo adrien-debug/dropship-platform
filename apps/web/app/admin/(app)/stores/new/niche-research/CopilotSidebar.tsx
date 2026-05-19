@@ -21,32 +21,24 @@ export function CopilotSidebar({
   cost,
 }: CopilotSidebarProps) {
   return (
-    <aside className="px-4 py-4 space-y-4 bg-zinc-50/30 overflow-y-auto text-xs">
+    <aside className="px-4 py-4 space-y-4 overflow-y-auto text-xs" style={{ background: 'var(--ct-surface-1)' }}>
       {/* Sélecteurs rapides */}
       <div>
-        <p className="text-[10px] uppercase tracking-cta text-zinc-400 font-semibold mb-2">
+        <p className="text-[10px] uppercase tracking-cta font-semibold mb-2" style={{ color: 'var(--ct-text-muted)' }}>
           Format
         </p>
-        <div className="grid grid-cols-2 gap-1.5">
+        <div className="ct-seg-track grid grid-cols-2 gap-1.5">
           <button
             type="button"
             onClick={() => onModeChange('mono')}
-            className={`px-2 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-              mode === 'mono'
-                ? 'bg-blue-600 text-white border-blue-600'
-                : 'bg-white text-zinc-500 border-zinc-200 hover:bg-blue-50'
-            }`}
+            className={`ct-seg-btn${mode === 'mono' ? ' active' : ''}`}
           >
             Mono
           </button>
           <button
             type="button"
             onClick={() => onModeChange('collection')}
-            className={`px-2 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-              mode === 'collection'
-                ? 'bg-blue-600 text-white border-blue-600'
-                : 'bg-white text-zinc-500 border-zinc-200 hover:bg-blue-50'
-            }`}
+            className={`ct-seg-btn${mode === 'collection' ? ' active' : ''}`}
           >
             Collection
           </button>
@@ -54,29 +46,21 @@ export function CopilotSidebar({
       </div>
 
       <div>
-        <p className="text-[10px] uppercase tracking-cta text-zinc-400 font-semibold mb-2">
+        <p className="text-[10px] uppercase tracking-cta font-semibold mb-2" style={{ color: 'var(--ct-text-muted)' }}>
           Langue
         </p>
-        <div className="grid grid-cols-2 gap-1.5">
+        <div className="ct-seg-track grid grid-cols-2 gap-1.5">
           <button
             type="button"
             onClick={() => onLanguageChange('fr')}
-            className={`px-2 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-              language === 'fr'
-                ? 'bg-blue-600 text-white border-blue-600'
-                : 'bg-white text-zinc-500 border-zinc-200 hover:bg-blue-50'
-            }`}
+            className={`ct-seg-btn${language === 'fr' ? ' active' : ''}`}
           >
             FR
           </button>
           <button
             type="button"
             onClick={() => onLanguageChange('en')}
-            className={`px-2 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-              language === 'en'
-                ? 'bg-blue-600 text-white border-blue-600'
-                : 'bg-white text-zinc-500 border-zinc-200 hover:bg-blue-50'
-            }`}
+            className={`ct-seg-btn${language === 'en' ? ' active' : ''}`}
           >
             EN
           </button>
@@ -86,46 +70,46 @@ export function CopilotSidebar({
       {mode === 'mono' && (
         <div>
           <label className="flex items-center justify-between gap-2 cursor-pointer">
-            <span className="text-[10px] uppercase tracking-cta text-zinc-400 font-semibold">
+            <span className="text-[10px] uppercase tracking-cta font-semibold" style={{ color: 'var(--ct-text-muted)' }}>
               Vidéo promo
             </span>
             <input
               type="checkbox"
               checked={!skipVideo}
               onChange={(e) => onSkipVideoChange(!e.target.checked)}
-              className="accent-blue-600 w-3.5 h-3.5"
+              className="w-3.5 h-3.5"
             />
           </label>
         </div>
       )}
 
       {/* Comment ça marche */}
-      <div className="border-t border-zinc-200 pt-3">
-        <p className="text-[10px] uppercase tracking-cta text-zinc-400 font-semibold mb-2">
+      <div className="pt-3" style={{ borderTop: '1px solid var(--ct-border)' }}>
+        <p className="text-[10px] uppercase tracking-cta font-semibold mb-2" style={{ color: 'var(--ct-text-muted)' }}>
           Comment ça marche
         </p>
-        <ul className="text-[11px] text-zinc-500 space-y-1.5 leading-snug">
-          <li><span className="font-medium text-zinc-900">Recherche web</span> · Tavily + Perplexity</li>
-          <li><span className="font-medium text-zinc-900">Meta Ads</span> · saturation 0-100 + angles</li>
-          <li><span className="font-medium text-zinc-900">AliExpress + CJ</span> · supply + marge</li>
+        <ul className="text-[11px] space-y-1.5 leading-snug" style={{ color: 'var(--ct-text-body)' }}>
+          <li><span className="font-medium" style={{ color: 'var(--ct-text-primary)' }}>Recherche web</span> · Tavily + Perplexity</li>
+          <li><span className="font-medium" style={{ color: 'var(--ct-text-primary)' }}>Meta Ads</span> · saturation 0-100 + angles</li>
+          <li><span className="font-medium" style={{ color: 'var(--ct-text-primary)' }}>AliExpress + CJ</span> · supply + marge</li>
         </ul>
       </div>
 
       {/* Coût session */}
-      <div className="border-t border-zinc-200 pt-3">
-        <p className="text-[10px] uppercase tracking-cta text-zinc-400 font-semibold mb-2">
+      <div className="pt-3" style={{ borderTop: '1px solid var(--ct-border)' }}>
+        <p className="text-[10px] uppercase tracking-cta font-semibold mb-2" style={{ color: 'var(--ct-text-muted)' }}>
           Coût session
         </p>
         <div className="space-y-1 tabular-nums text-[11px]">
           <div className="flex justify-between">
-            <span className="text-zinc-500">Tokens i/o</span>
-            <span className="text-zinc-900">
+            <span style={{ color: 'var(--ct-text-body)' }}>Tokens i/o</span>
+            <span style={{ color: 'var(--ct-text-primary)' }}>
               {cost.input_tokens.toLocaleString('fr-FR')} / {cost.output_tokens.toLocaleString('fr-FR')}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-zinc-500">Estimation</span>
-            <span className="font-semibold text-zinc-900">{fmtEur(cost.cost_eur)}</span>
+            <span style={{ color: 'var(--ct-text-body)' }}>Estimation</span>
+            <span className="font-semibold" style={{ color: 'var(--ct-text-primary)' }}>{fmtEur(cost.cost_eur)}</span>
           </div>
         </div>
       </div>

@@ -95,22 +95,22 @@ export default async function CopilotHubPage({
     : 'curation';
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 space-y-4">
-      <header className="flex items-end justify-between gap-4 shrink-0">
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, gap: 16 }}>
+      <header style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexShrink: 0 }}>
         <div>
-          <p className="text-kicker uppercase tracking-label text-zinc-400 font-medium">Copilote hub</p>
-          <h1 className="mt-1 text-[28px] font-semibold tracking-[-0.025em] text-admin-text leading-[1.1] inline-flex items-center gap-3">
+          <p style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--ct-text-muted)', fontWeight: 700 }}>Copilote hub</p>
+          <h1 className="ct-title" style={{ marginTop: 4, display: 'inline-flex', alignItems: 'center', gap: 12 }}>
             <StoreLogo emoji={store.logo_emoji} size={24} strokeWidth={1.5} />
             {store.name}
           </h1>
-          <p className="mt-1 text-xs text-zinc-500">
-            Un chat, cinq modes. Niche : <span className="font-medium text-zinc-900">{store.niche}</span>.
+          <p style={{ marginTop: 4, fontSize: 12, color: 'var(--ct-text-muted)' }}>
+            Un chat, cinq modes. Niche : <span style={{ fontWeight: 600, color: 'var(--ct-text-body)' }}>{store.niche}</span>.
           </p>
         </div>
         <Link
           href={`/shop/${store.slug}`}
           target="_blank"
-          className="text-sm px-4 py-1.5 rounded-lg border border-zinc-200 bg-white text-zinc-500 hover:bg-blue-50 hover:text-zinc-900 transition-colors"
+          style={{ fontSize: 13, padding: '6px 16px', borderRadius: 8, border: '1px solid var(--ct-border)', background: 'var(--ct-surface-2)', color: 'var(--ct-text-muted)', textDecoration: 'none' }}
         >
           Voir le store
         </Link>

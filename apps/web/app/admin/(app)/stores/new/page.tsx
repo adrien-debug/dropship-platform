@@ -206,13 +206,6 @@ function NewStoreForm() {
     // Everything downstream reads from that single entry — including the
     // store-creator UPDATE that freezes design_preset + palette in DB.
     const chosen = payload.design_proposals?.[0];
-    // eslint-disable-next-line no-console
-    console.info('[applyShortlist] launching create-store', {
-      niche,
-      storeName,
-      mode: effMode,
-      design: chosen ? `${chosen.preset} (${chosen.primary} / ${chosen.accent})` : 'default',
-    });
     launch({
       niche,
       storeName,
@@ -232,14 +225,14 @@ function NewStoreForm() {
   const isActive = running || !!result || !!error;
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 gap-2">
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, gap: 8 }}>
       {/* Breadcrumb compact */}
-      <div className="flex items-center gap-2 text-xs shrink-0">
-        <Link href="/admin/stores" className="text-admin-text-muted hover:text-admin-text transition-colors">
-          ← Stores
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, flexShrink: 0 }}>
+        <Link href="/admin/stores" style={{ color: 'var(--ct-text-muted)', textDecoration: 'none' }}>
+          &larr; Stores
         </Link>
-        <span className="text-admin-text-faint">/</span>
-        <span className="font-medium text-admin-text">Nouveau store</span>
+        <span style={{ color: 'var(--ct-text-faint)' }}>/</span>
+        <span style={{ fontWeight: 500, color: 'var(--ct-text-primary)' }}>Nouveau store</span>
       </div>
 
       {/* Quand la création tourne : plein écran dédié impossible à rater */}
@@ -302,37 +295,37 @@ function CreationScreen({
 
   if (result) {
     return (
-      <div className="flex flex-col flex-1 min-h-0 items-center justify-center gap-6">
-        <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-full bg-admin-accent/10 border border-admin-accent/20 flex items-center justify-center mx-auto">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-admin-accent">
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, alignItems: 'center', justifyContent: 'center', gap: 24 }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--ct-accent-soft)', border: '1px solid var(--ct-border-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--ct-accent)' }}>
               <path d="M20 6L9 17l-5-5" />
             </svg>
           </div>
-          <h2 className="text-xl font-semibold tracking-tight text-admin-text">{result.storeName}</h2>
-          <p className="text-sm text-admin-text-muted">{result.productCount} produit{result.productCount > 1 ? 's' : ''} importé{result.productCount > 1 ? 's' : ''} · prêt à vendre</p>
+          <h2 style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-0.02em', color: 'var(--ct-text-primary)' }}>{result.storeName}</h2>
+          <p style={{ marginTop: 4, fontSize: 13, color: 'var(--ct-text-muted)' }}>{result.productCount} produit{result.productCount > 1 ? 's' : ''} import&eacute;{result.productCount > 1 ? 's' : ''} &middot; pr&ecirc;t &agrave; vendre</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <Link
             href={`/shop/${result.slug}`}
             target="_blank"
             rel="noreferrer"
-            className="px-5 py-2.5 rounded-admin-md bg-admin-text text-admin-text-inverse text-sm font-medium hover:bg-admin-chrome-soft transition-colors"
+            style={{ padding: '8px 20px', borderRadius: 8, background: 'var(--ct-accent)', color: '#fff', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}
           >
-            Ouvrir le store →
+            Ouvrir le store &rarr;
           </Link>
           <Link
             href="/admin/stores"
-            className="px-5 py-2.5 rounded-admin-md border border-admin-border text-admin-text text-sm font-medium hover:bg-admin-bg-subtle transition-colors"
+            style={{ padding: '8px 20px', borderRadius: 8, border: '1px solid var(--ct-border)', color: 'var(--ct-text-body)', fontSize: 13, fontWeight: 500, textDecoration: 'none', background: 'var(--ct-surface-1)' }}
           >
             Voir tous les stores
           </Link>
           <button
             type="button"
             onClick={onReset}
-            className="px-5 py-2.5 rounded-admin-md border border-admin-border text-admin-text-muted text-sm font-medium hover:bg-admin-bg-subtle transition-colors"
+            style={{ padding: '8px 20px', borderRadius: 8, border: '1px solid var(--ct-border)', color: 'var(--ct-text-muted)', fontSize: 13, fontWeight: 500, background: 'var(--ct-surface-1)', cursor: 'pointer' }}
           >
-            Créer un autre
+            Cr&eacute;er un autre
           </button>
         </div>
       </div>
@@ -340,78 +333,78 @@ function CreationScreen({
   }
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 border border-admin-border rounded-admin-lg bg-admin-bg overflow-hidden">
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, border: '1px solid var(--ct-border)', borderRadius: 12, background: 'var(--ct-surface-0)', overflow: 'hidden' }}>
       {/* Header */}
-      <div className="shrink-0 px-5 py-3.5 border-b border-admin-border flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3 min-w-0">
+      <div style={{ flexShrink: 0, padding: '10px 20px', borderBottom: '1px solid var(--ct-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
           {running ? (
-            <span className="w-2 h-2 rounded-full bg-admin-accent animate-pulse shrink-0" />
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--ct-accent)', flexShrink: 0, animation: 'pulse 1.5s infinite' }} />
           ) : (
-            <span className="w-2 h-2 rounded-full bg-admin-danger shrink-0" />
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--ct-accent-strong)', flexShrink: 0 }} />
           )}
-          <span className="text-sm font-semibold text-admin-text truncate">
-            {running ? `Construction de « ${storeName} »` : `Erreur — « ${storeName} »`}
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ct-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {running ? `Construction de « ${storeName} »` : `Erreur — « ${storeName} »`}
           </span>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
           {running && (
-            <span className="text-xs tabular-nums text-admin-text-muted font-medium">
-              {percent}% · {elapsed}s
+            <span style={{ fontSize: 12, fontVariantNumeric: 'tabular-nums', color: 'var(--ct-text-muted)', fontWeight: 500 }}>
+              {percent}% &middot; {elapsed}s
             </span>
           )}
           {error && (
             <button
               type="button"
               onClick={onReset}
-              className="text-xs px-3 py-1.5 rounded-admin-md border border-admin-border text-admin-text-muted hover:bg-admin-bg-subtle transition-colors"
+              style={{ fontSize: 12, padding: '4px 12px', borderRadius: 8, border: '1px solid var(--ct-border)', color: 'var(--ct-text-muted)', background: 'var(--ct-surface-2)', cursor: 'pointer' }}
             >
-              Réessayer
+              R&eacute;essayer
             </button>
           )}
         </div>
       </div>
 
       {/* Barre de progression */}
-      <div className="shrink-0 h-0.5 bg-admin-bg-muted">
+      <div style={{ flexShrink: 0, height: 2, background: 'var(--ct-surface-3)' }}>
         <div
-          className="h-full bg-admin-text transition-all duration-500"
-          style={{ width: `${Math.max(2, Math.min(100, percent))}%` }}
+          style={{ height: '100%', background: 'var(--ct-accent)', transition: 'width 500ms', width: `${Math.max(2, Math.min(100, percent))}%` }}
         />
       </div>
 
       {/* Étape courante */}
       {currentStep && (
-        <div className="shrink-0 px-5 py-2 border-b border-admin-border-soft bg-admin-bg-subtle">
-          <p className="text-xs text-admin-text-secondary italic truncate">{currentStep}</p>
+        <div style={{ flexShrink: 0, padding: '8px 20px', borderBottom: '1px solid var(--ct-border-soft)', background: 'var(--ct-surface-1)' }}>
+          <p style={{ fontSize: 12, color: 'var(--ct-text-body)', fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentStep}</p>
         </div>
       )}
 
       {/* Error banner */}
       {error && (
-        <div className="shrink-0 px-5 py-3 bg-admin-danger-soft border-b border-red-100">
-          <p className="text-sm text-admin-danger font-medium">Erreur de création</p>
-          <p className="text-xs text-red-600/80 mt-0.5 whitespace-pre-wrap">{error}</p>
+        <div style={{ flexShrink: 0, padding: '12px 20px', background: 'var(--ct-accent-soft)', borderBottom: '1px solid var(--ct-border-accent)' }}>
+          <p style={{ fontSize: 13, color: 'var(--ct-accent-strong)', fontWeight: 500 }}>Erreur de cr&eacute;ation</p>
+          <p style={{ fontSize: 12, color: 'var(--ct-accent)', marginTop: 4, whiteSpace: 'pre-wrap' }}>{error}</p>
         </div>
       )}
 
       {/* Logs en temps réel */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-1.5 font-mono text-[12px]">
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 6, fontFamily: 'monospace', fontSize: 12 }}>
         {logs.map((l) => (
-          <div key={l.id} className="flex items-start gap-3">
-            <span className="text-admin-text-faint tabular-nums shrink-0 pt-px">{l.ts}</span>
-            <span className={
-              l.type === 'error' ? 'text-admin-danger' :
-              l.type === 'success' ? 'text-admin-success' :
-              l.type === 'step' ? 'text-admin-text font-medium' :
-              'text-admin-text-muted'
-            }>
-              {l.type === 'step' && <span className="text-admin-text-faint mr-1.5">›</span>}
+          <div key={l.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+            <span style={{ color: 'var(--ct-text-faint)', fontVariantNumeric: 'tabular-nums', flexShrink: 0, paddingTop: 1 }}>{l.ts}</span>
+            <span style={{
+              color: l.type === 'error' ? 'var(--ct-accent-strong)' :
+                     l.type === 'success' ? '#22c55e' :
+                     l.type === 'step' ? 'var(--ct-text-primary)' :
+                     'var(--ct-text-muted)',
+              fontWeight: l.type === 'step' ? 500 : 400,
+            }}>
+              {l.type === 'step' && <span style={{ color: 'var(--ct-text-faint)', marginRight: 6 }}>&rsaquo;</span>}
               {l.message}
             </span>
           </div>
         ))}
         {running && logs.length === 0 && (
-          <p className="text-admin-text-faint">Démarrage…</p>
+          <p style={{ color: 'var(--ct-text-faint)' }}>D&eacute;marrage&hellip;</p>
         )}
         <div ref={logsEndRef} />
       </div>
@@ -421,7 +414,7 @@ function CreationScreen({
 
 export default function NewStorePage() {
   return (
-    <Suspense fallback={<div className="text-sm text-zinc-400">Chargement…</div>}>
+    <Suspense fallback={<div style={{ fontSize: 13, color: 'var(--ct-text-muted)' }}>Chargement&hellip;</div>}>
       <NewStoreForm />
     </Suspense>
   );

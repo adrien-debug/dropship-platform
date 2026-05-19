@@ -14,8 +14,23 @@ import { withSentryConfig } from '@sentry/nextjs';
  *    on paid traffic. Wire it in via a Report-Only header first when we
  *    have time to monitor reports.
  */
+
+// In Vercel production, restrict frame-ancestors to 'self' only.
+// localhost:4200/4201 are needed only in local dev (Hearst Hub Electron webview).
+const isVercelProd = process.env.VERCEL_ENV === 'production';
+const frameAncestors = isVercelProd
+  ? "'self'"
+  : "'self' http://localhost:4200 http://localhost:4201";
+
 const SECURITY_HEADERS = [
-  { key: 'X-Frame-Options', value: 'DENY' },
+  // X-Frame-Options replaced by CSP frame-ancestors below so the Hearst Hub
+  // (Electron webview on localhost:4200/4201) can embed Merchant while all
+  // other origins remain blocked.
+  // { key: 'X-Frame-Options', value: 'DENY' },
+  {
+    key: 'Content-Security-Policy',
+    value: `frame-ancestors ${frameAncestors}`,
+  },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
@@ -45,6 +60,8 @@ const SECURITY_HEADERS = [
 ];
 
 const nextConfig: NextConfig = {
+  transpilePackages: ['@hearst/cockpit-shell'],
+  devIndicators: false,
   async headers() {
     return [
       {

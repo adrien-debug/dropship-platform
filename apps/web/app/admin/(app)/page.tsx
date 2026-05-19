@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import { ArrowUpRight } from 'lucide-react';
 import { getDbRead } from '@/lib/db';
-import { PageHeader, StatCard, SectionCard } from '@/app/admin/_components/AdminUI';
+import { PageHeader } from '@/app/admin/_components/AdminUI';
 import { StoreAvatar, ButtonLink } from '@/components/ui';
-import { cn } from '@/lib/utils/cn';
+// Cockpit primitives — KPI grid + cards
+import { KpiGrid, KpiCard } from '@/components/cockpit/primitives';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -161,10 +162,6 @@ export default async function PortfolioDashboard() {
 
   const revenue30dCents = Number(revenue.revenue_30d_cents);
   const revenue7dCents = Number(revenue.revenue_7d_cents);
-  const aov30dCents = Number(revenue.aov_30d_cents);
-
-  const orders30d = revenue.orders_30d;
-  const orders7d = revenue.orders_7d;
 
   const totalCost = Number(cost.total_cost_eur || 0);
   const avgPerRun = Number(cost.avg_cost_per_run || 0);
@@ -177,175 +174,158 @@ export default async function PortfolioDashboard() {
         kicker="Portfolio"
         title={
           <span>
-            Vue <em className="not-italic text-admin-text-muted font-light">d&apos;ensemble</em>
+            Vue <em style={{ fontStyle: 'normal', color: 'var(--ct-text-muted)', fontWeight: 300 }}>d&apos;ensemble</em>
           </span>
         }
         lede="KPIs agrégés sur tous les stores actifs. Cliquez sur un bloc pour drill down."
       />
 
-      {/* Row 1 — KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Link href="/admin/stores" className="block group rounded-admin-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-admin-text/20">
-          <StatCard
+      {/* Row 1 — KPIs (Cockpit KpiGrid) */}
+      <KpiGrid>
+        <Link href="/admin/stores" style={{ display: 'block', textDecoration: 'none' }}>
+          <KpiCard
             label="Stores actifs"
             value={stores.active.toString()}
-            hint={
-              stores.created_7d > 0 ? (
-                <span className="text-admin-accent font-medium">+{stores.created_7d} cette semaine</span>
-              ) : (
-                'Aucun nouveau store 7j'
-              )
-            }
           />
         </Link>
-        <Link href="/admin/catalog" className="block group rounded-admin-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-admin-text/20">
-          <StatCard
+        <Link href="/admin/catalog" style={{ display: 'block', textDecoration: 'none' }}>
+          <KpiCard
             label="Produits"
             value={stores.total_products.toLocaleString('fr-FR')}
-            hint={stores.products_7d > 0 ? `+${stores.products_7d} cette semaine` : 'Aucun nouveau 7j'}
           />
         </Link>
-        <StatCard
+        <KpiCard
           label="CA 30j"
           value={eur(revenue30dCents)}
-          hint={
-            <span>
-              <span className="tabular-nums">{orders30d}</span> commande{orders30d > 1 ? 's' : ''}
-              <span className="text-admin-text-faint mx-1.5">·</span>
-              <span className="tabular-nums">{eur(aov30dCents)}</span> AOV
-            </span>
-          }
-          tone={revenue30dCents > 0 ? 'emerald' : 'neutral'}
+          accent={revenue30dCents > 0}
         />
-        <StatCard
+        <KpiCard
           label="CA 7j"
           value={eur(revenue7dCents)}
-          hint={
-            <span>
-              <span className="tabular-nums">{orders7d}</span> commande{orders7d > 1 ? 's' : ''}
-            </span>
-          }
-          tone={revenue7dCents > 0 ? 'emerald' : 'neutral'}
+          accent={revenue7dCents > 0}
         />
-      </div>
+      </KpiGrid>
 
       {/* Row 2 — Top stores + Funnel + Coût Claude */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 flex-1 min-h-0">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, flex: 1, minHeight: 0 }}>
         {/* ─── Top stores ─────────────────────────────────────────── */}
-        <SectionCard
-          kicker="Performance 7j"
-          title={<span>Top <em className="not-italic text-admin-text-muted font-light">stores</em></span>}
-          actions={
+        <div className="ct-card" style={{ margin: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div>
+              <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ct-text-muted)' }}>
+                Performance 7j
+              </p>
+              <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--ct-text-primary)', marginTop: 2 }}>
+                Top <em style={{ fontStyle: 'normal', color: 'var(--ct-text-muted)', fontWeight: 300 }}>stores</em>
+              </p>
+            </div>
             <Link
               href="/admin/stores"
-              className="text-[11px] font-medium text-admin-text-muted hover:text-admin-text transition-colors flex items-center gap-0.5"
+              style={{ fontSize: 11, fontWeight: 500, color: 'var(--ct-text-muted)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 2 }}
             >
               Tous
               <ArrowUpRight size={12} strokeWidth={2} aria-hidden />
             </Link>
-          }
-        >
-          <div className="-mx-1.5">
-            {topStores.length === 0 ? (
-              <p className="px-1.5 py-2 text-sm text-admin-text-faint">
-                Aucun store actif avec des ventes 7j.
-              </p>
-            ) : (
-              <ul className="divide-y divide-admin-border-soft">
-                {topStores.map((s, idx) => (
-                  <li key={s.slug}>
-                    <Link
-                      href={`/admin/stores/${s.slug}`}
-                      className="group flex items-center gap-3 px-1.5 py-2 rounded-admin-md hover:bg-admin-bg-subtle focus-visible:outline-none focus-visible:bg-admin-bg-subtle focus-visible:ring-2 focus-visible:ring-admin-border-strong transition-colors"
-                    >
-                      <span className="w-4 text-[11px] tabular-nums text-admin-text-faint text-right">
-                        {idx + 1}
-                      </span>
-                      <StoreAvatar slug={s.slug} name={s.name} size={28} />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[13px] font-medium text-admin-text truncate leading-tight">
-                          {s.name}
-                        </div>
-                        <div className="text-[11px] text-admin-text-faint truncate tabular-nums">
-                          /shop/{s.slug}
-                        </div>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <div
-                          className={cn(
-                            'text-[13px] font-semibold tabular-nums leading-tight',
-                            Number(s.revenue_cents) > 0 ? 'text-admin-text' : 'text-admin-text-faint',
-                          )}
-                        >
-                          {eur(Number(s.revenue_cents))}
-                        </div>
-                        <div className="text-[11px] text-admin-text-faint tabular-nums">
-                          {s.orders} cmd
-                        </div>
-                      </div>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
           </div>
-        </SectionCard>
+          {topStores.length === 0 ? (
+            <p style={{ fontSize: 13, color: 'var(--ct-text-faint)', padding: '8px 0' }}>
+              Aucun store actif avec des ventes 7j.
+            </p>
+          ) : (
+            <ul style={{ listStyle: 'none' }}>
+              {topStores.map((s, idx) => (
+                <li key={s.slug} style={{ borderTop: idx > 0 ? '1px solid var(--ct-border-soft)' : 'none' }}>
+                  <Link
+                    href={`/admin/stores/${s.slug}`}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '8px 0', textDecoration: 'none',
+                      borderRadius: 6,
+                    }}
+                  >
+                    <span style={{ width: 16, fontSize: 11, fontVariantNumeric: 'tabular-nums', color: 'var(--ct-text-faint)', textAlign: 'right' }}>
+                      {idx + 1}
+                    </span>
+                    <StoreAvatar slug={s.slug} name={s.name} size={28} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--ct-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {s.name}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--ct-text-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                        /shop/{s.slug}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: Number(s.revenue_cents) > 0 ? 'var(--ct-text-primary)' : 'var(--ct-text-faint)' }}>
+                        {eur(Number(s.revenue_cents))}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--ct-text-faint)', fontVariantNumeric: 'tabular-nums' }}>
+                        {s.orders} cmd
+                      </div>
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
 
         {/* ─── Funnel ─────────────────────────────────────────────── */}
-        <SectionCard
-          kicker="Funnel 30j"
-          title={<span>Conversion <em className="not-italic text-admin-text-muted font-light">globale</em></span>}
-          actions={
-            <span className="text-[11px] font-semibold tabular-nums text-admin-text">
+        <div className="ct-card" style={{ margin: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <div>
+              <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ct-text-muted)' }}>
+                Funnel 30j
+              </p>
+              <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--ct-text-primary)', marginTop: 2 }}>
+                Conversion <em style={{ fontStyle: 'normal', color: 'var(--ct-text-muted)', fontWeight: 300 }}>globale</em>
+              </p>
+            </div>
+            <span style={{ fontSize: 11, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--ct-text-primary)' }}>
               {globalConv.toFixed(1)}%
             </span>
-          }
-        >
-          <div className="space-y-3">
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <FunnelBar label="View content" value={funnel.view_content} reference={funnel.view_content} intensity={1.0} />
             <FunnelBar label="Add to cart" value={funnel.add_to_cart} reference={funnel.view_content} intensity={0.75} />
             <FunnelBar label="Initiate checkout" value={funnel.initiate_checkout} reference={funnel.view_content} intensity={0.5} />
             <FunnelBar label="Purchase" value={funnel.purchase} reference={funnel.view_content} intensity={0.25} highlight />
           </div>
-        </SectionCard>
+        </div>
 
         {/* ─── Coût Claude ────────────────────────────────────────── */}
-        <SectionCard
-          kicker="Coût Claude 30j"
-          title={<span>Observabilité <em className="not-italic text-admin-text-muted font-light">agent</em></span>}
-        >
-          <div className="space-y-4">
-            <div>
-              <div className="text-[22px] font-semibold tracking-[-0.025em] text-admin-text tabular-nums leading-none">
-                {totalCost.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
-              </div>
-              <div className="mt-1.5 text-[11px] text-admin-text-muted">
-                Total des appels Anthropic
-              </div>
-            </div>
-            <dl className="space-y-2 text-[13px]">
-              <Stat label="Runs" value={cost.runs.toLocaleString('fr-FR')} />
-              <Stat
-                label="Coût moyen / run"
-                value={`${(avgPerRun * 1000).toFixed(3)} m€`}
-              />
-              <Stat
-                label="Taux d'erreur"
-                value={`${errorRate.toFixed(1)}%`}
-                tone={errorRate > 5 ? 'warning' : 'normal'}
-              />
-            </dl>
-            <ButtonLink
-              href="/admin/observability"
-              variant="secondary"
-              size="sm"
-              className="w-full"
-              trailing={<ArrowUpRight size={12} strokeWidth={2} aria-hidden />}
-            >
-              Détail par step
-            </ButtonLink>
+        <div className="ct-card" style={{ margin: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div>
+            <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ct-text-muted)', marginBottom: 4 }}>
+              Coût Claude 30j
+            </p>
+            <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--ct-text-primary)' }}>
+              Observabilité <em style={{ fontStyle: 'normal', color: 'var(--ct-text-muted)', fontWeight: 300 }}>agent</em>
+            </p>
           </div>
-        </SectionCard>
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.025em', color: 'var(--ct-text-primary)', fontVariantNumeric: 'tabular-nums' }}>
+              {totalCost.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
+            </div>
+            <div style={{ marginTop: 4, fontSize: 11, color: 'var(--ct-text-muted)' }}>
+              Total des appels Anthropic
+            </div>
+          </div>
+          <dl style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13 }}>
+            <Stat label="Runs" value={cost.runs.toLocaleString('fr-FR')} />
+            <Stat label="Coût moyen / run" value={`${(avgPerRun * 1000).toFixed(3)} m€`} />
+            <Stat label="Taux d'erreur" value={`${errorRate.toFixed(1)}%`} tone={errorRate > 5 ? 'warning' : 'normal'} />
+          </dl>
+          <ButtonLink
+            href="/admin/observability"
+            variant="secondary"
+            size="sm"
+            className="w-full"
+            trailing={<ArrowUpRight size={12} strokeWidth={2} aria-hidden />}
+          >
+            Détail par step
+          </ButtonLink>
+        </div>
       </div>
     </div>
   );
@@ -355,14 +335,9 @@ export default async function PortfolioDashboard() {
 
 function Stat({ label, value, tone = 'normal' }: { label: string; value: string; tone?: 'normal' | 'warning' }) {
   return (
-    <div className="flex items-baseline justify-between gap-2">
-      <dt className="text-admin-text-muted">{label}</dt>
-      <dd
-        className={cn(
-          'font-semibold tabular-nums',
-          tone === 'warning' ? 'text-admin-warning' : 'text-admin-text',
-        )}
-      >
+    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
+      <dt style={{ color: 'var(--ct-text-muted)' }}>{label}</dt>
+      <dd style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: tone === 'warning' ? 'var(--ct-accent-strong)' : 'var(--ct-text-primary)' }}>
         {value}
       </dd>
     </div>
@@ -379,7 +354,6 @@ function FunnelBar({
   label: string;
   value: number;
   reference: number;
-  /** 0..1 — controls bar opacity so top of funnel is darker, bottom lighter. */
   intensity: number;
   highlight?: boolean;
 }) {
@@ -387,22 +361,25 @@ function FunnelBar({
   const pctValue = reference > 0 ? Math.round(ratio * 100) : 0;
   return (
     <div>
-      <div className="flex justify-between text-[12px] mb-1 leading-tight">
-        <span className={cn(highlight ? 'text-admin-text font-medium' : 'text-admin-text-secondary')}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+        <span style={{ color: highlight ? 'var(--ct-text-primary)' : 'var(--ct-text-body)', fontWeight: highlight ? 500 : 400 }}>
           {label}
         </span>
-        <span className="tabular-nums">
-          <span className={cn(highlight ? 'text-admin-text font-semibold' : 'text-admin-text-secondary font-medium')}>
+        <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+          <span style={{ color: highlight ? 'var(--ct-text-primary)' : 'var(--ct-text-body)', fontWeight: highlight ? 600 : 500 }}>
             {value.toLocaleString('fr-FR')}
           </span>
-          <span className="text-admin-text-faint ml-1.5">{pctValue}%</span>
+          <span style={{ color: 'var(--ct-text-faint)', marginLeft: 6 }}>{pctValue}%</span>
         </span>
       </div>
-      <div className="h-1.5 bg-admin-bg-muted rounded-full overflow-hidden">
+      <div style={{ height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 9999, overflow: 'hidden' }}>
         <div
-          className={cn('h-full rounded-full transition-all', highlight ? 'bg-admin-accent' : 'bg-admin-text')}
           style={{
+            height: '100%',
+            borderRadius: 9999,
+            transition: 'width 300ms',
             width: `${ratio * 100}%`,
+            background: highlight ? 'var(--ct-accent-strong)' : 'var(--ct-text-primary)',
             opacity: highlight ? 1 : 0.45 + intensity * 0.4,
           }}
         />

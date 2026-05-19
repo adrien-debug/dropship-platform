@@ -24,7 +24,7 @@ export function CartLineRow({ item, currency }: { item: StoreLineItem; currency:
   }
 
   return (
-    <tr>
+    <tr style={{ borderColor: 'var(--ct-border-soft, rgba(255,255,255,0.06))' }}>
       <td className="p-6">
         <div className="flex items-center gap-5">
           {item.thumbnail ? (
@@ -32,44 +32,77 @@ export function CartLineRow({ item, currency }: { item: StoreLineItem; currency:
             <img
               src={item.thumbnail}
               alt={item.title}
-              className="w-20 h-20 rounded-lg object-cover bg-zinc-100"
+              className="w-20 h-20 rounded-lg object-cover"
+              style={{ backgroundColor: 'var(--ct-surface-2, rgba(255,255,255,0.06))' }}
             />
           ) : (
-            <div className="w-20 h-20 rounded-lg bg-zinc-100" />
+            <div
+              className="w-20 h-20 rounded-lg"
+              style={{ backgroundColor: 'var(--ct-surface-2, rgba(255,255,255,0.06))' }}
+            />
           )}
           <div>
-            <p className="font-medium text-base text-zinc-900">{item.title}</p>
-            <p className="text-sm text-zinc-500 mt-1">{formatMoney(item.unit_price, currency)} / unité</p>
+            <p
+              className="font-medium text-base"
+              style={{ color: 'var(--ct-text-primary, rgba(245,245,245,0.92))' }}
+            >
+              {item.title}
+            </p>
+            <p
+              className="text-sm mt-1"
+              style={{ color: 'var(--ct-text-muted, rgba(245,245,245,0.48))' }}
+            >
+              {formatMoney(item.unit_price, currency)} / unité
+            </p>
           </div>
         </div>
       </td>
       <td className="p-6">
-        <div className="inline-flex items-center border border-zinc-200 rounded-full">
+        <div
+          className="inline-flex items-center rounded-full border"
+          style={{
+            borderColor: 'var(--ct-border, rgba(255,255,255,0.10))',
+            backgroundColor: 'var(--ct-surface-1, rgba(255,255,255,0.04))',
+          }}
+        >
           <button
             onClick={() => update(Math.max(0, qty - 1))}
             disabled={pending}
             aria-label="Diminuer la quantité"
-            className="h-10 w-10 rounded-full flex items-center justify-center text-lg font-light hover:bg-zinc-100 transition-colors disabled:opacity-40"
+            className="h-10 w-10 rounded-full flex items-center justify-center text-lg font-light transition-colors disabled:opacity-40"
+            style={{ color: 'var(--ct-text-body, rgba(245,245,245,0.72))' }}
           >
             −
           </button>
-          <span className="px-4 text-base font-medium tabular-nums">{qty}</span>
+          <span
+            className="px-4 text-base font-medium tabular-nums"
+            style={{ color: 'var(--ct-text-strong, #fff)' }}
+          >
+            {qty}
+          </span>
           <button
             onClick={() => update(qty + 1)}
             disabled={pending}
             aria-label="Augmenter la quantité"
-            className="h-10 w-10 rounded-full flex items-center justify-center text-lg font-light hover:bg-zinc-100 transition-colors disabled:opacity-40"
+            className="h-10 w-10 rounded-full flex items-center justify-center text-lg font-light transition-colors disabled:opacity-40"
+            style={{ color: 'var(--ct-text-body, rgba(245,245,245,0.72))' }}
           >
             +
           </button>
         </div>
       </td>
-      <td className="p-6 text-right text-base font-medium text-zinc-900">{formatMoney(item.total, currency)}</td>
+      <td
+        className="p-6 text-right text-base font-medium"
+        style={{ color: 'var(--ct-text-primary, rgba(245,245,245,0.92))' }}
+      >
+        {formatMoney(item.total, currency)}
+      </td>
       <td className="p-6 text-right">
         <button
           onClick={() => update(0)}
           disabled={pending}
-          className="text-sm text-zinc-500 hover:text-red-600 transition-colors"
+          className="text-sm transition-colors hover:opacity-100"
+          style={{ color: 'var(--ct-text-muted, rgba(245,245,245,0.48))' }}
         >
           Retirer
         </button>

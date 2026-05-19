@@ -14,11 +14,27 @@ export function StoreShell({ children, store }: Props) {
   const homeHref = store ? `/shop/${store.slug}` : '/';
   const boutiqueHref = store ? `/shop/${store.slug}` : '/products';
 
+  // Header style: store-branded → store.primaryColor ; generic → Cockpit surface token
+  const headerStyle: React.CSSProperties = store
+    ? { backgroundColor: store.primaryColor }
+    : {
+        backgroundColor: 'var(--ct-surface-2, rgba(255,255,255,0.06))',
+        borderBottom: '1px solid var(--ct-border, rgba(255,255,255,0.10))',
+      };
+  const headerTextClass = store ? 'text-white' : '';
+
+  const footerStyle: React.CSSProperties = store
+    ? { backgroundColor: store.primaryColor }
+    : {
+        borderTop: '1px solid var(--ct-border-soft, rgba(255,255,255,0.06))',
+      };
+  const footerTextClass = store ? 'text-white' : '';
+
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-full flex flex-col">
       <header
-        className={`sticky top-0 z-30 shadow-sm${store ? ' text-white' : ' bg-white text-zinc-900 border-b border-zinc-200'}`}
-        style={store ? { backgroundColor: store.primaryColor } : undefined}
+        className={`sticky top-0 z-30 shadow-sm backdrop-blur-sm ${headerTextClass}`}
+        style={headerStyle}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link href={homeHref} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
@@ -33,10 +49,18 @@ export function StoreShell({ children, store }: Props) {
                 </div>
               </>
             ) : (
-              <span className="text-lg font-semibold tracking-tight">Dropship Store</span>
+              <span
+                className="text-lg font-semibold tracking-tight"
+                style={{ color: 'var(--ct-text-primary, rgba(245,245,245,0.92))' }}
+              >
+                Dropship Store
+              </span>
             )}
           </Link>
-          <nav className="flex items-center gap-6 text-sm font-medium">
+          <nav
+            className="flex items-center gap-6 text-sm font-medium"
+            style={!store ? { color: 'var(--ct-text-body, rgba(245,245,245,0.72))' } : undefined}
+          >
             <Link href={boutiqueHref} className="hover:opacity-75 transition-opacity">
               Boutique
             </Link>
@@ -48,8 +72,11 @@ export function StoreShell({ children, store }: Props) {
       <main className="flex-1">{children}</main>
 
       <footer
-        className={store ? 'text-white' : 'bg-white text-zinc-600 border-t border-zinc-200'}
-        style={store ? { backgroundColor: store.primaryColor } : undefined}
+        className={footerTextClass}
+        style={{
+          ...footerStyle,
+          ...(!store ? { color: 'var(--ct-text-faint, rgba(245,245,245,0.40))' } : {}),
+        }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-sm flex flex-wrap items-center justify-between gap-3">
           <p className={store ? 'opacity-75' : ''}>

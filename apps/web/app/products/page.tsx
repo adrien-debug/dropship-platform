@@ -9,7 +9,9 @@ export default async function ProductsPage() {
     return (
       <StoreShell>
         <div className="max-w-3xl mx-auto p-12">
-          <h1 className="text-2xl font-bold">Boutique indisponible</h1>
+          <h1 className="ct-title">
+            Boutique indisponible
+          </h1>
         </div>
       </StoreShell>
     );
@@ -25,12 +27,25 @@ export default async function ProductsPage() {
   return (
     <StoreShell>
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <h1 className="text-3xl font-bold mb-8">Boutique</h1>
+        <h1 className="ct-title mb-8">
+          Boutique
+        </h1>
         {error && (
-          <div className="border border-red-200 bg-red-50 text-red-800 p-4 rounded">{error}</div>
+          <div
+            className="border p-4 rounded mb-6 text-sm"
+            style={{
+              borderColor: 'var(--ct-border-accent)',
+              backgroundColor: 'var(--ct-accent-soft)',
+              color: 'var(--ct-accent-strong)',
+            }}
+          >
+            {error}
+          </div>
         )}
         {!error && products.length === 0 && (
-          <p className="text-zinc-500">Aucun produit pour le moment.</p>
+          <p style={{ color: 'var(--ct-text-muted, rgba(245,245,245,0.48))' }}>
+            Aucun produit pour le moment.
+          </p>
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {products.map((p) => (

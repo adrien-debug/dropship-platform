@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import localFont from 'next/font/local';
 import './globals.css';
-import SuperAgentOverlay from '@/components/super-agent/SuperAgentOverlay';
+import '@hearst/cockpit-shell/tokens.css';
+import AppFrame from '@/app/_components/AppFrame';
 
 /**
  * Typography stack — Satoshi Variable everywhere. Self-hosted via next/font
@@ -51,9 +52,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <meta name="tiktok-developers-site-verification" content={tiktokVerif} />
         )}
       </head>
-      <body className="min-h-screen antialiased bg-white text-zinc-900 font-sans">
-        {children}
-        <SuperAgentOverlay />
+      <body className="min-h-screen antialiased font-sans">
+        <AppFrame>{children}</AppFrame>
       </body>
     </html>
   );

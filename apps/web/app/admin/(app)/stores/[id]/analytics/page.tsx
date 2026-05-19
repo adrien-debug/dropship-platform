@@ -4,6 +4,7 @@ import { getDbRead } from '@/lib/db';
 import { resolveStoreId } from '@/lib/resolve-store';
 import { formatMoney } from '@/lib/medusa-store';
 import { PageHeader } from '@/app/admin/_components/AdminUI';
+import { KpiGrid, KpiCard } from '@/components/cockpit/primitives';
 
 export const dynamic = 'force-dynamic';
 
@@ -111,18 +112,26 @@ export default async function StoreAnalyticsPage({ params, searchParams }: Props
     <div className="flex flex-col flex-1 space-y-4">
       <PageHeader
         kicker={`Analytics · ${store.name}`}
-        title={<span>Acquisition <em className="italic text-zinc-400">&amp; comportement</em></span>}
+        title={<span>Acquisition <em style={{ fontStyle: 'italic', color: 'var(--ct-text-muted)' }}>&amp; comportement</em></span>}
         lede={`Période : ${cfg.label}.`}
         actions={
-          <div className="flex items-center gap-1 border border-zinc-200 rounded-full p-1 bg-white shadow-sm">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, border: '1px solid var(--ct-border)', borderRadius: 9999, padding: 4, background: 'var(--ct-surface-2)' }}>
             {Object.entries(RANGE_TO_INTERVAL).map(([key, c]) => (
               <Link
                 key={key}
                 href={`?range=${key}`}
-                className={
-                  'px-4 py-1.5 rounded-full text-xs uppercase tracking-cta font-medium transition-colors ' +
-                  (key === range ? 'bg-blue-600 text-white' : 'text-zinc-500 hover:text-zinc-900')
-                }
+                style={{
+                  padding: '4px 16px',
+                  borderRadius: 9999,
+                  fontSize: 11,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  background: key === range ? 'var(--ct-accent)' : 'transparent',
+                  color: key === range ? '#fff' : 'var(--ct-text-muted)',
+                  transition: 'background 150ms, color 150ms',
+                }}
               >
                 {c.label}
               </Link>
@@ -132,28 +141,24 @@ export default async function StoreAnalyticsPage({ params, searchParams }: Props
       />
 
       {/* Aggregate KPIs */}
-      <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Kpi label="Revenu" value={totalRevenue > 0 ? formatMoney(totalRevenue / 100, 'eur') : '—'} />
-        <Kpi label="Commandes" value={String(totalPurchases)} />
-        <Kpi label="Panier moyen" value={aov > 0 ? formatMoney(aov / 100, 'eur') : '—'} />
-        <Kpi
-          label="Conv. cart → purchase"
-          value={totalAdds > 0 ? `${cartToPurchase.toFixed(1)} %` : '—'}
-          tone={cartToPurchase >= 30 ? 'emerald' : 'neutral'}
-        />
-      </section>
+      <KpiGrid>
+        <KpiCard label="Revenu" value={totalRevenue > 0 ? formatMoney(totalRevenue / 100, 'eur') : '—'} />
+        <KpiCard label="Commandes" value={String(totalPurchases)} />
+        <KpiCard label="Panier moyen" value={aov > 0 ? formatMoney(aov / 100, 'eur') : '—'} />
+        <KpiCard label="Conv. cart → purchase" value={totalAdds > 0 ? `${cartToPurchase.toFixed(1)} %` : '—'} accent={cartToPurchase >= 30} />
+      </KpiGrid>
 
       {/* UX — Funnel */}
-      <section className="border border-zinc-200 rounded-xl overflow-hidden bg-white shadow-sm">
-        <div className="px-5 py-3 border-b border-zinc-200">
-          <h3 className="text-base font-semibold tracking-tight text-zinc-900">
-            Comportement <em className="italic text-zinc-400">(UX)</em>
+      <section style={{ border: '1px solid var(--ct-border)', borderRadius: 12, overflow: 'hidden', background: 'var(--ct-surface-1)' }}>
+        <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--ct-border)' }}>
+          <h3 style={{ fontSize: 15, fontWeight: 600, color: 'var(--ct-text-primary)', letterSpacing: '-0.01em' }}>
+            Comportement <em style={{ fontStyle: 'italic', color: 'var(--ct-text-muted)' }}>(UX)</em>
           </h3>
-          <p className="text-xs text-zinc-400 mt-0.5">
+          <p style={{ fontSize: 11, color: 'var(--ct-text-muted)', marginTop: 2 }}>
             Funnel des sessions uniques sur les events serveur. Les session_id se persistent 30 jours.
           </p>
         </div>
-        <div className="p-5 space-y-4">
+        <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
           {(() => {
             const top = funnelByName.get(FUNNEL_ORDER[0])?.sessions ?? 0;
             return FUNNEL_ORDER.map((name) => {
@@ -162,17 +167,16 @@ export default async function StoreAnalyticsPage({ params, searchParams }: Props
               const ratio = top > 0 ? (sessions / top) * 100 : 0;
               return (
                 <div key={name}>
-                  <div className="flex items-baseline justify-between gap-4 mb-1.5">
-                    <span className="text-sm font-medium text-zinc-900">{FUNNEL_LABEL[name]}</span>
-                    <span className="text-sm tabular-nums text-zinc-500">
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, marginBottom: 6 }}>
+                    <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ct-text-primary)' }}>{FUNNEL_LABEL[name]}</span>
+                    <span style={{ fontSize: 13, fontVariantNumeric: 'tabular-nums', color: 'var(--ct-text-body)' }}>
                       {sessions} sessions{' '}
-                      <span className="text-xs text-zinc-400">({ratio.toFixed(0)} %)</span>
+                      <span style={{ fontSize: 11, color: 'var(--ct-text-faint)' }}>({ratio.toFixed(0)} %)</span>
                     </span>
                   </div>
-                  <div className="h-2 bg-zinc-100 rounded-full overflow-hidden">
+                  <div style={{ height: 8, background: 'var(--ct-surface-3)', borderRadius: 9999, overflow: 'hidden' }}>
                     <div
-                      className="h-full bg-blue-600 rounded-full transition-all"
-                      style={{ width: `${Math.max(2, ratio)}%` }}
+                      style={{ height: '100%', background: 'var(--ct-accent)', borderRadius: 9999, transition: 'width 300ms', width: `${Math.max(2, ratio)}%` }}
                     />
                   </div>
                 </div>
@@ -181,15 +185,15 @@ export default async function StoreAnalyticsPage({ params, searchParams }: Props
           })()}
         </div>
         {store.clarity_id && (
-          <div className="px-6 py-3 border-t border-zinc-200/60 bg-zinc-50/60 text-xs text-zinc-400">
-            Pour les replays vidéo et les heatmaps, ouvre le projet sur{' '}
+          <div style={{ padding: '12px 24px', borderTop: '1px solid var(--ct-border-soft)', background: 'var(--ct-surface-2)', fontSize: 11, color: 'var(--ct-text-faint)' }}>
+            Pour les replays vid&eacute;o et les heatmaps, ouvre le projet sur{' '}
             <a
               href={`https://clarity.microsoft.com/projects/view/${store.clarity_id}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="underline underline-offset-2 hover:text-zinc-900"
+              style={{ textDecoration: 'underline', textUnderlineOffset: 2, color: 'var(--ct-text-muted)' }}
             >
-              Microsoft Clarity ↗
+              Microsoft Clarity &#8599;
             </a>
             .
           </div>
@@ -197,50 +201,50 @@ export default async function StoreAnalyticsPage({ params, searchParams }: Props
       </section>
 
       {/* UA — Acquisition by source/campaign */}
-      <section className="border border-zinc-200 rounded-xl overflow-hidden bg-white shadow-sm">
-        <div className="px-5 py-3 border-b border-zinc-200">
-          <h3 className="text-base font-semibold tracking-tight text-zinc-900">
-            Acquisition <em className="italic text-zinc-400">(UA)</em>
+      <section style={{ border: '1px solid var(--ct-border)', borderRadius: 12, overflow: 'hidden', background: 'var(--ct-surface-1)' }}>
+        <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--ct-border)' }}>
+          <h3 style={{ fontSize: 15, fontWeight: 600, color: 'var(--ct-text-primary)', letterSpacing: '-0.01em' }}>
+            Acquisition <em style={{ fontStyle: 'italic', color: 'var(--ct-text-muted)' }}>(UA)</em>
           </h3>
-          <p className="text-xs text-zinc-400 mt-0.5">
-            Décomposition par utm_source / utm_campaign. Les visiteurs sans UTM sont regroupés sous{' '}
-            <code className="text-[11px] bg-zinc-100 px-1.5 py-0.5 rounded">(direct)</code>.
+          <p style={{ fontSize: 11, color: 'var(--ct-text-muted)', marginTop: 2 }}>
+            D&eacute;composition par utm_source / utm_campaign. Les visiteurs sans UTM sont regroup&eacute;s sous{' '}
+            <code style={{ fontSize: 10, background: 'var(--ct-surface-3)', padding: '2px 6px', borderRadius: 4, fontFamily: 'monospace', color: 'var(--ct-text-body)' }}>(direct)</code>.
           </p>
         </div>
         {acquisitionRes.rows.length === 0 ? (
-          <div className="px-6 py-12 text-center text-sm text-zinc-400">
-            Aucun événement enregistré sur cette période.
+          <div style={{ padding: '48px 24px', textAlign: 'center', fontSize: 13, color: 'var(--ct-text-faint)' }}>
+            Aucun &eacute;v&eacute;nement enregistr&eacute; sur cette p&eacute;riode.
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-zinc-50/60 text-kicker uppercase tracking-header text-zinc-400">
+          <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
+            <thead style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--ct-text-faint)', background: 'var(--ct-surface-2)' }}>
               <tr>
-                <th className="text-left px-5 py-3 font-medium">Source</th>
-                <th className="text-left px-5 py-3 font-medium">Campagne</th>
-                <th className="text-right px-5 py-3 font-medium">Sessions</th>
-                <th className="text-right px-5 py-3 font-medium">Cart</th>
-                <th className="text-right px-5 py-3 font-medium">Checkout</th>
-                <th className="text-right px-5 py-3 font-medium">Achats</th>
-                <th className="text-right px-5 py-3 font-medium">Revenu</th>
+                <th style={{ textAlign: 'left', padding: '12px 20px', fontWeight: 500 }}>Source</th>
+                <th style={{ textAlign: 'left', padding: '12px 20px', fontWeight: 500 }}>Campagne</th>
+                <th style={{ textAlign: 'right', padding: '12px 20px', fontWeight: 500 }}>Sessions</th>
+                <th style={{ textAlign: 'right', padding: '12px 20px', fontWeight: 500 }}>Cart</th>
+                <th style={{ textAlign: 'right', padding: '12px 20px', fontWeight: 500 }}>Checkout</th>
+                <th style={{ textAlign: 'right', padding: '12px 20px', fontWeight: 500 }}>Achats</th>
+                <th style={{ textAlign: 'right', padding: '12px 20px', fontWeight: 500 }}>Revenu</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody>
               {acquisitionRes.rows.map((r, i) => {
                 const conv = r.adds_to_cart > 0 ? (r.purchases / r.adds_to_cart) * 100 : 0;
                 return (
-                  <tr key={i} className="hover:bg-zinc-50/60">
-                    <td className="px-5 py-3 font-medium">{r.source}</td>
-                    <td className="px-5 py-3 text-zinc-600">{r.campaign}</td>
-                    <td className="px-5 py-3 text-right tabular-nums text-zinc-600">{r.visits}</td>
-                    <td className="px-5 py-3 text-right tabular-nums text-zinc-600">{r.adds_to_cart}</td>
-                    <td className="px-5 py-3 text-right tabular-nums text-zinc-600">{r.initiate_checkouts}</td>
-                    <td className="px-5 py-3 text-right tabular-nums">
-                      <span className="font-medium">{r.purchases}</span>
+                  <tr key={i} style={{ borderTop: '1px solid var(--ct-border-soft)' }}>
+                    <td style={{ padding: '12px 20px', fontWeight: 500, color: 'var(--ct-text-primary)' }}>{r.source}</td>
+                    <td style={{ padding: '12px 20px', color: 'var(--ct-text-body)' }}>{r.campaign}</td>
+                    <td style={{ padding: '12px 20px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--ct-text-body)' }}>{r.visits}</td>
+                    <td style={{ padding: '12px 20px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--ct-text-body)' }}>{r.adds_to_cart}</td>
+                    <td style={{ padding: '12px 20px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--ct-text-body)' }}>{r.initiate_checkouts}</td>
+                    <td style={{ padding: '12px 20px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                      <span style={{ fontWeight: 500, color: 'var(--ct-text-primary)' }}>{r.purchases}</span>
                       {r.adds_to_cart > 0 && (
-                        <span className="text-kicker text-zinc-400 ml-1.5">{conv.toFixed(0)} %</span>
+                        <span style={{ fontSize: 10, color: 'var(--ct-text-faint)', marginLeft: 6 }}>{conv.toFixed(0)} %</span>
                       )}
                     </td>
-                    <td className="px-5 py-3 text-right font-semibold tracking-tight">
+                    <td style={{ padding: '12px 20px', textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: 'var(--ct-text-primary)' }}>
                       {r.revenue_minor > 0 ? formatMoney(r.revenue_minor / 100, 'eur') : '—'}
                     </td>
                   </tr>
@@ -252,20 +256,20 @@ export default async function StoreAnalyticsPage({ params, searchParams }: Props
       </section>
 
       {/* Pixel/CAPI status */}
-      <section className="border border-dashed border-zinc-200 rounded-xl bg-white px-5 py-4">
-        <h4 className="text-xs uppercase tracking-label text-zinc-400 font-medium mb-3">
-          Plomberie connectée
+      <section style={{ border: '1px dashed var(--ct-border-strong)', borderRadius: 12, background: 'var(--ct-surface-1)', padding: '16px 20px' }}>
+        <h4 style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--ct-text-muted)', fontWeight: 700, marginBottom: 12 }}>
+          Plomberie connect&eacute;e
         </h4>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, fontSize: 13 }}>
           <ConnState label="GA4" set={!!store.ga4_measurement_id} />
           <ConnState label="Meta Pixel" set={!!store.meta_pixel_id} />
           <ConnState label="TikTok Pixel" set={!!store.tiktok_pixel_id} />
           <ConnState label="Clarity" set={!!store.clarity_id} />
         </div>
-        <p className="mt-4 text-xs text-zinc-400">
+        <p style={{ marginTop: 16, fontSize: 11, color: 'var(--ct-text-faint)' }}>
           IDs vides ?{' '}
-          <Link href={`/admin/stores/${id}/settings`} className="underline underline-offset-2 hover:text-zinc-900">
-            Configure-les dans les Réglages
+          <Link href={`/admin/stores/${id}/settings`} style={{ textDecoration: 'underline', textUnderlineOffset: 2, color: 'var(--ct-text-muted)' }}>
+            Configure-les dans les R&eacute;glages
           </Link>
         </p>
       </section>
@@ -273,39 +277,15 @@ export default async function StoreAnalyticsPage({ params, searchParams }: Props
   );
 }
 
-function Kpi({
-  label,
-  value,
-  tone = 'neutral',
-}: {
-  label: string;
-  value: string;
-  tone?: 'neutral' | 'emerald';
-}) {
-  const cls: Record<string, string> = {
-    neutral: 'text-zinc-900',
-    emerald: 'text-blue-600',
-  };
-  return (
-    <div className="border border-zinc-200 bg-white rounded-xl px-4 py-3 shadow-sm">
-      <div className="flex items-center gap-2 text-kicker uppercase tracking-cta text-zinc-400 font-medium">
-        <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500" aria-hidden />
-        {label}
-      </div>
-      <div className={`mt-1.5 text-[20px] font-semibold tabular-nums tracking-[-0.02em] ${cls[tone]}`}>{value}</div>
-    </div>
-  );
-}
-
 function ConnState({ label, set }: { label: string; set: boolean }) {
   return (
-    <div className="flex items-center gap-2">
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
       <span
-        className={`inline-block h-1.5 w-1.5 rounded-full ${set ? 'bg-blue-500' : 'bg-zinc-300'}`}
+        style={{ display: 'inline-block', height: 6, width: 6, borderRadius: '50%', background: set ? 'var(--ct-accent)' : 'var(--ct-border-strong)', flexShrink: 0 }}
         aria-hidden="true"
       />
-      <span className={set ? 'text-zinc-900 font-medium' : 'text-zinc-400'}>{label}</span>
-      <span className="text-kicker uppercase tracking-cta text-zinc-400 ml-auto">
+      <span style={{ fontWeight: set ? 600 : 400, color: set ? 'var(--ct-text-primary)' : 'var(--ct-text-muted)' }}>{label}</span>
+      <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--ct-text-faint)', marginLeft: 'auto' }}>
         {set ? 'connecté' : 'inactif'}
       </span>
     </div>

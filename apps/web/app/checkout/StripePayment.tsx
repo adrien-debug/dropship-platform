@@ -57,8 +57,8 @@ export function StripePayment({ publishableKey, amountLabel }: StripePaymentProp
     };
   }, []);
 
-  if (error) return <p className="text-red-600 text-sm">{error}</p>;
-  if (!clientSecret) return <p className="text-zinc-500 text-sm">Initialisation du paiement…</p>;
+  if (error) return <p className="text-[var(--ct-accent-strong)] text-sm">{error}</p>;
+  if (!clientSecret) return <p className="text-[var(--ct-text-muted)] text-sm">Initialisation du paiement…</p>;
 
   return (
     <Elements
@@ -108,12 +108,12 @@ function StripePayForm({ amountLabel }: { amountLabel: string }) {
   return (
     <div className="space-y-4">
       <PaymentElement />
-      {error && <p className="text-red-600 text-sm">{error}</p>}
+      {error && <p className="text-[var(--ct-accent-strong)] text-sm">{error}</p>}
       <button
         type="button"
         onClick={pay}
         disabled={pending || !stripe || !elements}
-        className="bg-black text-white px-6 py-3 rounded-md hover:bg-zinc-800 disabled:opacity-60 w-full"
+        className="bg-[var(--ct-accent)] text-white px-6 py-3 rounded-md hover:bg-[var(--ct-surface-2)] disabled:opacity-60 w-full"
       >
         {pending ? 'Paiement…' : `Payer ${amountLabel}`}
       </button>

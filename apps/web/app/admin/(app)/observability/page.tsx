@@ -8,8 +8,8 @@ import {
   ExternalLink,
   Plus,
 } from 'lucide-react';
-import { PageHeader, StatCard } from '@/app/admin/_components/AdminUI';
-import { Button } from '@/components/ui';
+import { PageHeader } from '@/app/admin/_components/AdminUI';
+import { KpiGrid, KpiCard } from '@/components/cockpit/primitives';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -33,8 +33,6 @@ interface Campaign {
 interface ChannelSummary {
   channel: Channel;
   label: string;
-  color: string;
-  bg: string;
   spent_eur: number;
   revenue_eur: number;
   clicks: number;
@@ -48,7 +46,7 @@ interface ChannelSummary {
 
 function GoogleLogo() {
   return (
-    <svg viewBox="0 0 24 24" className="w-4 h-4" aria-hidden>
+    <svg viewBox="0 0 24 24" style={{ width: 16, height: 16 }} aria-hidden>
       <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
       <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
       <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
@@ -59,7 +57,7 @@ function GoogleLogo() {
 
 function MetaLogo() {
   return (
-    <svg viewBox="0 0 24 24" className="w-4 h-4" aria-hidden fill="none">
+    <svg viewBox="0 0 24 24" style={{ width: 16, height: 16 }} aria-hidden fill="none">
       <path d="M12 2.5C6.753 2.5 2.5 6.753 2.5 12S6.753 21.5 12 21.5 21.5 17.247 21.5 12 17.247 2.5 12 2.5z" fill="url(#meta-grad)"/>
       <path d="M8.08 14.93c.44.72 1.1 1.2 1.9 1.2.73 0 1.28-.28 1.73-.97l2.39-3.77 1.33 2.12c.16.26.23.55.18.83-.06.33-.26.6-.54.77-.28.18-.62.22-.94.12-.32-.1-.57-.33-.7-.64l-.3-.72-.87 1.4c.35.56.82.96 1.38 1.17.56.2 1.17.18 1.71-.06.54-.24.97-.67 1.2-1.22.23-.55.22-1.17-.04-1.7l-1.54-2.47 1.16-1.82c.28-.44.72-.7 1.18-.7s.9.26 1.18.7c.27.44.3.97.08 1.43l-.88 1.82.93 1.5c.42-.88.55-1.88.36-2.85-.19-.97-.73-1.84-1.53-2.44-.8-.6-1.79-.88-2.78-.8-.99.09-1.91.54-2.58 1.27L12 10.73l-.42-.67c-.67-.73-1.59-1.18-2.58-1.27-.99-.08-1.98.2-2.78.8-.8.6-1.34 1.47-1.53 2.44-.19.97-.06 1.97.36 2.85l.93-1.5-.88-1.82c-.22-.46-.19-.99.08-1.43.27-.44.72-.7 1.18-.7s.9.26 1.18.7l3.24 5.13c-.25.38-.58.6-.97.6-.46 0-.87-.28-1.13-.76l-.9 1.13z" fill="white"/>
       <defs>
@@ -74,7 +72,7 @@ function MetaLogo() {
 
 function TikTokLogo() {
   return (
-    <svg viewBox="0 0 24 24" className="w-4 h-4" aria-hidden fill="currentColor">
+    <svg viewBox="0 0 24 24" style={{ width: 16, height: 16 }} aria-hidden fill="currentColor">
       <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.2 8.2 0 004.79 1.53V6.77a4.85 4.85 0 01-1.02-.08z"/>
     </svg>
   );
@@ -82,7 +80,7 @@ function TikTokLogo() {
 
 function AmazonLogo() {
   return (
-    <svg viewBox="0 0 24 24" className="w-4 h-4" aria-hidden>
+    <svg viewBox="0 0 24 24" style={{ width: 16, height: 16 }} aria-hidden>
       <path d="M13.958 10.09c0 1.232.03 2.257-.591 3.347-.502.891-1.301 1.44-2.186 1.44-1.214 0-1.922-.924-1.922-2.292 0-2.692 2.415-3.182 4.7-3.182v.687zm3.186 7.705a.66.66 0 01-.76.074c-1.068-.887-1.258-1.299-1.845-2.144-1.76 1.795-3.008 2.332-5.291 2.332-2.703 0-4.806-1.668-4.806-5.005 0-2.607 1.414-4.382 3.425-5.252 1.743-.77 4.176-.907 6.038-1.117v-.417c0-.768.06-1.675-.392-2.337-.392-.591-1.144-.835-1.807-.835-1.227 0-2.319.63-2.588 1.937-.054.293-.267.582-.56.596l-3.147-.339c-.264-.059-.556-.273-.482-.678C5.947 2.015 8.793 1 11.35 1c1.31 0 3.022.349 4.056 1.341C16.738 3.555 16.62 5.17 16.62 6.91v4.666c0 1.402.581 2.018 1.129 2.775.193.271.235.595-.01.796l-2.595 2.648zm3.675 1.49c-2.958 2.187-7.253 3.35-10.95 3.35-5.18 0-9.843-1.913-13.373-5.098-.277-.25-.03-.592.303-.397 3.808 2.217 8.513 3.55 13.37 3.55 3.278 0 6.88-.679 10.198-2.088.5-.213.92.329.452.683zm1.287-1.47c-.378-.485-2.496-.229-3.449-.115-.29.035-.334-.217-.073-.4 1.689-1.187 4.459-.845 4.783-.447.324.4-.085 3.176-1.668 4.502-.243.204-.474.095-.366-.174.356-.89 1.152-2.882.773-3.366z" fill="#FF9900"/>
     </svg>
   );
@@ -101,11 +99,11 @@ const MOCK_CAMPAIGNS: Campaign[] = [
   { id: 'c8', name: 'Camping Kit — Display', channel: 'amazon', status: 'active', budget_eur: 20, spent_eur: 18.3, revenue_eur: 198, clicks: 430, impressions: 18000, conversions: 15, store: 'OutdoorKit' },
 ];
 
-const CHANNEL_META: Record<Channel, { label: string; color: string; bg: string; Logo: () => React.ReactElement }> = {
-  google:  { label: 'Google Ads',   color: 'text-blue-600',   bg: 'bg-white border border-zinc-100', Logo: GoogleLogo },
-  meta:    { label: 'Meta (FB/IG)', color: 'text-blue-700',   bg: 'bg-white border border-zinc-100', Logo: MetaLogo },
-  tiktok:  { label: 'TikTok Ads',   color: 'text-zinc-900',   bg: 'bg-zinc-900',                     Logo: TikTokLogo },
-  amazon:  { label: 'Amazon Ads',   color: 'text-amber-600',  bg: 'bg-white border border-zinc-100', Logo: AmazonLogo },
+const CHANNEL_META: Record<Channel, { label: string; Logo: () => React.ReactElement }> = {
+  google:  { label: 'Google Ads',   Logo: GoogleLogo },
+  meta:    { label: 'Meta (FB/IG)', Logo: MetaLogo },
+  tiktok:  { label: 'TikTok Ads',  Logo: TikTokLogo },
+  amazon:  { label: 'Amazon Ads',  Logo: AmazonLogo },
 };
 
 function buildChannelSummaries(campaigns: Campaign[]): ChannelSummary[] {
@@ -115,8 +113,6 @@ function buildChannelSummaries(campaigns: Campaign[]): ChannelSummary[] {
     return {
       channel,
       label: m.label,
-      color: m.color,
-      bg: m.bg,
       spent_eur: cc.reduce((s, c) => s + c.spent_eur, 0),
       revenue_eur: cc.reduce((s, c) => s + c.revenue_eur, 0),
       clicks: cc.reduce((s, c) => s + c.clicks, 0),
@@ -158,17 +154,23 @@ function PeriodTabs({ value, onChange }: { value: Period; onChange: (p: Period) 
     { value: 'mtd', label: 'Ce mois' },
   ];
   return (
-    <div className="flex items-center gap-1 bg-zinc-100 rounded-lg p-1">
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--ct-surface-2)', borderRadius: 8, padding: 4, border: '1px solid var(--ct-border)' }}>
       {tabs.map((t) => (
         <button
           key={t.value}
           type="button"
           onClick={() => onChange(t.value)}
-          className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-            value === t.value
-              ? 'bg-white text-zinc-900 shadow-sm'
-              : 'text-zinc-500 hover:text-zinc-700'
-          }`}
+          style={{
+            padding: '4px 12px',
+            borderRadius: 6,
+            fontSize: 12,
+            fontWeight: 500,
+            cursor: 'pointer',
+            border: 'none',
+            background: value === t.value ? 'var(--ct-surface-0)' : 'transparent',
+            color: value === t.value ? 'var(--ct-text-primary)' : 'var(--ct-text-muted)',
+            boxShadow: value === t.value ? '0 1px 3px rgba(0,0,0,0.15)' : 'none',
+          }}
         >
           {t.label}
         </button>
@@ -181,43 +183,51 @@ function ChannelBadge({ channel }: { channel: Channel }) {
   const { Logo } = CHANNEL_META[channel];
   const isTikTok = channel === 'tiktok';
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-semibold border ${
-      isTikTok ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-white border-zinc-200 text-zinc-700'
-    }`}>
-      <span className={isTikTok ? 'text-white' : ''}><Logo /></span>
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 6,
+      padding: '3px 8px',
+      borderRadius: 6,
+      fontSize: 10,
+      fontWeight: 600,
+      border: '1px solid var(--ct-border)',
+      background: isTikTok ? 'var(--ct-surface-0)' : 'var(--ct-surface-2)',
+      color: isTikTok ? 'var(--ct-text-strong)' : 'var(--ct-text-body)',
+    }}>
+      <span style={{ color: isTikTok ? 'var(--ct-text-strong)' : 'inherit' }}><Logo /></span>
       {CHANNEL_META[channel].label.split(' ')[0]}
     </span>
   );
 }
 
 function StatusDot({ status }: { status: Campaign['status'] }) {
-  const map = {
-    active: 'bg-blue-500',
-    paused: 'bg-zinc-400',
-    ended:  'bg-zinc-300',
+  const bg: Record<Campaign['status'], string> = {
+    active: 'var(--ct-accent)',
+    paused: 'var(--ct-border-strong)',
+    ended: 'var(--ct-border)',
   };
-  return <span className={`inline-block w-1.5 h-1.5 rounded-full ${map[status]}`} />;
+  return <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: bg[status] }} />;
 }
 
 function RoasBadge({ value }: { value: number }) {
-  const r = value;
-  const cls = r >= 1.5 ? 'text-blue-600' : 'text-zinc-400';
-  const Icon = r >= 1.5 ? TrendingUp : TrendingDown;
+  const good = value >= 1.5;
+  const Icon = good ? TrendingUp : TrendingDown;
   return (
-    <span className={`inline-flex items-center gap-1 text-xs font-semibold tabular-nums ${cls}`}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: good ? 'var(--ct-accent)' : 'var(--ct-text-faint)' }}>
       <Icon size={11} strokeWidth={2} />
-      ×{r.toFixed(2)}
+      &times;{value.toFixed(2)}
     </span>
   );
 }
 
 function ConnectBanner({ channel }: { channel: string }) {
   return (
-    <div className="flex items-center gap-2 px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs text-zinc-500">
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', background: 'var(--ct-surface-1)', border: '1px solid var(--ct-border)', borderRadius: 12, fontSize: 12, color: 'var(--ct-text-muted)' }}>
       <AlertCircle size={14} strokeWidth={1.75} />
       <span>
-        <strong className="font-semibold text-zinc-700">{channel}</strong> — compte non connecté. Configure la clé API dans{' '}
-        <a href="/admin/settings" className="underline underline-offset-2 text-blue-600">Réglages</a>.
+        <strong style={{ fontWeight: 600, color: 'var(--ct-text-body)' }}>{channel}</strong> — compte non connect&eacute;. Configure la cl&eacute; API dans{' '}
+        <a href="/admin/settings" style={{ textDecoration: 'underline', textUnderlineOffset: 2, color: 'var(--ct-accent)' }}>R&eacute;glages</a>.
       </span>
     </div>
   );
@@ -237,163 +247,169 @@ export default function MarketingPage() {
   const totalRevenue = campaigns.reduce((s, c) => s + c.revenue_eur, 0);
   const totalConversions = campaigns.reduce((s, c) => s + c.conversions, 0);
   const totalClicks = campaigns.reduce((s, c) => s + c.clicks, 0);
-  const totalImpressions = campaigns.reduce((s, c) => s + c.impressions, 0);
   const activeCampaigns = campaigns.filter((c) => c.status === 'active').length;
 
   return (
-    <div className="flex flex-col flex-1 space-y-4">
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, gap: 16 }}>
       {/* Mock data warning banner */}
-      <div className="flex items-center gap-2.5 border border-amber-200 bg-amber-50 rounded-xl px-4 py-3 text-xs text-amber-700">
-        <AlertCircle size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, border: '1px solid var(--ct-warning-border)', background: 'var(--ct-warning-soft)', borderRadius: 12, padding: '10px 16px', fontSize: 12, color: 'var(--ct-warning-text)' }}>
+        <AlertCircle size={14} strokeWidth={1.75} style={{ flexShrink: 0 }} aria-hidden />
         <span>
-          <strong className="font-semibold">Données mockées</strong> — connecte Google Ads, Meta Graph API, TikTok Business API et Amazon Ads dans{' '}
-          <a href="/admin/settings" className="underline underline-offset-2 font-medium">Réglages</a>{' '}
-          pour afficher les vraies métriques.
+          <strong style={{ fontWeight: 600 }}>Donn&eacute;es mock&eacute;es</strong> — connecte Google Ads, Meta Graph API, TikTok Business API et Amazon Ads dans{' '}
+          <a href="/admin/settings" style={{ textDecoration: 'underline', textUnderlineOffset: 2, fontWeight: 500, color: 'inherit' }}>R&eacute;glages</a>{' '}
+          pour afficher les vraies m&eacute;triques.
         </span>
       </div>
       <PageHeader
-        kicker="Marketing · Pub payante"
+        kicker="Marketing · Pub pay&eacute;e"
         title={
           <>
-            Campagnes <em className="italic text-zinc-400">& revenus</em>
+            Campagnes <em style={{ fontStyle: 'italic', color: 'var(--ct-text-muted)' }}>&amp; revenus</em>
           </>
         }
-        lede="Vue consolidée de toutes les campagnes actives — Google, Meta, TikTok, Amazon. Dépenses, revenus, ROAS et conversions en temps réel."
+        lede="Vue consolid&eacute;e de toutes les campagnes actives — Google, Meta, TikTok, Amazon. D&eacute;penses, revenus, ROAS et conversions en temps r&eacute;el."
         actions={
-          <div className="flex items-center gap-3">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <PeriodTabs value={period} onChange={setPeriod} />
-            <Button
-              variant="primary"
-              size="sm"
-              leading={<Plus size={13} strokeWidth={2} />}
+            <button
+              type="button"
+              className="ct-seg-btn primary"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '5px 12px' }}
             >
+              <Plus size={13} strokeWidth={2} aria-hidden />
               Nouvelle campagne
-            </Button>
+            </button>
           </div>
         }
       />
 
       {/* KPIs globaux */}
-      <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-        <StatCard label="Dépensé" value={fmtEur(totalSpent)} tone="neutral" />
-        <StatCard label="Revenus" value={fmtEur(totalRevenue)} tone={totalRevenue > totalSpent ? 'emerald' : 'neutral'} />
-        <StatCard label="ROAS global" value={roas(totalRevenue, totalSpent)} hint="revenue / dépense" tone={totalRevenue / totalSpent >= 2 ? 'emerald' : 'neutral'} />
-        <StatCard label="Conversions" value={fmtNum(totalConversions)} hint={`CPA moy. ${cpa(totalSpent, totalConversions)}`} />
-        <StatCard label="Clics" value={fmtNum(totalClicks)} hint={`CTR ${ctr(totalClicks, totalImpressions)}`} />
-        <StatCard label="Campagnes actives" value={String(activeCampaigns)} tone={activeCampaigns > 0 ? 'emerald' : 'neutral'} />
-      </section>
+      <KpiGrid>
+        <KpiCard label="D&eacute;pens&eacute;" value={fmtEur(totalSpent)} />
+        <KpiCard label="Revenus" value={fmtEur(totalRevenue)} accent={totalRevenue > totalSpent} />
+        <KpiCard label="ROAS global" value={roas(totalRevenue, totalSpent)} accent={totalRevenue / totalSpent >= 2} />
+        <KpiCard label="Conversions" value={fmtNum(totalConversions)} />
+        <KpiCard label="Clics" value={fmtNum(totalClicks)} />
+        <KpiCard label="Campagnes actives" value={String(activeCampaigns)} accent={activeCampaigns > 0} />
+      </KpiGrid>
 
       {/* Par canal */}
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
         {summaries.map((s) => {
           const { Logo } = CHANNEL_META[s.channel];
           const isTikTok = s.channel === 'tiktok';
           return (
-          <div key={s.channel} className="bg-white border border-zinc-200 rounded-xl p-4 shadow-sm space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <span className={`w-8 h-8 rounded-lg ${s.bg} flex items-center justify-center shadow-sm ${isTikTok ? 'text-white' : ''}`}>
-                  <Logo />
-                </span>
-                <span className="text-sm font-semibold text-zinc-900">{s.label}</span>
+            <div key={s.channel} style={{ background: 'var(--ct-surface-1)', border: '1px solid var(--ct-border)', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ width: 32, height: 32, borderRadius: 8, background: isTikTok ? 'var(--ct-surface-0)' : 'var(--ct-surface-2)', border: '1px solid var(--ct-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isTikTok ? 'var(--ct-text-strong)' : 'inherit' }}>
+                    <Logo />
+                  </span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ct-text-primary)' }}>{s.label}</span>
+                </div>
+                {s.connected ? (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--ct-accent)', fontWeight: 500 }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--ct-accent)' }} /> Connect&eacute;
+                  </span>
+                ) : (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--ct-text-faint)', fontWeight: 500 }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--ct-border-strong)' }} /> Non connect&eacute;
+                  </span>
+                )}
               </div>
-              {s.connected ? (
-                <span className="flex items-center gap-1 text-[10px] text-blue-600 font-medium">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> Connecté
-                </span>
-              ) : (
-                <span className="flex items-center gap-1 text-[10px] text-zinc-400 font-medium">
-                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-300" /> Non connecté
-                </span>
-              )}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 12 }}>
+                <div>
+                  <p style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--ct-text-faint)' }}>D&eacute;pens&eacute;</p>
+                  <p style={{ fontWeight: 600, color: 'var(--ct-text-primary)', fontVariantNumeric: 'tabular-nums' }}>{fmtEur(s.spent_eur)}</p>
+                </div>
+                <div>
+                  <p style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--ct-text-faint)' }}>Revenus</p>
+                  <p style={{ fontWeight: 600, color: 'var(--ct-text-primary)', fontVariantNumeric: 'tabular-nums' }}>{fmtEur(s.revenue_eur)}</p>
+                </div>
+                <div>
+                  <p style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--ct-text-faint)' }}>ROAS</p>
+                  <RoasBadge value={s.spent_eur > 0 ? s.revenue_eur / s.spent_eur : 0} />
+                </div>
+                <div>
+                  <p style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--ct-text-faint)' }}>Campagnes</p>
+                  <p style={{ fontWeight: 600, color: 'var(--ct-text-primary)' }}>{s.campaigns_active} actives</p>
+                </div>
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div>
-                <p className="text-zinc-400 text-[10px] uppercase tracking-wide">Dépensé</p>
-                <p className="font-semibold text-zinc-900 tabular-nums">{fmtEur(s.spent_eur)}</p>
-              </div>
-              <div>
-                <p className="text-zinc-400 text-[10px] uppercase tracking-wide">Revenus</p>
-                <p className="font-semibold text-zinc-900 tabular-nums">{fmtEur(s.revenue_eur)}</p>
-              </div>
-              <div>
-                <p className="text-zinc-400 text-[10px] uppercase tracking-wide">ROAS</p>
-                <RoasBadge value={s.spent_eur > 0 ? s.revenue_eur / s.spent_eur : 0} />
-              </div>
-              <div>
-                <p className="text-zinc-400 text-[10px] uppercase tracking-wide">Campagnes</p>
-                <p className="font-semibold text-zinc-900">{s.campaigns_active} actives</p>
-              </div>
-            </div>
-          </div>
           );
         })}
       </section>
 
       {/* Filtre canal */}
-      <div className="flex items-center gap-2">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         {(['all', 'google', 'meta', 'tiktok', 'amazon'] as const).map((c) => (
           <button
             key={c}
             type="button"
             onClick={() => setChannelFilter(c)}
-            className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-              channelFilter === c
-                ? 'bg-blue-600 text-white'
-                : 'bg-white border border-zinc-200 text-zinc-500 hover:border-zinc-300'
-            }`}
+            style={{
+              padding: '4px 12px',
+              borderRadius: 8,
+              fontSize: 12,
+              fontWeight: 500,
+              cursor: 'pointer',
+              border: '1px solid var(--ct-border)',
+              background: channelFilter === c ? 'var(--ct-accent)' : 'var(--ct-surface-1)',
+              color: channelFilter === c ? '#fff' : 'var(--ct-text-muted)',
+              transition: 'background 150ms, color 150ms',
+            }}
           >
             {c === 'all' ? 'Tous' : c === 'google' ? 'Google' : c === 'meta' ? 'Meta' : c === 'tiktok' ? 'TikTok' : 'Amazon'}
           </button>
         ))}
-        <span className="text-xs text-zinc-400 ml-2">{filtered.length} campagne{filtered.length > 1 ? 's' : ''}</span>
+        <span style={{ fontSize: 12, color: 'var(--ct-text-faint)', marginLeft: 8 }}>{filtered.length} campagne{filtered.length > 1 ? 's' : ''}</span>
       </div>
 
       {/* Tableau campagnes */}
-      <section className="flex-1 min-h-0 bg-white border border-zinc-200 rounded-xl overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead className="bg-zinc-50/80 border-b border-zinc-100 text-[10px] uppercase tracking-wider text-zinc-400">
+      <section style={{ flex: 1, minHeight: 0, background: 'var(--ct-surface-1)', border: '1px solid var(--ct-border)', borderRadius: 12, overflow: 'hidden' }}>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
+            <thead style={{ background: 'var(--ct-surface-2)', borderBottom: '1px solid var(--ct-border)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--ct-text-faint)' }}>
               <tr>
-                <th className="text-left px-4 py-2.5 font-medium">Campagne</th>
-                <th className="text-left px-3 py-2.5 font-medium">Canal</th>
-                <th className="text-left px-3 py-2.5 font-medium">Store</th>
-                <th className="text-right px-3 py-2.5 font-medium">Budget</th>
-                <th className="text-right px-3 py-2.5 font-medium">Dépensé</th>
-                <th className="text-right px-3 py-2.5 font-medium">Revenus</th>
-                <th className="text-right px-3 py-2.5 font-medium">ROAS</th>
-                <th className="text-right px-3 py-2.5 font-medium">Conv.</th>
-                <th className="text-right px-3 py-2.5 font-medium">CPA</th>
-                <th className="text-right px-3 py-2.5 font-medium">Clics</th>
-                <th className="text-right px-3 py-2.5 font-medium">CTR</th>
-                <th className="px-3 py-2.5" />
+                <th style={{ textAlign: 'left', padding: '10px 16px', fontWeight: 500 }}>Campagne</th>
+                <th style={{ textAlign: 'left', padding: '10px 12px', fontWeight: 500 }}>Canal</th>
+                <th style={{ textAlign: 'left', padding: '10px 12px', fontWeight: 500 }}>Store</th>
+                <th style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 500 }}>Budget</th>
+                <th style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 500 }}>D&eacute;pens&eacute;</th>
+                <th style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 500 }}>Revenus</th>
+                <th style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 500 }}>ROAS</th>
+                <th style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 500 }}>Conv.</th>
+                <th style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 500 }}>CPA</th>
+                <th style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 500 }}>Clics</th>
+                <th style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 500 }}>CTR</th>
+                <th style={{ padding: '10px 12px' }} />
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody>
               {filtered.map((c) => (
-                <tr key={c.id} className="hover:bg-blue-50/30 transition-colors group">
-                  <td className="px-4 py-2.5">
-                    <div className="flex items-center gap-2">
+                <tr key={c.id} style={{ borderTop: '1px solid var(--ct-border-soft)' }}>
+                  <td style={{ padding: '10px 16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <StatusDot status={c.status} />
-                      <span className="font-medium text-zinc-800 leading-tight">{c.name}</span>
+                      <span style={{ fontWeight: 500, color: 'var(--ct-text-primary)' }}>{c.name}</span>
                     </div>
                   </td>
-                  <td className="px-3 py-2.5"><ChannelBadge channel={c.channel} /></td>
-                  <td className="px-3 py-2.5 text-zinc-500">{c.store}</td>
-                  <td className="px-3 py-2.5 text-right tabular-nums text-zinc-500">{fmtEur(c.budget_eur)}/j</td>
-                  <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-zinc-900">{fmtEur(c.spent_eur)}</td>
-                  <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-blue-600">{fmtEur(c.revenue_eur)}</td>
-                  <td className="px-3 py-2.5 text-right">
+                  <td style={{ padding: '10px 12px' }}><ChannelBadge channel={c.channel} /></td>
+                  <td style={{ padding: '10px 12px', color: 'var(--ct-text-muted)' }}>{c.store}</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--ct-text-muted)' }}>{fmtEur(c.budget_eur)}/j</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: 'var(--ct-text-primary)' }}>{fmtEur(c.spent_eur)}</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: 'var(--ct-accent)' }}>{fmtEur(c.revenue_eur)}</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'right' }}>
                     <RoasBadge value={c.spent_eur > 0 ? c.revenue_eur / c.spent_eur : 0} />
                   </td>
-                  <td className="px-3 py-2.5 text-right tabular-nums text-zinc-900">{c.conversions}</td>
-                  <td className="px-3 py-2.5 text-right tabular-nums text-zinc-500">{cpa(c.spent_eur, c.conversions)}</td>
-                  <td className="px-3 py-2.5 text-right tabular-nums text-zinc-500">{fmtNum(c.clicks)}</td>
-                  <td className="px-3 py-2.5 text-right tabular-nums text-zinc-400">{ctr(c.clicks, c.impressions)}</td>
-                  <td className="px-3 py-2.5 text-right">
+                  <td style={{ padding: '10px 12px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--ct-text-primary)' }}>{c.conversions}</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--ct-text-muted)' }}>{cpa(c.spent_eur, c.conversions)}</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--ct-text-muted)' }}>{fmtNum(c.clicks)}</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--ct-text-faint)' }}>{ctr(c.clicks, c.impressions)}</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'right' }}>
                     <button
                       type="button"
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-zinc-100 text-zinc-400 hover:text-zinc-600"
+                      style={{ padding: 4, borderRadius: 4, border: 'none', background: 'transparent', color: 'var(--ct-text-faint)', cursor: 'pointer' }}
                       title="Ouvrir dans la plateforme"
                     >
                       <ExternalLink size={12} strokeWidth={1.75} />
@@ -402,32 +418,32 @@ export default function MarketingPage() {
                 </tr>
               ))}
             </tbody>
-            <tfoot className="bg-zinc-50/80 border-t border-zinc-200 text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
+            <tfoot style={{ background: 'var(--ct-surface-2)', borderTop: '1px solid var(--ct-border)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--ct-text-muted)', fontWeight: 600 }}>
               <tr>
-                <td className="px-4 py-2.5 text-zinc-400" colSpan={4}>Total · {filtered.length} campagnes</td>
-                <td className="px-3 py-2.5 text-right tabular-nums text-zinc-900">
+                <td style={{ padding: '10px 16px', color: 'var(--ct-text-faint)' }} colSpan={4}>Total &middot; {filtered.length} campagnes</td>
+                <td style={{ padding: '10px 12px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--ct-text-primary)' }}>
                   {fmtEur(filtered.reduce((s, c) => s + c.spent_eur, 0))}
                 </td>
-                <td className="px-3 py-2.5 text-right tabular-nums text-blue-700">
+                <td style={{ padding: '10px 12px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--ct-accent)' }}>
                   {fmtEur(filtered.reduce((s, c) => s + c.revenue_eur, 0))}
                 </td>
-                <td className="px-3 py-2.5 text-right">
+                <td style={{ padding: '10px 12px', textAlign: 'right' }}>
                   {(() => {
                     const s = filtered.reduce((a, c) => a + c.spent_eur, 0);
                     const r = filtered.reduce((a, c) => a + c.revenue_eur, 0);
                     return <RoasBadge value={s > 0 ? r / s : 0} />;
                   })()}
                 </td>
-                <td className="px-3 py-2.5 text-right tabular-nums text-zinc-900">
+                <td style={{ padding: '10px 12px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--ct-text-primary)' }}>
                   {filtered.reduce((s, c) => s + c.conversions, 0)}
                 </td>
-                <td className="px-3 py-2.5 text-right tabular-nums text-zinc-500">
+                <td style={{ padding: '10px 12px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--ct-text-muted)' }}>
                   {cpa(filtered.reduce((s, c) => s + c.spent_eur, 0), filtered.reduce((s, c) => s + c.conversions, 0))}
                 </td>
-                <td className="px-3 py-2.5 text-right tabular-nums text-zinc-500">
+                <td style={{ padding: '10px 12px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--ct-text-muted)' }}>
                   {fmtNum(filtered.reduce((s, c) => s + c.clicks, 0))}
                 </td>
-                <td className="px-3 py-2.5 text-right tabular-nums text-zinc-400">
+                <td style={{ padding: '10px 12px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--ct-text-faint)' }}>
                   {ctr(filtered.reduce((s, c) => s + c.clicks, 0), filtered.reduce((s, c) => s + c.impressions, 0))}
                 </td>
                 <td />
@@ -439,15 +455,15 @@ export default function MarketingPage() {
 
       {/* Banner non connectés */}
       {summaries.filter((s) => !s.connected).length > 0 && (
-        <div className="space-y-2">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {summaries.filter((s) => !s.connected).map((s) => (
             <ConnectBanner key={s.channel} channel={s.label} />
           ))}
         </div>
       )}
 
-      <p className="text-[10px] text-zinc-400 text-center pb-1">
-        Données mockées — connecte Google Ads, Meta Graph API, TikTok Business API et Amazon Ads API dans Réglages pour afficher les vraies métriques.
+      <p style={{ fontSize: 10, color: 'var(--ct-text-faint)', textAlign: 'center', paddingBottom: 4 }}>
+        Donn&eacute;es mock&eacute;es — connecte Google Ads, Meta Graph API, TikTok Business API et Amazon Ads API dans R&eacute;glages pour afficher les vraies m&eacute;triques.
       </p>
     </div>
   );

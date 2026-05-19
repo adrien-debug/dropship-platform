@@ -186,36 +186,3 @@ Return ONLY this JSON, no surrounding prose:
 }`;
 }
 
-export async function listAdVariantsForStore(storeId: string): Promise<AdVariant[]> {
-  const db = getDb();
-  const { rows } = await db.query<{
-    id: string;
-    store_id: string;
-    product_id: string;
-    batch_id: string;
-    channel: AdChannel;
-    headline: string;
-    primary_text: string;
-    description: string | null;
-    cta: string | null;
-    created_at: string;
-  }>(
-    `SELECT id, store_id, product_id, batch_id, channel, headline, primary_text, description, cta, created_at
-       FROM dropship_ad_variants
-      WHERE store_id = $1
-      ORDER BY created_at DESC`,
-    [storeId],
-  );
-  return rows.map((r) => ({
-    id: r.id,
-    storeId: r.store_id,
-    productId: r.product_id,
-    batchId: r.batch_id,
-    channel: r.channel,
-    headline: r.headline,
-    primaryText: r.primary_text,
-    description: r.description,
-    cta: r.cta,
-    createdAt: r.created_at,
-  }));
-}

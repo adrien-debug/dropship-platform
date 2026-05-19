@@ -16,8 +16,14 @@ export default async function CheckoutPage() {
     return (
       <StoreShell store={store}>
         <div className="max-w-3xl mx-auto px-4 py-16 text-center">
-          <h1 className="text-2xl font-bold">Votre panier est vide</h1>
-          <Link href={boutiqueHref} className="mt-4 inline-block underline">
+          <h1 className="ct-title">
+            Votre panier est vide
+          </h1>
+          <Link
+            href={boutiqueHref}
+            className="mt-4 inline-block underline"
+            style={{ color: 'var(--ct-text-body, rgba(245,245,245,0.72))' }}
+          >
             Retour boutique
           </Link>
         </div>
@@ -47,7 +53,9 @@ export default async function CheckoutPage() {
     <StoreShell store={store}>
       <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 grid grid-cols-1 lg:grid-cols-2 gap-10">
         <div>
-          <h1 className="text-3xl font-bold mb-6">Checkout</h1>
+          <h1 className="ct-title mb-6">
+            Checkout
+          </h1>
           <CheckoutForm
             cart={cart}
             shippingOptions={shippingOptions}
@@ -56,19 +64,40 @@ export default async function CheckoutPage() {
             stripePublishableKey={stripePublishableKey}
           />
         </div>
-        <aside className="border rounded-lg p-6 h-fit space-y-3 text-sm">
-          <h2 className="font-semibold mb-2">Récapitulatif</h2>
+        <aside
+          className="rounded-lg p-6 h-fit space-y-3 text-sm border"
+          style={{
+            backgroundColor: 'var(--ct-surface-1, rgba(255,255,255,0.04))',
+            borderColor: 'var(--ct-border, rgba(255,255,255,0.10))',
+            color: 'var(--ct-text-body, rgba(245,245,245,0.72))',
+          }}
+        >
+          <h2
+            className="font-semibold mb-2"
+            style={{ color: 'var(--ct-text-strong, #fff)' }}
+          >
+            Récapitulatif
+          </h2>
           {cart.items.map((it) => (
             <div key={it.id} className="flex justify-between">
               <span>{it.title} × {it.quantity}</span>
               <span>{formatMoney(it.total, cart.currency_code)}</span>
             </div>
           ))}
-          <hr />
+          <hr style={{ borderColor: 'var(--ct-border-soft, rgba(255,255,255,0.06))' }} />
           <div className="flex justify-between"><span>Sous-total</span><span>{formatMoney(cart.subtotal, cart.currency_code)}</span></div>
           <div className="flex justify-between"><span>Livraison</span><span>{formatMoney(cart.shipping_total, cart.currency_code)}</span></div>
           {cart.tax_total ? <div className="flex justify-between"><span>TVA</span><span>{formatMoney(cart.tax_total, cart.currency_code)}</span></div> : null}
-          <div className="flex justify-between font-semibold border-t pt-2"><span>Total</span><span>{formatMoney(cart.total, cart.currency_code)}</span></div>
+          <div
+            className="flex justify-between font-semibold border-t pt-2"
+            style={{
+              borderColor: 'var(--ct-border, rgba(255,255,255,0.10))',
+              color: 'var(--ct-text-strong, #fff)',
+            }}
+          >
+            <span>Total</span>
+            <span>{formatMoney(cart.total, cart.currency_code)}</span>
+          </div>
         </aside>
       </section>
     </StoreShell>

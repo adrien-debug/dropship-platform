@@ -84,18 +84,18 @@ export default async function TemplatePreviewPage({
     return (
       <>
         <PreviewBar entry={entry} id={id} />
-        <main className="min-h-[60vh] flex items-center justify-center bg-zinc-50 px-6">
-          <div className="max-w-md text-center space-y-3">
-            <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 font-semibold">
+        <main style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--ct-surface-1)', padding: '0 24px' }}>
+          <div style={{ maxWidth: 480, textAlign: 'center' }}>
+            <p style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'var(--ct-text-muted)', fontWeight: 600 }}>
               {id}
             </p>
-            <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
-              Pas de preview dédié
+            <h1 className="ct-title" style={{ marginTop: 8 }}>
+              Pas de preview d&eacute;di&eacute;
             </h1>
-            <p className="text-sm text-zinc-600 leading-relaxed">
-              Ce template ({entry.label}) utilise le rendu par défaut du
-              storefront. Pour le voir en contexte, assigne-le à une boutique
-              réelle depuis ses réglages.
+            <p style={{ marginTop: 8, fontSize: 13, color: 'var(--ct-text-body)', lineHeight: 1.6 }}>
+              Ce template ({entry.label}) utilise le rendu par d&eacute;faut du
+              storefront. Pour le voir en contexte, assigne-le &agrave; une boutique
+              r&eacute;elle depuis ses r&eacute;glages.
             </p>
           </div>
         </main>
@@ -113,21 +113,21 @@ export default async function TemplatePreviewPage({
 
 function PreviewBar({ entry, id }: { entry: NonNullable<ReturnType<typeof getTemplateEntry>>; id: string }) {
   return (
-    <div className="sticky top-0 z-[200] bg-indigo-600 text-white border-b border-indigo-700">
-      <div className="max-w-screen-2xl mx-auto px-4 py-2 flex items-center justify-between gap-3 text-xs">
-        <div className="flex items-center gap-3 min-w-0">
-          <span className="font-semibold uppercase tracking-[0.16em]">Preview</span>
-          <span className="text-indigo-200">·</span>
-          <span className="truncate">{entry.label}</span>
-          <code className="hidden sm:inline text-indigo-200/80 font-mono ml-2">{id}</code>
+    <div style={{ position: 'sticky', top: 0, zIndex: 200, background: 'var(--ct-surface-0)', borderBottom: '1px solid var(--ct-border)' }}>
+      <div style={{ maxWidth: '96rem', margin: '0 auto', padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontSize: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+          <span style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--ct-accent)' }}>Preview</span>
+          <span style={{ color: 'var(--ct-text-faint)' }}>&middot;</span>
+          <span style={{ color: 'var(--ct-text-body)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{entry.label}</span>
+          <code style={{ fontFamily: 'monospace', fontSize: 10, color: 'var(--ct-text-faint)', marginLeft: 8 }}>{id}</code>
         </div>
-        <div className="flex items-center gap-4">
-          <span className="hidden md:inline text-indigo-200">Données fictives</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
+          <span style={{ fontSize: 11, color: 'var(--ct-text-faint)' }}>Donn&eacute;es fictives</span>
           <Link
             href="/admin/templates"
-            className="bg-white/15 hover:bg-white/25 rounded px-3 py-1 font-medium transition-colors"
+            style={{ background: 'var(--ct-surface-2)', border: '1px solid var(--ct-border)', borderRadius: 6, padding: '4px 12px', fontWeight: 500, color: 'var(--ct-text-muted)', textDecoration: 'none', fontSize: 12 }}
           >
-            ← Catalogue
+            &larr; Catalogue
           </Link>
         </div>
       </div>

@@ -2,10 +2,16 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getDbRead } from '@/lib/db';
 import { StoreLogo } from '@/components/ui';
-import { StoreTabs } from './StoreTabs';
+import { StoreTabsBar } from './_components/StoreTabsBar';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * Store layout — Cockpit migration notes:
+ *   - Per-store nav rendered via StoreTabsBar (Cockpit tokens).
+ *   - Breadcrumb kept (lightweight, context-useful).
+ *   - Data fetch (store name/slug/status) preserved for breadcrumb + StoreTabsBar.
+ */
 export default async function StoreLayout({
   children,
   params,
@@ -26,22 +32,44 @@ export default async function StoreLayout({
   if (!store) notFound();
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 gap-3">
-      <div className="flex items-center gap-2 text-sm shrink-0">
-        <Link href="/admin/stores" className="text-zinc-400 hover:text-zinc-900 transition-colors">
+    <div className="flex flex-col flex-1 min-h-0 gap-4">
+      {/* Breadcrumb — re-skinned with --ct-* tokens */}
+      <nav
+        style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          fontSize: 13, flexShrink: 0,
+        }}
+        aria-label="Fil d'Ariane"
+      >
+        <Link
+          href="/admin/stores"
+          style={{ color: 'var(--ct-text-muted)', textDecoration: 'none', transition: 'color var(--ct-dur-base)' }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--ct-text-primary)'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--ct-text-muted)'; }}
+        >
           ← Stores
         </Link>
-        <span className="text-zinc-300">/</span>
-        <span className="text-zinc-500 inline-flex"><StoreLogo emoji={store.logo_emoji} size={16} /></span>
-        <span className="font-medium text-zinc-900 truncate">{store.name}</span>
+        <span style={{ color: 'var(--ct-border-strong)' }}>/</span>
+        <span style={{ color: 'var(--ct-text-muted)', display: 'inline-flex' }}>
+          <StoreLogo emoji={store.logo_emoji} size={16} />
+        </span>
+        <span style={{ fontWeight: 500, color: 'var(--ct-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {store.name}
+        </span>
         {store.status !== 'active' && (
-          <span className="text-xs px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full font-medium">
+          <span style={{
+            fontSize: 11, padding: '2px 8px',
+            background: 'var(--ct-accent-soft)',
+            color: 'var(--ct-accent-strong)',
+            borderRadius: 9999, fontWeight: 500,
+            border: '1px solid var(--ct-border-accent)',
+          }}>
             {store.status}
           </span>
         )}
-      </div>
+      </nav>
 
-      <StoreTabs storeId={store.id} storeSlug={store.slug} />
+      <StoreTabsBar storeId={store.id} />
 
       <div className="flex-1 min-h-0 flex flex-col">{children}</div>
     </div>

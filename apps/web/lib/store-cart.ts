@@ -39,7 +39,7 @@ async function resolveStoreContext(slug: string | undefined): Promise<StoreConte
  * second add-to-cart would either fail or silently mix products from two
  * stores together (and Medusa wouldn't even price them correctly).
  */
-export async function getOrCreateCart(slug?: string): Promise<StoreCart> {
+async function getOrCreateCart(slug?: string): Promise<StoreCart> {
   if (!storefrontEnabled()) throw new Error('Storefront non configuré');
   const ctx = await resolveStoreContext(slug);
   const existing = await getCartId();

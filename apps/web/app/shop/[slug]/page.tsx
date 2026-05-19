@@ -351,7 +351,7 @@ function StorePreparing({ store }: { store: import('@/lib/store-config').StoreCo
     <main className="min-h-screen flex flex-col items-center justify-center bg-zinc-950 text-white px-6">
       <div className="max-w-md text-center space-y-6">
         <div className="text-5xl">{store.logoEmoji || '🛍️'}</div>
-        <h1 className="text-3xl font-bold tracking-tight">{store.name}</h1>
+        <h2 className="text-3xl font-bold tracking-tight">{store.name}</h2>
         <p className="text-zinc-400 text-lg">
           Votre boutique est en cours de préparation.
           Revenez dans quelques minutes.

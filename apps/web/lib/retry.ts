@@ -103,22 +103,3 @@ export async function retry<T>(
   // Should never reach here, but TypeScript needs it
   throw lastError;
 }
-
-/**
- * Retry wrapper specifically for fetch() calls.
- * Wraps non-ok Responses in an error so the retry logic can inspect status codes.
- */
-export async function retryFetch(
-  input: RequestInfo | URL,
-  init?: RequestInit,
-  opts?: RetryOptions,
-): Promise<Response> {
-  return retry(async () => {
-    const res = await fetch(input, init);
-    if (!res.ok) {
-      // Clone so the caller can still read the body
-      throw res.clone();
-    }
-    return res;
-  }, opts);
-}

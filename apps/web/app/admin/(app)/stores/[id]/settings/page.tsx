@@ -44,11 +44,11 @@ export default async function StoreSettingsPage({ params }: { params: Promise<{ 
   if (!store) notFound();
 
   return (
-    <div className="flex flex-col flex-1 space-y-4">
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, gap: 16 }}>
       <PageHeader
-        kicker="Réglages"
-        title={<span>Configuration <em className="italic text-zinc-400">du store</em></span>}
-        lede="Rendu, domaine et tokens analytics. Tous les changements sont instantanés, sans rebuild."
+        kicker="R&eacute;glages"
+        title={<span>Configuration <em style={{ fontStyle: 'italic', color: 'var(--ct-text-muted)' }}>du store</em></span>}
+        lede="Rendu, domaine et tokens analytics. Tous les changements sont instantan&eacute;s, sans rebuild."
       />
 
       <StoreTemplateForm
